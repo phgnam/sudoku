@@ -1,0 +1,205 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "signIn": "Đăng nhập",
+    "signUp": "Đăng ký",
+    "signOut": "Đăng xuất",
+    "cancel": "Hủy",
+    "start": "Bắt đầu",
+    "backToHome": "← Về trang chủ",
+    "theme": "Giao diện",
+    "or": "hoặc",
+    "soundOn": "Âm thanh Bật",
+    "soundOff": "Âm thanh Tắt",
+    "lightMode": "Chuyển sang chế độ Sáng",
+    "darkMode": "Chuyển sang chế độ Tối"
+  },
+  "home": {
+    "title": "Sudoku Premium",
+    "subtitle": "Thử thách bản thân với các câu đố Sudoku cao cấp",
+    "playingAsGuest": "Đang chơi với tư cách Khách",
+    "signedIn": "Đã đăng nhập",
+    "toSaveProgress": "để lưu tiến trình",
+    "viewStats": "Xem thống kê",
+    "startGame": "Bắt đầu chơi",
+    "difficulty": {
+      "easy": "Dễ",
+      "normal": "Trung bình",
+      "hard": "Khó",
+      "easyDesc": "Hoàn hảo cho người mới",
+      "normalDesc": "Thử thách vừa phải",
+      "hardDesc": "Cấp độ chuyên gia",
+      "normalLocked": "Hoàn thành 3 ván Dễ",
+      "hardLocked": "Hoàn thành 3 ván Trung bình",
+      "easyCells": "Xóa 30-40 ô",
+      "normalCells": "Xóa 41-50 ô",
+      "hardCells": "Xóa 51-60 ô"
+    }
+  },
+  "game": {
+    "loadingGame": "Đang tải trò chơi...",
+    "difficulty": "Độ khó",
+    "mistakes": "Lỗi",
+    "newGame": "Ván mới",
+    "newGameConfirm": {
+      "title": "Bắt đầu game mới?",
+      "message": "Tiến trình game hiện tại sẽ bị mất. Bạn có chắc muốn bắt đầu game mới không?"
+    },
+    "hint": {
+      "onlyNumber": "💡 Ô này chỉ có thể điền số {value}!",
+      "filled": "✅ Đã điền số {value}!",
+      "rowHas": "Hàng {row} đã có: {values}",
+      "colHas": "Cột {col} đã có: {values}",
+      "boxHas": "Ô 3×3 ({boxRow},{boxCol}) đã có: {values}",
+      "eliminate": "Loại trừ {values} → Chỉ còn số {value}!",
+      "step": "Bước {current}/{total}",
+      "fillNumber": "Điền số",
+      "next": "Tiếp theo →"
+    },
+    "controls": {
+      "undo": "Hoàn tác",
+      "hint": "Gợi ý",
+      "erase": "Xóa",
+      "notes": "Ghi chú"
+    },
+    "modal": {
+      "success": {
+        "title": "Chúc mừng!",
+        "subtitle": "Bạn đã hoàn thành Sudoku!",
+        "difficulty": "Độ khó",
+        "time": "Thời gian",
+        "hintsUsed": "Gợi ý đã dùng",
+        "mistakes": "Lỗi sai",
+        "perfect": "Hoàn hảo!",
+        "playAgain": "🎮 Chơi lại",
+        "backToHome": "🏠 Về trang chủ"
+      },
+      "failure": {
+        "title": "Game Over",
+        "subtitle": "Bạn đã sai 3 lần. Đừng bỏ cuộc!",
+        "tip": "💡 <strong>Mẹo:</strong> Hãy sử dụng gợi ý khi cần và suy nghĩ kỹ trước mỗi nước đi!",
+        "tryAgain": "🔄 Thử lại",
+        "backToHome": "🏠 Về trang chủ"
+      }
+    },
+    "tutorial": {
+      "step": "Bước {current} / {total}",
+      "skip": "Bỏ qua",
+      "previous": "← Trước",
+      "next": "Tiếp theo →",
+      "startPlaying": "🎮 Bắt đầu chơi!",
+      "steps": {
+        "welcome": {
+          "title": "Chào mừng đến với Sudoku!",
+          "content": "Điền vào lưới 9×9 sao cho mỗi hàng, cột và ô 3×3 chứa các số từ 1-9, mỗi số chỉ xuất hiện một lần."
+        },
+        "selectCell": {
+          "title": "Chọn ô",
+          "content": "Nhấp vào bất kỳ ô trống nào để chọn. Ô được chọn sẽ được đánh dấu."
+        },
+        "enterNumber": {
+          "title": "Nhập số",
+          "content": "Sử dụng bàn phím số bên dưới để nhập số vào ô đã chọn. Nhấn nút ✕ để xóa."
+        },
+        "notes": {
+          "title": "Ghi chú",
+          "content": "Bật chế độ ghi chú (✏️) để đánh dấu các số có thể trong ô. Hữu ích khi suy luận!"
+        },
+        "hints": {
+          "title": "Sử dụng gợi ý",
+          "content": "Bị kẹt? Dùng nút Gợi ý để được hướng dẫn! Bạn có 3 lượt gợi ý mỗi game. Gợi ý sẽ giải thích từng bước."
+        },
+        "undo": {
+          "title": "Hoàn tác",
+          "content": "Đi sai nước? Nhấn Hoàn tác để quay lại bước trước. Bạn có thể hoàn tác nhiều lần!"
+        },
+        "mistakes": {
+          "title": "Chú ý số lỗi",
+          "content": "Bạn chỉ được phép sai 3 lần. Bộ đếm lỗi hiển thị số lần sai hiện tại."
+        },
+        "ready": {
+          "title": "Sẵn sàng chơi!",
+          "content": "Bạn đã sẵn sàng! Hãy bắt đầu tìm các ô chỉ có một số có thể điền. Chúc may mắn!"
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Thống kê của bạn",
+    "welcomeBack": "Chào mừng trở lại, {name}!",
+    "signInRequired": "Vui lòng đăng nhập để xem thống kê",
+    "loadingStats": "Đang tải thống kê...",
+    "noStats": "Chưa có thống kê",
+    "playFirst": "Chơi ván đầu tiên",
+    "overview": {
+      "totalGames": "Tổng số ván",
+      "completed": "Hoàn thành",
+      "winRate": "Tỷ lệ thắng",
+      "totalTime": "Tổng thời gian",
+      "currentStreak": "Chuỗi hiện tại"
+    },
+    "perDifficulty": {
+      "played": "Đã chơi",
+      "completed": "Hoàn thành",
+      "bestTime": "Thời gian tốt nhất"
+    },
+    "recentGames": {
+      "title": "Ván gần đây",
+      "noGames": "Chưa có ván nào. Bắt đầu ván đầu tiên!",
+      "difficulty": "Độ khó",
+      "time": "Thời gian",
+      "mistakes": "Lỗi",
+      "status": "Trạng thái",
+      "date": "Ngày",
+      "completed": "Hoàn thành",
+      "failed": "Thất bại",
+      "abandoned": "Bỏ dở",
+      "inProgress": "Đang chơi"
+    },
+    "playNow": "Chơi ngay"
+  },
+  "leaderboard": {
+    "title": "Bảng xếp hạng",
+    "rank": "Hạng",
+    "player": "Người chơi",
+    "bestTime": "Thời gian tốt nhất",
+    "gamesWon": "Số ván thắng",
+    "noEntries": "Chưa có ai trong bảng xếp hạng. Hãy là người đầu tiên!",
+    "refresh": "Làm mới",
+    "loading": "Đang tải bảng xếp hạng...",
+    "error": "Không thể tải bảng xếp hạng",
+    "period": {
+      "daily": "Hôm nay",
+      "weekly": "Tuần này",
+      "monthly": "Tháng này",
+      "allTime": "Tất cả"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Chào mừng trở lại",
+      "subtitle": "Đăng nhập để tiếp tục hành trình Sudoku",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "submit": "Đăng nhập",
+      "noAccount": "Chưa có tài khoản?",
+      "createAccount": "Tạo tài khoản",
+      "error": "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập."
+    },
+    "signup": {
+      "title": "Tạo tài khoản",
+      "subtitle": "Tham gia để lưu tiến trình và thi đấu",
+      "username": "Tên người dùng",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "submit": "Tạo tài khoản",
+      "hasAccount": "Đã có tài khoản?",
+      "signIn": "Đăng nhập",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp",
+      "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+      "error": "Đăng ký thất bại. Vui lòng thử lại."
+    }
+  }
+}
+

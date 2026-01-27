@@ -1,0 +1,200 @@
+/* Google Fonts Import - Fredoka (headings) and Nunito (body) - Playful Theme */
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Blue theme (default) */
+  :root, [data-theme="blue"] {
+    --background: #eef2ff;
+    --foreground: #1e1b4b;
+    --accent: #3b82f6;
+    --accent-light: #93c5fd;
+    --accent-dark: #1d4ed8;
+    --accent-bg: #dbeafe;
+    --accent-bg-dark: #1e3a8a;
+  }
+
+  /* Green theme */
+  [data-theme="green"] {
+    --background: #ecfdf5;
+    --foreground: #14532d;
+    --accent: #10b981;
+    --accent-light: #6ee7b7;
+    --accent-dark: #059669;
+    --accent-bg: #d1fae5;
+    --accent-bg-dark: #064e3b;
+  }
+
+  /* Orange theme */
+  [data-theme="orange"] {
+    --background: #fff7ed;
+    --foreground: #7c2d12;
+    --accent: #f97316;
+    --accent-light: #fdba74;
+    --accent-dark: #ea580c;
+    --accent-bg: #ffedd5;
+    --accent-bg-dark: #7c2d12;
+  }
+
+  /* Dark mode overrides */
+  .dark {
+    --background: #0f172a;
+    --foreground: #e0e7ff;
+  }
+
+  .dark[data-theme="blue"] {
+    --background: #0f172a;
+    --foreground: #e0e7ff;
+  }
+
+  .dark[data-theme="green"] {
+    --background: #022c22;
+    --foreground: #d1fae5;
+  }
+
+  .dark[data-theme="orange"] {
+    --background: #1c1917;
+    --foreground: #ffedd5;
+  }
+
+  body {
+    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Fredoka", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+}
+
+@layer components {
+  /* Theme-aware gradient backgrounds */
+  .bg-clean-light {
+    background: linear-gradient(135deg, var(--background) 0%, var(--accent-bg) 50%, var(--accent-light) 100%);
+  }
+
+  .bg-clean-dark {
+    background: linear-gradient(135deg, var(--background) 0%, var(--accent-bg-dark) 50%, var(--accent-dark) 100%);
+  }
+
+  /* Accent color utilities */
+  .text-accent { color: var(--accent); }
+  .bg-accent { background-color: var(--accent); }
+  .border-accent { border-color: var(--accent); }
+}
+
+/* Animation Keyframes */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: inset 0 0 0 3px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    box-shadow: inset 0 0 0 3px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.8);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateY(-5px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-pulse-hint {
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+.animate-pop-in {
+  animation: popIn 0.3s ease-out;
+}
+
+.animate-glow {
+  animation: glow 1s ease-in-out infinite;
+}
+
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti 3s ease-out forwards;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

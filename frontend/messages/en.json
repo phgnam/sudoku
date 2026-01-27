@@ -1,0 +1,205 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "cancel": "Cancel",
+    "start": "Start",
+    "backToHome": "← Back to Home",
+    "theme": "Theme",
+    "or": "or",
+    "soundOn": "Sound On",
+    "soundOff": "Sound Off",
+    "lightMode": "Switch to Light Mode",
+    "darkMode": "Switch to Dark Mode"
+  },
+  "home": {
+    "title": "Sudoku Premium",
+    "subtitle": "Challenge yourself with premium Sudoku puzzles",
+    "playingAsGuest": "Playing as Guest",
+    "signedIn": "Signed In",
+    "toSaveProgress": "to save progress",
+    "viewStats": "View Stats",
+    "startGame": "Start Game",
+    "difficulty": {
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard",
+      "easyDesc": "Perfect for beginners",
+      "normalDesc": "Moderate challenge",
+      "hardDesc": "Expert level",
+      "normalLocked": "Complete 3 Easy games",
+      "hardLocked": "Complete 3 Normal games",
+      "easyCells": "30-40 cells removed",
+      "normalCells": "41-50 cells removed",
+      "hardCells": "51-60 cells removed"
+    }
+  },
+  "game": {
+    "loadingGame": "Loading game...",
+    "difficulty": "Difficulty",
+    "mistakes": "Mistakes",
+    "newGame": "New Game",
+    "newGameConfirm": {
+      "title": "Start new game?",
+      "message": "Current game progress will be lost. Are you sure you want to start a new game?"
+    },
+    "hint": {
+      "onlyNumber": "💡 This cell can only have number {value}!",
+      "filled": "✅ Filled number {value}!",
+      "rowHas": "Row {row} has: {values}",
+      "colHas": "Column {col} has: {values}",
+      "boxHas": "Box ({boxRow},{boxCol}) has: {values}",
+      "eliminate": "Eliminate {values} → Only number {value} left!",
+      "step": "Step {current}/{total}",
+      "fillNumber": "Fill number",
+      "next": "Next →"
+    },
+    "controls": {
+      "undo": "Undo",
+      "hint": "Hint",
+      "erase": "Erase",
+      "notes": "Notes"
+    },
+    "modal": {
+      "success": {
+        "title": "Congratulations!",
+        "subtitle": "You completed the Sudoku!",
+        "difficulty": "Difficulty",
+        "time": "Time",
+        "hintsUsed": "Hints used",
+        "mistakes": "Mistakes",
+        "perfect": "Perfect!",
+        "playAgain": "🎮 Play Again",
+        "backToHome": "🏠 Back to Home"
+      },
+      "failure": {
+        "title": "Game Over",
+        "subtitle": "You made 3 mistakes. Don't give up!",
+        "tip": "💡 <strong>Tip:</strong> Use hints when needed and think carefully before each move!",
+        "tryAgain": "🔄 Try Again",
+        "backToHome": "🏠 Back to Home"
+      }
+    },
+    "tutorial": {
+      "step": "Step {current} / {total}",
+      "skip": "Skip",
+      "previous": "← Previous",
+      "next": "Next →",
+      "startPlaying": "🎮 Start Playing!",
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sudoku!",
+          "content": "Fill in the 9×9 grid so that each row, column, and 3×3 box contains the numbers 1-9, each appearing only once."
+        },
+        "selectCell": {
+          "title": "Select a Cell",
+          "content": "Click on any empty cell to select it. The selected cell will be highlighted."
+        },
+        "enterNumber": {
+          "title": "Enter a Number",
+          "content": "Use the number pad below to enter a number into the selected cell. Press ✕ to erase."
+        },
+        "notes": {
+          "title": "Notes",
+          "content": "Enable notes mode (✏️) to mark possible numbers in a cell. Useful for reasoning!"
+        },
+        "hints": {
+          "title": "Use Hints",
+          "content": "Stuck? Use the Hint button for guidance! You have 3 hints per game. Hints will explain step by step."
+        },
+        "undo": {
+          "title": "Undo",
+          "content": "Made a mistake? Press Undo to go back to the previous step. You can undo multiple times!"
+        },
+        "mistakes": {
+          "title": "Watch Your Mistakes",
+          "content": "You can only make 3 mistakes. The mistake counter shows your current error count."
+        },
+        "ready": {
+          "title": "Ready to Play!",
+          "content": "You're all set! Start by finding cells with only one possible number. Good luck!"
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Your Stats Dashboard",
+    "welcomeBack": "Welcome back, {name}!",
+    "signInRequired": "Please sign in to view your stats",
+    "loadingStats": "Loading your stats...",
+    "noStats": "No stats available",
+    "playFirst": "Play Your First Game",
+    "overview": {
+      "totalGames": "Total Games",
+      "completed": "Completed",
+      "winRate": "Win Rate",
+      "totalTime": "Total Time",
+      "currentStreak": "Current Streak"
+    },
+    "perDifficulty": {
+      "played": "Played",
+      "completed": "Completed",
+      "bestTime": "Best Time"
+    },
+    "recentGames": {
+      "title": "Recent Games",
+      "noGames": "No games played yet. Start your first game!",
+      "difficulty": "Difficulty",
+      "time": "Time",
+      "mistakes": "Mistakes",
+      "status": "Status",
+      "date": "Date",
+      "completed": "Completed",
+      "failed": "Failed",
+      "abandoned": "Abandoned",
+      "inProgress": "In Progress"
+    },
+    "playNow": "Play Now"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "rank": "Rank",
+    "player": "Player",
+    "bestTime": "Best Time",
+    "gamesWon": "Wins",
+    "noEntries": "No entries yet. Be the first to complete a game!",
+    "refresh": "Refresh",
+    "loading": "Loading leaderboard...",
+    "error": "Failed to load leaderboard",
+    "period": {
+      "daily": "Today",
+      "weekly": "This Week",
+      "monthly": "This Month",
+      "allTime": "All Time"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to continue your Sudoku journey",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one",
+      "error": "Login failed. Please check your credentials."
+    },
+    "signup": {
+      "title": "Create Account",
+      "subtitle": "Join to save your progress and compete",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 6 characters",
+      "error": "Signup failed. Please try again."
+    }
+  }
+}
+
