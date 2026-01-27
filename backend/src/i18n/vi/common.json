@@ -1,0 +1,30 @@
+{
+  "validation": {
+    "required": "{field} là bắt buộc",
+    "email": "Định dạng email không hợp lệ",
+    "minLength": "{field} phải có ít nhất {min} ký tự",
+    "maxLength": "{field} không được quá {max} ký tự"
+  },
+  "auth": {
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "emailExists": "Email đã tồn tại",
+    "usernameExists": "Tên người dùng đã tồn tại",
+    "tokenExpired": "Token đã hết hạn",
+    "unauthorized": "Truy cập không được phép"
+  },
+  "game": {
+    "notFound": "Không tìm thấy trò chơi",
+    "alreadyCompleted": "Trò chơi đã hoàn thành",
+    "invalidMove": "Nước đi không hợp lệ",
+    "maxMistakesReached": "Đã đạt số lỗi tối đa",
+    "maxHintsReached": "Đã dùng hết gợi ý",
+    "created": "Tạo trò chơi thành công",
+    "completed": "Chúc mừng! Bạn đã hoàn thành câu đố!"
+  },
+  "errors": {
+    "internalError": "Đã xảy ra lỗi hệ thống",
+    "notFound": "Không tìm thấy tài nguyên",
+    "forbidden": "Truy cập bị từ chối"
+  }
+}
+

@@ -1,0 +1,30 @@
+{
+  "validation": {
+    "required": "{field} is required",
+    "email": "Invalid email format",
+    "minLength": "{field} must be at least {min} characters",
+    "maxLength": "{field} must be at most {max} characters"
+  },
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "emailExists": "Email already exists",
+    "usernameExists": "Username already exists",
+    "tokenExpired": "Token has expired",
+    "unauthorized": "Unauthorized access"
+  },
+  "game": {
+    "notFound": "Game not found",
+    "alreadyCompleted": "Game is already completed",
+    "invalidMove": "Invalid move",
+    "maxMistakesReached": "Maximum mistakes reached",
+    "maxHintsReached": "Maximum hints reached",
+    "created": "Game created successfully",
+    "completed": "Congratulations! You completed the puzzle!"
+  },
+  "errors": {
+    "internalError": "An internal error occurred",
+    "notFound": "Resource not found",
+    "forbidden": "Access forbidden"
+  }
+}
+
