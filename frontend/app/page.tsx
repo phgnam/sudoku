@@ -70,8 +70,8 @@ export default function HomePage() {
   // Clear banner if match store shows match ended or idle
   useEffect(() => {
     if (matchStatus === "finished" || matchStatus === "idle") {
-      // Check if localStorage still has data but match is done
-      if (activeMatch && matchStatus === "finished") {
+      // Clear stale localStorage data when match is finished or idle
+      if (activeMatch) {
         clearActiveMatch();
         setActiveMatch(null);
       }

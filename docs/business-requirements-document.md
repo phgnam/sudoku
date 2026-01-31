@@ -674,7 +674,7 @@ Rating Change = K × (Actual - Expected)
 | POST | `/auth/register` | Đăng ký tài khoản | ❌ |
 | POST | `/auth/login` | Đăng nhập | ❌ |
 | POST | `/auth/migrate` | Migrate anonymous → registered | ✅ |
-| GET | `/auth/profile` | Lấy thông tin user | ✅ |
+| GET | `/auth/me` | Lấy thông tin user | ✅ |
 
 ### 6.2. Game APIs
 
@@ -683,10 +683,10 @@ Rating Change = K × (Actual - Expected)
 | POST | `/games` | Tạo game mới | ✅ |
 | GET | `/games/:id` | Lấy thông tin game | ✅ |
 | GET | `/games/active` | Lấy game đang chơi | ✅ |
-| POST | `/games/:id/move` | Đánh nước đi | ✅ |
+| PATCH | `/games/:id/move` | Đánh nước đi | ✅ |
 | POST | `/games/:id/undo` | Undo nước đi | ✅ |
 | POST | `/games/:id/hint` | Sử dụng hint | ✅ |
-| PUT | `/games/:id/time` | Cập nhật thời gian | ✅ |
+| PATCH | `/games/:id/time` | Cập nhật thời gian | ✅ |
 | DELETE | `/games/:id` | Abandon game | ✅ |
 
 ### 6.3. Leaderboard APIs

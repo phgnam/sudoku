@@ -2,17 +2,17 @@
 
 **Date:** 2025-01-18
 **Scope:** SudokuGrid.tsx, NumberPad.tsx, ThemeSwitcher.tsx and related components
-**Total Issues Count:** 102
+**Total Issues Count:** 101
 **Issues by Severity:**
 - **Critical:** 94 (buttons missing accessible names)
 - **Major:** 5 (keyboard navigation gaps)
-- **Minor:** 3 (color contrast recommendations)
+- **Minor:** 2 (color contrast recommendations)
 
 ---
 
 ## Executive Summary
 
-The audit identified 102 accessibility issues across core game components. The primary concern is **94 buttons lacking accessible names**, violating WCAG 2.1 Level A Success Criterion 4.1.2 (Name, Role, Value).
+The audit identified 101 accessibility issues across core game components. The primary concern is **94 buttons lacking accessible names**, violating WCAG 2.1 Level A Success Criterion 4.1.2 (Name, Role, Value).
 
 ---
 
@@ -239,8 +239,8 @@ outline: isSelected ? "2px solid #f97316" : "none",
 
 ## Summary
 
-- **total_issues_count:** 102
-- **issues_by_severity:** { critical: 94, major: 5, minor: 3 }
+- **total_issues_count:** 101
+- **issues_by_severity:** { critical: 94, major: 5, minor: 2 }
 - **specific_fixes_needed:**
   - `SudokuGrid.tsx:272` - Add aria-label to 81 cell buttons
   - `NumberPad.tsx:43` - Add aria-label to 9 number buttons

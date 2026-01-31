@@ -46,10 +46,13 @@ export class EloService {
     const expected = this.calculateExpectedScore(playerRating, opponentRating);
     const actual = result === 'win' ? 1 : result === 'draw' ? 0.5 : 0;
     const K = this.getKFactor(gamesPlayed);
-    const change = Math.round(K * (actual - expected));
+    const rawChange = Math.round(K * (actual - expected));
+    const newRating = Math.max(100, playerRating + rawChange); // Minimum rating of 100
+    // Compute change from clamped rating so it reflects the actual applied delta
+    const change = newRating - playerRating;
 
     return {
-      newRating: Math.max(100, playerRating + change), // Minimum rating of 100
+      newRating,
       change,
     };
   }

@@ -40,7 +40,7 @@ export interface ServerToClientEvents {
     playerId: string;
     playerName: string;
   }) => void;
-  'match:playerReady': (data: { playerId: string }) => void;
+  'match:playerReady': (data: { playerId: string; ready: boolean }) => void;
   'match:start': (data: {
     puzzle: number[][];
     startTime: number;

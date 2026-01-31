@@ -110,7 +110,7 @@ Migrate data từ anonymous sang registered account.
 
 ---
 
-### GET /auth/profile
+### GET /auth/me
 Lấy thông tin user hiện tại.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -188,7 +188,7 @@ Lấy game đang chơi (nếu có).
 
 ---
 
-### POST /games/:id/move
+### PATCH /games/:id/move
 Đánh nước đi.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -249,7 +249,7 @@ Sử dụng hint.
 
 ---
 
-### PUT /games/:id/time
+### PATCH /games/:id/time
 Cập nhật thời gian đã chơi.
 
 **Headers:** `Authorization: Bearer <token>`

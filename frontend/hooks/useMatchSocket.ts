@@ -84,7 +84,9 @@ export function useMatchSocket() {
       (data: { opponent: Opponent }) => {
         matchStore.setOpponent(data.opponent);
         // When guest joins, host's status changes from waiting
-        if (matchStore.status === "waiting") {
+        // Read current status from store inside the handler to avoid stale closures
+        const currentStatus = useMatchStore.getState().status;
+        if (currentStatus === "waiting") {
           useMatchStore.setState({ status: "joined" });
         }
       },
@@ -107,8 +109,8 @@ export function useMatchSocket() {
     // === Player Ready ===
     socket.on(
       SOCKET_EVENTS.MATCH_PLAYER_READY,
-      (data: { playerId: string }) => {
-        matchStore.setOpponentReady(data.playerId);
+      (data: { playerId: string; ready: boolean }) => {
+        matchStore.setOpponentReady(data.playerId, data.ready);
       },
     );
 

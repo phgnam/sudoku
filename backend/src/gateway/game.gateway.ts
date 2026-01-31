@@ -680,7 +680,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Notify other player about ready status
       this.server
         .to(`match:${matchId}`)
-        .emit('match:playerReady', { playerId: userId });
+        .emit('match:playerReady', { playerId: userId, ready: true });
 
       // If both players are ready, start the match
       if (allReady && match.guestId) {
@@ -761,7 +761,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Notify other player
       this.server
         .to(`match:${matchId}`)
-        .emit('match:playerReady', { playerId: userId });
+        .emit('match:playerReady', { playerId: userId, ready: false });
 
       return { event: 'match:unready:success', data: { matchId } };
     } catch (error) {

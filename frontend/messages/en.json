@@ -262,7 +262,7 @@
       "setReady": "Ready",
       "setUnready": "Cancel Ready",
       "leaveRoom": "Leave Room",
-      "waitingBothReady": "Waiting for both players to ready...",
+      "waitingBothReady": "Waiting for both players to be ready...",
       "startingSoon": "Starting soon..."
     },
     "game": {

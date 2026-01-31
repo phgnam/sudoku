@@ -25,6 +25,7 @@ export interface LiveMatch {
   guestFilledCells: Set<string>;
   status: 'waiting' | 'ready' | 'playing' | 'finished' | 'cancelled';
   startTime: number | null;
+  finishedAt: number | null; // Timestamp when match finished
   timer: NodeJS.Timeout | null;
   firstSubmitter: string | null;
   winnerId: string | null;
@@ -78,6 +79,7 @@ export class MatchManagerService {
       guestFilledCells: new Set(),
       status: 'waiting',
       startTime: null,
+      finishedAt: null,
       timer: null,
       firstSubmitter: null,
       winnerId: null,
@@ -199,6 +201,14 @@ export class MatchManagerService {
     const match = this.matches.get(matchId);
     if (!match || match.status !== 'playing') return;
 
+    // Validate playerId is a match participant
+    if (playerId !== match.hostId && playerId !== match.guestId) {
+      this.logger.warn(
+        `Invalid playerId ${playerId} attempted to record move in match ${matchId}`,
+      );
+      return;
+    }
+
     const cellKey = `${row},${col}`;
     const isHost = playerId === match.hostId;
     const state = isHost ? match.hostState : match.guestState;
@@ -274,6 +284,7 @@ export class MatchManagerService {
     }
 
     match.status = 'finished';
+    match.finishedAt = Date.now();
     match.winnerId = winnerId;
 
     // Remove player-to-match mappings so they can create/join new matches
@@ -349,6 +360,15 @@ export class MatchManagerService {
     if (playerId === match.hostId) {
       // Host left - cancel match
       match.status = 'cancelled';
+      // Clear any pending timers to avoid stale timeouts
+      if (match.timer) {
+        clearTimeout(match.timer);
+        match.timer = null;
+      }
+      if (match.rematchTimer) {
+        clearTimeout(match.rematchTimer);
+        match.rematchTimer = null;
+      }
       this.playerToMatch.delete(match.guestId || '');
       this.matches.delete(matchId);
       return { removed: true, matchCancelled: true };
@@ -429,9 +449,10 @@ export class MatchManagerService {
       const shouldCleanup =
         // Waiting matches that are too old
         (match.status === 'waiting' && now - match.createdAt > maxAgeMs) ||
-        // Finished matches older than 5 minutes
+        // Finished matches older than 5 minutes since finishing
         (match.status === 'finished' &&
-          now - match.createdAt > 5 * 60 * 1000) ||
+          match.finishedAt !== null &&
+          now - match.finishedAt > 5 * 60 * 1000) ||
         // Cancelled matches
         match.status === 'cancelled';
 
@@ -585,6 +606,15 @@ export class MatchManagerService {
       };
     }
 
+    // Validate that playerId is a match participant
+    if (playerId !== match.hostId && playerId !== match.guestId) {
+      return {
+        success: false,
+        waitingFor: null,
+        error: 'Player is not a participant of this match',
+      };
+    }
+
     if (match.rematchRequestedBy === playerId) {
       return { success: false, waitingFor: null, error: 'Already requested' };
     }
@@ -666,6 +696,7 @@ export class MatchManagerService {
       guestFilledCells: new Set(),
       status: 'waiting',
       startTime: null,
+      finishedAt: null,
       timer: null,
       firstSubmitter: null,
       winnerId: null,

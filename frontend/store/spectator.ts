@@ -95,8 +95,8 @@ export const useSpectatorStore = create<SpectatorState & SpectatorActions>((set)
   ...initialState,
   
   setSpectateState: (data) => {
-    const status = data.status === "playing" ? "playing" : 
-                   data.status === "finished" ? "finished" : 
+    const status = data.status === "playing" ? "playing" :
+                   data.status === "finished" ? "finished" :
                    "waiting";
     set({
       isSpectating: true,
@@ -112,6 +112,7 @@ export const useSpectatorStore = create<SpectatorState & SpectatorActions>((set)
       difficulty: data.difficulty,
       startTime: data.startTime,
       spectatorCount: data.spectatorCount,
+      result: null, // Reset result when loading new match
       error: null,
     });
   },

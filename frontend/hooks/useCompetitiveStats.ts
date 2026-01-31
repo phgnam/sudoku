@@ -25,7 +25,10 @@ export function useCompetitiveStats() {
       const data = await fetchApi<CompetitiveStats>(api.leaderboard.competitiveMe());
       setStats(data);
     } catch (err) {
-      // User might not have played any competitive games yet
+      // Set error so consumers can distinguish failures from "no games"
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch stats';
+      setError(errorMessage);
+      // Still provide default stats for graceful degradation
       setStats({
         rating: 1000,
         competitiveGames: 0,

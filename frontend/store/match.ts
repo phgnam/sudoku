@@ -59,7 +59,7 @@ interface MatchStore extends MatchState {
   setJoined: (matchId: string, opponent: Opponent) => void;
   setOpponent: (opponent: Opponent) => void;
   setMyReady: (ready: boolean) => void;
-  setOpponentReady: (playerId: string) => void;
+  setOpponentReady: (playerId: string, ready: boolean) => void;
   startMatch: (
     puzzle: number[][],
     startTime: number,
@@ -180,11 +180,11 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
 
   setMyReady: (ready) => set({ myReady: ready }),
 
-  setOpponentReady: (playerId) => {
+  setOpponentReady: (playerId, ready) => {
     const state = get();
-    // If the playerId is opponent's ID, set opponent ready
+    // If the playerId is opponent's ID, set opponent ready state
     if (state.opponent?.id === playerId) {
-      set({ opponentReady: true });
+      set({ opponentReady: ready });
     }
   },
 
@@ -312,7 +312,11 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
     }),
 
   // Rejoin action (for reconnection after refresh)
-  setRejoinState: (data) =>
+  setRejoinState: (data) => {
+    // Calculate remaining time and clamp to [0, maxDuration] range
+    const calculatedRemaining = data.maxDuration - (Date.now() - data.startTime);
+    const clampedRemaining = Math.max(0, Math.min(calculatedRemaining, data.maxDuration));
+
     set({
       matchId: data.matchId,
       status: data.status as MatchStatus,
@@ -322,7 +326,7 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
       puzzle: data.puzzle,
       startTime: data.startTime,
       maxDuration: data.maxDuration,
-      remainingTime: data.maxDuration - (Date.now() - data.startTime),
+      remainingTime: clampedRemaining,
       opponentFilledCells: new Set(data.opponentFilledCells),
       opponentFilledCount: data.opponentFilledCount,
       spectatorCount: data.spectatorCount,
@@ -339,5 +343,6 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
       rematchRequestedBy: null,
       opponentDisconnected: false,
       opponentDisconnectReason: null,
-    }),
+    });
+  },
 }));

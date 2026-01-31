@@ -264,10 +264,8 @@ export default function CompetitivePlayPage() {
       );
       updateState(newState);
 
-      // Send move to server (will broadcast position to opponent)
-      if (number !== 0) {
-        sendMove(row, col, number);
-      }
+      // Send move to server (including erases) so opponent progress and rejoin state stay consistent
+      sendMove(row, col, number);
     },
     [
       selectedCell,

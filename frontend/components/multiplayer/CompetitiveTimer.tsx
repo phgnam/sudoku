@@ -15,12 +15,32 @@ export function CompetitiveTimer({
   remainingTime: serverRemainingTime,
 }: CompetitiveTimerProps) {
   const [remaining, setRemaining] = useState(maxDuration);
+  // Track a local base time that can be adjusted when server sync occurs
+  const [localBaseTime, setLocalBaseTime] = useState<number | null>(startTime);
+
+  // Sync with server time if provided - recompute local base time
+  useEffect(() => {
+    if (serverRemainingTime !== undefined) {
+      // Recompute the local start time based on server's remaining time
+      // This ensures the interval continues from the server-corrected value
+      const correctedStartTime = Date.now() - (maxDuration - serverRemainingTime);
+      setLocalBaseTime(correctedStartTime);
+      setRemaining(serverRemainingTime);
+    }
+  }, [serverRemainingTime, maxDuration]);
+
+  // Update local base time when startTime changes (initial set)
+  useEffect(() => {
+    if (startTime && !localBaseTime) {
+      setLocalBaseTime(startTime);
+    }
+  }, [startTime, localBaseTime]);
 
   useEffect(() => {
-    if (!startTime) return;
+    if (!localBaseTime) return;
 
     const updateTimer = () => {
-      const elapsed = Date.now() - startTime;
+      const elapsed = Date.now() - localBaseTime;
       const rem = Math.max(0, maxDuration - elapsed);
       setRemaining(rem);
     };
@@ -32,14 +52,7 @@ export function CompetitiveTimer({
     const interval = setInterval(updateTimer, 100);
 
     return () => clearInterval(interval);
-  }, [startTime, maxDuration]);
-
-  // Sync with server time if provided
-  useEffect(() => {
-    if (serverRemainingTime !== undefined) {
-      setRemaining(serverRemainingTime);
-    }
-  }, [serverRemainingTime]);
+  }, [localBaseTime, maxDuration]);
 
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);

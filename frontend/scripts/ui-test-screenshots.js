@@ -43,26 +43,26 @@ async function captureScreenshots() {
     
     const page = await context.newPage();
     
+    // Set up console error listener BEFORE navigation to capture errors during page load
+    const consoleErrors = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+
     try {
-      await page.goto(`http://localhost:3000${pageConfig.url}`, { 
+      await page.goto(`http://localhost:3000${pageConfig.url}`, {
         waitUntil: 'networkidle',
-        timeout: 15000 
+        timeout: 15000
       });
       await page.waitForTimeout(1000); // Wait for animations
-      
+
       const screenshotPath = path.join(SCREENSHOTS_DIR, `${pageConfig.name}.png`);
       await page.screenshot({ path: screenshotPath, fullPage: true });
-      
+
       // Get page info
       const title = await page.title();
       const url = page.url();
-      
-      // Check for console errors
-      const consoleErrors = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error') consoleErrors.push(msg.text());
-      });
-      
+
       // Check accessibility
       const a11yIssues = await page.evaluate(() => {
         const issues = [];

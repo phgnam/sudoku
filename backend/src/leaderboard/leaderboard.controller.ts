@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -86,11 +86,13 @@ export class LeaderboardController {
     type: CompetitiveLeaderboardResponseDto,
   })
   async getCompetitiveLeaderboard(
-    @Query('limit') limit?: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @CurrentUser() user?: any,
   ): Promise<CompetitiveLeaderboardResponseDto> {
+    // Clamp limit to reasonable bounds
+    const clampedLimit = Math.min(Math.max(1, limit), 100);
     return this.leaderboardService.getCompetitiveLeaderboard(
-      limit ?? 50,
+      clampedLimit,
       user?.userId,
     );
   }
