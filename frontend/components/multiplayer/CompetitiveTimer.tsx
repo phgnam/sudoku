@@ -29,12 +29,14 @@ export function CompetitiveTimer({
     }
   }, [serverRemainingTime, maxDuration]);
 
-  // Update local base time when startTime changes (initial set)
+  // Update local base time when startTime changes (for new match/rematch)
+  // Always update when startTime changes to a new value
   useEffect(() => {
-    if (startTime && !localBaseTime) {
+    if (startTime) {
       setLocalBaseTime(startTime);
+      setRemaining(maxDuration);
     }
-  }, [startTime, localBaseTime]);
+  }, [startTime, maxDuration]);
 
   useEffect(() => {
     if (!localBaseTime) return;

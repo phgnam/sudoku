@@ -67,10 +67,11 @@ export default function HomePage() {
     }
   }, []);
 
-  // Clear banner if match store shows match ended or idle
+  // Clear banner if match store shows match has finished
+  // Note: Only clear for "finished" status, not "idle" - idle is the default state
+  // and clearing on idle would erase valid saved matches on initial load
   useEffect(() => {
-    if (matchStatus === "finished" || matchStatus === "idle") {
-      // Clear stale localStorage data when match is finished or idle
+    if (matchStatus === "finished") {
       if (activeMatch) {
         clearActiveMatch();
         setActiveMatch(null);
