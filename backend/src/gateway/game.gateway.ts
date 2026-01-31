@@ -15,8 +15,9 @@ import {
   MatchManagerService,
   MatchService,
   EloService,
+  MatchmakingService,
 } from '../match/services';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import './types/socket.types'; // Import to activate module augmentation
 import type {
   JwtPayload,
@@ -34,7 +35,7 @@ const MATCH_DURATION_MS = 20 * 60 * 1000;
     origin: '*',
   },
 })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   @WebSocketServer()
   server: TypedServer;
 
@@ -46,15 +47,177 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Track player names (userId -> name)
   private playerNames = new Map<string, string>();
 
+  // Matchmaking interval handle
+  private matchmakingInterval: NodeJS.Timeout | null = null;
+
   constructor(
     private jwtService: JwtService,
     private gameService: GameService,
     private matchManager: MatchManagerService,
     private matchService: MatchService,
     private eloService: EloService,
+    private matchmakingService: MatchmakingService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) {
+    // Start matchmaking interval
+    this.startMatchmakingLoop();
+  }
+
+  onModuleDestroy(): void {
+    // Clean up matchmaking interval to prevent memory leaks
+    if (this.matchmakingInterval) {
+      clearInterval(this.matchmakingInterval);
+      this.matchmakingInterval = null;
+      this.logger.log('Matchmaking interval cleared');
+    }
+  }
+
+  private startMatchmakingLoop(): void {
+    // Run every 2 seconds
+    this.matchmakingInterval = setInterval(() => {
+      this.processMatchmaking();
+    }, 2000);
+  }
+
+  private async processMatchmaking(): Promise<void> {
+    try {
+      // Expand search radius for waiting players
+      this.matchmakingService.expandSearchRadii();
+
+      // Find and process matches
+      const matches = this.matchmakingService.findMatches();
+
+      for (const match of matches) {
+        await this.createMatchFromQueue(match);
+      }
+
+      // Send status updates to queued players
+      const queuedPlayers = this.matchmakingService.getAllQueuedPlayers();
+      for (const player of queuedPlayers) {
+        const status = this.matchmakingService.getQueueStatus(player.playerId);
+        this.server.to(player.socketId).emit('matchmaking:status', status);
+      }
+    } catch (error) {
+      this.logger.error('Matchmaking error:', error);
+    }
+  }
+
+  private async createMatchFromQueue(matchedPair: {
+    player1: { playerId: string; socketId: string; playerName: string; rating: number };
+    player2: { playerId: string; socketId: string; playerName: string; rating: number };
+    difficulty: string;
+  }): Promise<void> {
+    const { player1, player2, difficulty } = matchedPair;
+
+    try {
+      // Create the match (requires socketId as second param)
+      const matchId = this.matchManager.createMatch(
+        player1.playerId,
+        player1.socketId,
+        difficulty as Difficulty,
+      );
+
+      const liveMatch = this.matchManager.getMatch(matchId);
+      if (!liveMatch) {
+        throw new Error('Failed to create match');
+      }
+
+      // Add player1 to match room
+      const socket1 = this.server.sockets.sockets.get(player1.socketId);
+      if (socket1) {
+        await socket1.join(matchId);
+      }
+
+      // Join player2 to match (joinMatch throws on error, returns LiveMatch)
+      this.matchManager.joinMatch(matchId, player2.playerId, player2.socketId);
+
+      // Add player2 to match room
+      const socket2 = this.server.sockets.sockets.get(player2.socketId);
+      if (socket2) {
+        await socket2.join(matchId);
+      }
+
+      // Store player names
+      this.playerNames.set(player1.playerId, player1.playerName);
+      this.playerNames.set(player2.playerId, player2.playerName);
+
+      // Set both players ready
+      this.matchManager.setReady(matchId, player1.playerId, true);
+      this.matchManager.setReady(matchId, player2.playerId, true);
+
+      // Get puzzle for this difficulty
+      const puzzle = await this.matchService.getRandomPuzzle(difficulty as Difficulty);
+      if (!puzzle) {
+        throw new Error('No puzzle available for this difficulty');
+      }
+
+      // Start the match with puzzle
+      this.matchManager.startMatch(
+        matchId,
+        puzzle.id,
+        puzzle.puzzle,
+        puzzle.solution,
+      );
+
+      const updatedMatch = this.matchManager.getMatch(matchId);
+      if (!updatedMatch) return;
+
+      // Create player objects
+      const hostPlayer: MatchPlayer = { id: player1.playerId, name: player1.playerName };
+      const guestPlayer: MatchPlayer = { id: player2.playerId, name: player2.playerName };
+
+      // Notify player1 of match found and start
+      this.server.to(player1.socketId).emit('matchmaking:found', {
+        matchId,
+        opponent: {
+          opponentId: player2.playerId,
+          opponentName: player2.playerName,
+          opponentRating: player2.rating,
+        },
+      });
+
+      // Send start event to player1
+      this.server.to(player1.socketId).emit('match:start', {
+        puzzle: puzzle.puzzle,
+        startTime: updatedMatch.startTime!,
+        maxDuration: MATCH_DURATION_MS,
+        opponent: guestPlayer,
+      });
+
+      // Notify player2 of match found and start
+      this.server.to(player2.socketId).emit('matchmaking:found', {
+        matchId,
+        opponent: {
+          opponentId: player1.playerId,
+          opponentName: player1.playerName,
+          opponentRating: player1.rating,
+        },
+      });
+
+      // Send start event to player2
+      this.server.to(player2.socketId).emit('match:start', {
+        puzzle: puzzle.puzzle,
+        startTime: updatedMatch.startTime!,
+        maxDuration: MATCH_DURATION_MS,
+        opponent: hostPlayer,
+      });
+
+      this.logger.log(
+        `Quick match started: ${player1.playerName} vs ${player2.playerName} on ${difficulty}`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to create match from queue:', error);
+
+      // Notify players of failure
+      this.server.to(player1.socketId).emit('matchmaking:cancelled', {
+        reason: 'Failed to create match. Please try again.',
+      });
+      this.server.to(player2.socketId).emit('matchmaking:cancelled', {
+        reason: 'Failed to create match. Please try again.',
+      });
+    }
+  }
 
   handleConnection(client: TypedSocket): void {
     try {
@@ -168,6 +331,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     if (!userId) return;
+
+    // Remove from matchmaking queue if queued
+    if (this.matchmakingService.isInQueue(userId)) {
+      this.matchmakingService.removeFromQueue(userId);
+      this.logger.log(`Removed disconnected player ${userId} from matchmaking queue`);
+    }
 
     // Check if player is in a match
     const match = this.matchManager.findMatchByPlayer(userId);
@@ -657,6 +826,132 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { event: 'match:leave:success', data: { matchId } };
     } catch (error) {
       this.logger.error('Match leave error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { event: 'match:error', data: { message } };
+    }
+  }
+
+  @SubscribeMessage('match:surrender')
+  async handleMatchSurrender(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() data: { matchId: string },
+  ): Promise<{ event: string; data: unknown }> {
+    try {
+      const surrenderId = client.data.userId;
+      const { matchId } = data;
+
+      const match = this.matchManager.getMatch(matchId);
+      if (!match) {
+        return { event: 'match:error', data: { message: 'Match not found' } };
+      }
+
+      // Only allow surrender during active play
+      if (match.status !== 'playing') {
+        return {
+          event: 'match:error',
+          data: { message: 'Can only surrender during active match' },
+        };
+      }
+
+      // Determine winner (opponent of surrendering player)
+      // When match is 'playing', guestId is guaranteed to exist
+      const winnerId =
+        match.hostId === surrenderId ? match.guestId! : match.hostId;
+      const matchResult: 'host_win' | 'guest_win' =
+        match.hostId === winnerId ? 'host_win' : 'guest_win';
+
+      // End match with surrender reason
+      this.matchManager.endMatch(matchId, winnerId, 'finished');
+
+      // Calculate and apply ELO changes
+      let eloChanges = {
+        hostChange: 0,
+        hostNewRating: 1000,
+        guestChange: 0,
+        guestNewRating: 1000,
+      };
+      if (match.guestId) {
+        eloChanges = await this.applyEloChanges(
+          match.hostId,
+          match.guestId,
+          matchResult,
+        );
+      }
+
+      // Notify surrendering player (loser)
+      client.emit('match:ended', {
+        result: 'lose',
+        winnerId,
+        reason: 'You surrendered',
+        ratingChange:
+          match.hostId === surrenderId
+            ? eloChanges.hostChange
+            : eloChanges.guestChange,
+        newRating:
+          match.hostId === surrenderId
+            ? eloChanges.hostNewRating
+            : eloChanges.guestNewRating,
+        opponentRatingChange:
+          match.hostId === surrenderId
+            ? eloChanges.guestChange
+            : eloChanges.hostChange,
+      });
+
+      // Notify winner
+      const winnerSocketId =
+        match.hostId === winnerId ? match.hostSocketId : match.guestSocketId;
+      if (winnerSocketId) {
+        this.server.to(winnerSocketId).emit('match:ended', {
+          result: 'win',
+          winnerId,
+          reason: 'Opponent surrendered',
+          ratingChange:
+            match.hostId === winnerId
+              ? eloChanges.hostChange
+              : eloChanges.guestChange,
+          newRating:
+            match.hostId === winnerId
+              ? eloChanges.hostNewRating
+              : eloChanges.guestNewRating,
+          opponentRatingChange:
+            match.hostId === winnerId
+              ? eloChanges.guestChange
+              : eloChanges.hostChange,
+        });
+      }
+
+      // Notify spectators
+      if (match.spectatorCount > 0) {
+        this.server
+          .to(`match:${matchId}:spectators`)
+          .emit('match:spectatorEnded', {
+            matchId,
+            winnerId,
+            result: matchResult,
+            reason: 'Opponent surrendered',
+            hostName: this.playerNames.get(match.hostId) || 'Host',
+            guestName: match.guestId
+              ? (this.playerNames.get(match.guestId) ?? 'Guest')
+              : null,
+          });
+      }
+
+      // Persist match
+      const endedMatch = this.matchManager.getMatch(matchId);
+      if (endedMatch) {
+        await this.matchService.persistMatch(endedMatch);
+      }
+
+      // Leave socket room
+      void client.leave(`match:${matchId}`);
+
+      this.logger.log(
+        `Player ${surrenderId} surrendered match ${matchId}. Winner: ${winnerId}`,
+      );
+
+      return { event: 'match:surrender:success', data: { matchId } };
+    } catch (error) {
+      this.logger.error('Match surrender error:', error);
       const message = error instanceof Error ? error.message : 'Unknown error';
       return { event: 'match:error', data: { message } };
     }
@@ -1376,5 +1671,71 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
     }
     return { event: 'match:rematchDecline:success', data: {} };
+  }
+
+  // ==================== MATCHMAKING ====================
+
+  @SubscribeMessage('matchmaking:join')
+  async handleMatchmakingJoin(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() data: { difficulty: string },
+  ) {
+    const userId = client.data.userId;
+    if (!userId) {
+      return { event: 'matchmaking:error', data: { message: 'Not authenticated' } };
+    }
+
+    const difficulty = data.difficulty || 'normal';
+
+    // Get player rating from database
+    let rating = 1000;
+    let playerName = this.playerNames.get(userId) || 'Player';
+
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (user) {
+        rating = user.rating || 1000;
+        playerName = user.username || user.email?.split('@')[0] || playerName;
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to get user rating: ${error}`);
+    }
+
+    // Add to matchmaking queue
+    const status = this.matchmakingService.addToQueue({
+      playerId: userId,
+      socketId: client.id,
+      playerName,
+      rating,
+      difficulty,
+    });
+
+    this.logger.log(
+      `Player ${playerName} (${rating}) joined ${difficulty} queue - position: ${status.position}`,
+    );
+
+    return {
+      event: 'matchmaking:joined',
+      data: status,
+    };
+  }
+
+  @SubscribeMessage('matchmaking:cancel')
+  handleMatchmakingCancel(@ConnectedSocket() client: TypedSocket) {
+    const userId = client.data.userId;
+    if (!userId) {
+      return { event: 'matchmaking:error', data: { message: 'Not authenticated' } };
+    }
+
+    const removed = this.matchmakingService.removeFromQueue(userId);
+
+    if (removed) {
+      this.logger.log(`Player ${userId} cancelled matchmaking`);
+    }
+
+    return {
+      event: 'matchmaking:cancelled',
+      data: { reason: 'Cancelled by user' },
+    };
   }
 }

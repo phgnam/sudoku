@@ -134,6 +134,27 @@ export interface ServerToClientEvents {
   }) => void;
   'match:rematchDeclined': (data: { declinedBy: string }) => void;
   'match:rematchExpired': (data: Record<string, never>) => void;
+
+  // Matchmaking events
+  'matchmaking:joined': (data: {
+    position: number;
+    estimatedWait: number;
+    searchRadius: number;
+  }) => void;
+  'matchmaking:found': (data: {
+    matchId: string;
+    opponent: {
+      opponentId: string;
+      opponentName: string;
+      opponentRating: number;
+    };
+  }) => void;
+  'matchmaking:status': (data: {
+    position: number;
+    estimatedWait: number;
+    searchRadius: number;
+  }) => void;
+  'matchmaking:cancelled': (data: { reason: string }) => void;
 }
 
 // Client to server events (what client sends to server)
@@ -174,6 +195,10 @@ export interface ClientToServerEvents {
   // Rematch events
   'match:rematchRequest': (data: { matchId: string }) => void;
   'match:rematchDecline': (data: { matchId: string }) => void;
+
+  // Matchmaking events
+  'matchmaking:join': (data: { difficulty: string }) => void;
+  'matchmaking:cancel': () => void;
 }
 
 // Inter-server events (for scaling with multiple servers)

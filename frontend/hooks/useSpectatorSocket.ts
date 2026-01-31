@@ -7,7 +7,7 @@ import { socketService } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/lib/constants";
 
 export function useSpectatorSocket(matchId: string | null) {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const [isConnected, setIsConnected] = useState(false);
   const hasJoinedRef = useRef(false);
 
@@ -19,6 +19,14 @@ export function useSpectatorSocket(matchId: string | null) {
     setError,
     reset,
   } = useSpectatorStore();
+
+  // Get display name for player (username or email prefix for registered users)
+  const getDisplayName = useCallback(() => {
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split("@")[0];
+    // For anonymous users, socket service will use stored guest name
+    return undefined;
+  }, [user]);
 
   // Join as spectator
   const joinSpectate = useCallback((targetMatchId: string) => {
@@ -43,8 +51,9 @@ export function useSpectatorSocket(matchId: string | null) {
   useEffect(() => {
     if (!token) return;
 
-    // Connect socket
-    const socket = socketService.connect(token);
+    // Connect socket with player name
+    const playerName = getDisplayName();
+    const socket = socketService.connect(token, playerName);
     setIsConnected(true);
 
     // Initial state when joining as spectator
@@ -119,7 +128,7 @@ export function useSpectatorSocket(matchId: string | null) {
       socket.off(SOCKET_EVENTS.MATCH_ERROR);
       setIsConnected(false);
     };
-  }, [token, setSpectateState, updateState, setSpectatorCount, setMatchEnded, setError]);
+  }, [token, getDisplayName, setSpectateState, updateState, setSpectatorCount, setMatchEnded, setError]);
 
   // Auto-join when matchId is provided and connected
   useEffect(() => {

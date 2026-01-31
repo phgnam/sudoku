@@ -21,6 +21,7 @@ import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 interface LobbyHomeProps {
   onCreateRoom: (difficulty: string) => void;
   onJoinRoom: (matchId: string) => void;
+  onQuickMatch?: (difficulty: string) => void;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -28,6 +29,7 @@ interface LobbyHomeProps {
 export function LobbyHome({
   onCreateRoom,
   onJoinRoom,
+  onQuickMatch,
   isLoading,
   error,
 }: LobbyHomeProps) {
@@ -36,7 +38,7 @@ export function LobbyHome({
   const [mounted, setMounted] = useState(false);
   const [difficulty, setDifficulty] = useState<string>("easy");
   const [roomCode, setRoomCode] = useState("");
-  const [mode, setMode] = useState<"select" | "create" | "join">("select");
+  const [mode, setMode] = useState<"select" | "create" | "join" | "quickmatch">("select");
   const { stats, loading: statsLoading } = useCompetitiveStats();
 
   useEffect(() => {
@@ -96,6 +98,12 @@ export function LobbyHome({
   const handleJoin = () => {
     if (roomCode.trim().length >= 6) {
       onJoinRoom(roomCode.trim().toUpperCase());
+    }
+  };
+
+  const handleQuickMatch = () => {
+    if (onQuickMatch) {
+      onQuickMatch(difficulty);
     }
   };
 
@@ -581,7 +589,7 @@ export function LobbyHome({
                 </div>
 
                 {/* Join Room Card */}
-                <div style={cardStyle}>
+                <div className="action-card" style={cardStyle}>
                   <h3
                     style={{
                       fontSize: "20px",
@@ -629,6 +637,58 @@ export function LobbyHome({
                     {t("lobby.joinRoom")}
                   </button>
                 </div>
+
+                {/* Quick Match Card */}
+                {onQuickMatch && (
+                  <div className="action-card" style={cardStyle}>
+                    <h3
+                      style={{
+                        fontSize: "20px",
+                        fontWeight: 700,
+                        color: colors.title,
+                        marginBottom: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      ⚡ {t("lobby.quickMatch")}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        color: colors.text,
+                        marginBottom: "20px",
+                      }}
+                    >
+                      {t("lobby.quickMatchDesc")}
+                    </p>
+                    <button
+                      onClick={() => setMode("quickmatch")}
+                      disabled={isLoading}
+                      style={{
+                        width: "100%",
+                        padding: "16px 24px",
+                        backgroundColor: "#f59e0b",
+                        color: "white",
+                        borderRadius: "14px",
+                        fontWeight: 600,
+                        fontSize: "16px",
+                        border: "none",
+                        cursor: isLoading ? "not-allowed" : "pointer",
+                        opacity: isLoading ? 0.5 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        boxShadow: "0 4px 20px rgba(245, 158, 11, 0.35)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {t("lobby.quickMatch")}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -846,6 +906,223 @@ export function LobbyHome({
                 }}
               >
                 {isLoading ? t("lobby.creating") : t("lobby.createRoom")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Quick Match View
+  if (mode === "quickmatch") {
+    return (
+      <>
+        <style>{`
+          .quickmatch-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+          }
+          .quickmatch-content {
+            max-width: 560px;
+            width: 100%;
+          }
+          .quickmatch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+          }
+          .quickmatch-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+          }
+          .difficulty-grid-qm {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+          }
+          .difficulty-btn-qm {
+            padding: 24px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+          }
+          .difficulty-btn-qm:hover {
+            transform: scale(1.02);
+          }
+
+          @media (max-width: 768px) {
+            .quickmatch-container {
+              padding: 24px 16px;
+            }
+            .quickmatch-title {
+              font-size: 26px;
+            }
+            .difficulty-grid-qm {
+              gap: 12px;
+            }
+            .difficulty-btn-qm {
+              padding: 20px 12px;
+              gap: 8px;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .difficulty-grid-qm {
+              grid-template-columns: 1fr;
+            }
+            .difficulty-btn-qm {
+              flex-direction: row;
+              justify-content: center;
+              padding: 16px;
+            }
+          }
+        `}</style>
+
+        <div className="quickmatch-container" style={{ background: colors.bg }}>
+          <div className="quickmatch-content">
+            {/* Header */}
+            <div className="quickmatch-header">
+              <button
+                onClick={() => setMode("select")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "12px 20px",
+                  backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                  color: colors.title,
+                  borderRadius: "12px",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <ArrowLeft style={{ width: "18px", height: "18px" }} />
+                {t("lobby.back")}
+              </button>
+              <ThemeSwitcher />
+            </div>
+
+            <div style={{ ...cardStyle, textAlign: "center" }}>
+              <h2 className="quickmatch-title" style={{ color: colors.title }}>
+                ⚡ {t("lobby.quickMatch")}
+              </h2>
+              <p
+                style={{
+                  fontSize: "15px",
+                  color: colors.text,
+                  marginBottom: "32px",
+                }}
+              >
+                {t("lobby.quickMatchSelectDifficulty")}
+              </p>
+
+              {error && (
+                <div
+                  style={{
+                    backgroundColor: isDark
+                      ? "rgba(127, 29, 29, 0.3)"
+                      : "#fee2e2",
+                    color: isDark ? "#fca5a5" : "#dc2626",
+                    padding: "14px 18px",
+                    borderRadius: "12px",
+                    marginBottom: "24px",
+                    fontSize: "14px",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
+              {/* Difficulty Selection */}
+              <div style={{ marginBottom: "32px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: colors.text,
+                    marginBottom: "16px",
+                    textAlign: "left",
+                  }}
+                >
+                  {t("lobby.difficulty.title")}
+                </label>
+                <div className="difficulty-grid-qm">
+                  {GAME_CONFIG.DIFFICULTIES.map((d) => {
+                    const style =
+                      difficultyStyles[d as keyof typeof difficultyStyles];
+                    const Icon = style.icon;
+                    const isSelected = difficulty === d;
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => setDifficulty(d)}
+                        className="difficulty-btn-qm"
+                        style={{
+                          border: `3px solid ${isSelected ? style.border : colors.cardBorder}`,
+                          backgroundColor: isSelected
+                            ? style.bg
+                            : colors.cardBg,
+                          transform: isSelected ? "scale(1.02)" : "scale(1)",
+                        }}
+                      >
+                        <Icon
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            color: style.color,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 600,
+                            color: isSelected ? style.color : colors.title,
+                          }}
+                        >
+                          {getDifficultyLabel(d)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Find Match Button */}
+              <button
+                onClick={handleQuickMatch}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  padding: "18px 24px",
+                  backgroundColor: "#f59e0b",
+                  color: "white",
+                  borderRadius: "14px",
+                  fontWeight: 600,
+                  fontSize: "17px",
+                  border: "none",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  opacity: isLoading ? 0.5 : 1,
+                  boxShadow: "0 4px 20px rgba(245, 158, 11, 0.35)",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {isLoading ? t("lobby.searching") : t("lobby.findMatch")}
               </button>
             </div>
           </div>
