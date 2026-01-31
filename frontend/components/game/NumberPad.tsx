@@ -27,6 +27,8 @@ export function NumberPad({
 
   return (
     <div
+      role="group"
+      aria-label="Number pad - select a number to place in the grid"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
@@ -44,6 +46,7 @@ export function NumberPad({
             key={num}
             onClick={() => onNumberSelect(num)}
             disabled={isDisabled}
+            aria-label={`Enter number ${num}, ${count} of 9 placed${isComplete ? ', complete' : ''}`}
             style={{
               width: "56px",
               height: "56px",

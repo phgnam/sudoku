@@ -43,6 +43,19 @@ export class User {
   @Column({ default: 0 })
   hardCompleted: number;
 
+  // Competitive mode stats
+  @Column({ default: 1000 })
+  rating: number; // ELO rating
+
+  @Column({ default: 0 })
+  competitiveGames: number; // Total matches played (for K-factor)
+
+  @Column({ default: 0 })
+  competitiveWins: number;
+
+  @Column({ default: 0 })
+  competitiveDraws: number;
+
   @Column({ nullable: true })
   sessionId: string; // For anonymous users
 

@@ -105,14 +105,19 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit}>
             {/* Email */}
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="email-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.login.email')}
               </label>
               <input
+                id="email-input"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="you@example.com"
               />
@@ -120,14 +125,19 @@ export default function LoginPage() {
 
             {/* Password */}
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="password-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.login.password')}
               </label>
               <input
+                id="password-input"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="••••••••"
               />
@@ -136,6 +146,9 @@ export default function LoginPage() {
             {/* Error Message */}
             {error && (
               <div
+                id="form-error"
+                role="alert"
+                aria-live="polite"
                 style={{
                   backgroundColor: isDark ? "#7f1d1d" : "#fef2f2",
                   border: `1px solid ${isDark ? "#ef4444" : "#fecaca"}`,

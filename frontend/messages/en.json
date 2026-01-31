@@ -22,6 +22,12 @@
     "toSaveProgress": "to save progress",
     "viewStats": "View Stats",
     "startGame": "Start Game",
+    "activeMatch": {
+      "title": "Match in progress!",
+      "description": "You have an unfinished competitive match",
+      "continue": "Continue match",
+      "dismiss": "Dismiss"
+    },
     "difficulty": {
       "easy": "Easy",
       "normal": "Normal",
@@ -200,6 +206,113 @@
       "passwordTooShort": "Password must be at least 6 characters",
       "error": "Signup failed. Please try again."
     }
+  },
+  "competitive": {
+    "title": "Competitive Mode",
+    "subtitle": "Challenge other players in real-time",
+    "backToLobby": "← Back to Lobby",
+    "backToHome": "← Back to Home",
+    "lobby": {
+      "title": "Competitive Lobby",
+      "createRoom": "Create Room",
+      "joinRoom": "Join Room",
+      "enterCode": "Enter Room Code",
+      "roomCodePlaceholder": "e.g. ABC123",
+      "creating": "Creating...",
+      "joining": "Joining...",
+      "or": "or",
+      "yourStats": "Your Stats",
+      "rating": "Rating",
+      "rank": "Rank",
+      "games": "Games",
+      "wins": "Wins",
+      "winRate": "Win Rate",
+      "noRankYet": "Play to get ranked!",
+      "difficulty": {
+        "title": "Select Difficulty",
+        "easy": "Easy",
+        "normal": "Normal",
+        "hard": "Hard"
+      },
+      "tips": "Tips",
+      "tip1": "Winning matches increases your rating",
+      "tip2": "Higher difficulty gives more rating points",
+      "tip3": "Complete puzzles faster to win",
+      "createRoomDesc": "Create a new room and invite your friend",
+      "joinRoomDesc": "Enter a room code to join an existing game",
+      "selectDifficulty": "Select difficulty and create your room",
+      "enterCodeDesc": "Enter the room code shared by your friend",
+      "back": "Back"
+    },
+    "waitingRoom": {
+      "title": "Waiting Room",
+      "roomCode": "Room Code",
+      "copied": "Copied!",
+      "clickToCopy": "Click to copy",
+      "shareCode": "Share this code with your friend",
+      "difficulty": "Difficulty",
+      "players": "Players",
+      "you": "You",
+      "host": "Host",
+      "subtitle": "Waiting for players to get ready",
+      "waitingForOpponent": "Waiting for opponent...",
+      "waiting": "Waiting...",
+      "ready": "Ready",
+      "notReady": "Not Ready",
+      "setReady": "Ready",
+      "setUnready": "Cancel Ready",
+      "leaveRoom": "Leave Room",
+      "waitingBothReady": "Waiting for both players to ready...",
+      "startingSoon": "Starting soon..."
+    },
+    "game": {
+      "vs": "vs",
+      "you": "You",
+      "opponent": "Opponent",
+      "yourProgress": "Your Progress",
+      "opponentProgress": "Opponent Progress",
+      "timeRemaining": "Time Remaining",
+      "spectators": "watching",
+      "submit": "Submit Solution",
+      "submitRejected": "Solution rejected",
+      "reconnecting": "Reconnecting..."
+    },
+    "result": {
+      "victory": "Victory!",
+      "defeat": "Defeat",
+      "draw": "Draw",
+      "vs": "vs",
+      "rating": "Rating",
+      "ratingChange": "Rating Change",
+      "newRating": "New Rating",
+      "home": "Home",
+      "newMatch": "New Match",
+      "rematch": {
+        "request": "🔄 Request Rematch",
+        "waiting": "⏳ Waiting for opponent to respond...",
+        "received": "wants a rematch!",
+        "accept": "✓ Accept",
+        "decline": "✕ Decline",
+        "declined": "❌ Rematch declined",
+        "expired": "⏰ Rematch request expired"
+      }
+    },
+    "spectator": {
+      "title": "Spectating Match",
+      "matchEnded": "Match Ended",
+      "winner": "Winner",
+      "draw": "Draw",
+      "backToLobby": "Back to Lobby",
+      "spectators": "Spectators",
+      "host": "Host",
+      "guest": "Guest"
+    },
+    "errors": {
+      "matchNotFound": "Match not found",
+      "alreadyInMatch": "Already in a match",
+      "matchFull": "Match is full",
+      "notAuthenticated": "Not authenticated",
+      "connectionLost": "Connection lost"
+    }
   }
 }
-

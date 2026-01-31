@@ -117,14 +117,19 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit}>
             {/* Username */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="username-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.signup.username')}
               </label>
               <input
+                id="username-input"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                autoComplete="username"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="johndoe"
               />
@@ -132,14 +137,19 @@ export default function SignupPage() {
 
             {/* Email */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="email-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.signup.email')}
               </label>
               <input
+                id="email-input"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="you@example.com"
               />
@@ -147,15 +157,20 @@ export default function SignupPage() {
 
             {/* Password */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="password-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.signup.password')}
               </label>
               <input
+                id="password-input"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete="new-password"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="••••••••"
               />
@@ -163,15 +178,20 @@ export default function SignupPage() {
 
             {/* Confirm Password */}
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
+              <label htmlFor="confirm-password-input" style={{ display: "block", fontSize: "14px", fontWeight: 600, color: colors.title, marginBottom: "8px" }}>
                 {t('auth.signup.confirmPassword')}
               </label>
               <input
+                id="confirm-password-input"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete="new-password"
+                aria-describedby={error ? "form-error" : undefined}
+                aria-invalid={!!error}
+                className="focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 style={inputStyle}
                 placeholder="••••••••"
               />
@@ -180,6 +200,9 @@ export default function SignupPage() {
             {/* Error Message */}
             {error && (
               <div
+                id="form-error"
+                role="alert"
+                aria-live="polite"
                 style={{
                   backgroundColor: isDark ? "#7f1d1d" : "#fef2f2",
                   border: `1px solid ${isDark ? "#ef4444" : "#fecaca"}`,

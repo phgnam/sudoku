@@ -9,6 +9,9 @@ import {
   LeaderboardEntryDto,
   LeaderboardResponseDto,
   UserRankResponseDto,
+  CompetitiveLeaderboardEntryDto,
+  CompetitiveLeaderboardResponseDto,
+  CompetitiveStatsDto,
 } from './dto';
 
 @Injectable()
@@ -215,6 +218,131 @@ export class LeaderboardService {
       default:
         return new Date(0); // Beginning of time
     }
+  }
+
+  // ============ Competitive Leaderboard Methods ============
+
+  /**
+   * Get competitive leaderboard ranked by ELO rating
+   */
+  async getCompetitiveLeaderboard(
+    limit: number = 50,
+    currentUserId?: string,
+  ): Promise<CompetitiveLeaderboardResponseDto> {
+    // Get top players by rating who have played at least 1 competitive game
+    const users = await this.userRepo
+      .createQueryBuilder('user')
+      .where('user.competitiveGames > 0')
+      .andWhere('user.username IS NOT NULL')
+      .andWhere("user.username != ''")
+      .orderBy('user.rating', 'DESC')
+      .limit(limit)
+      .getMany();
+
+    const entries: CompetitiveLeaderboardEntryDto[] = users.map((user, idx) => {
+      const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+      const winRate = user.competitiveGames > 0
+        ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+        : 0;
+
+      return {
+        rank: idx + 1,
+        userId: user.id,
+        username: user.username || 'Anonymous',
+        rating: user.rating,
+        competitiveGames: user.competitiveGames,
+        competitiveWins: user.competitiveWins,
+        competitiveDraws: user.competitiveDraws,
+        winRate,
+        isCurrentUser: user.id === currentUserId,
+      };
+    });
+
+    // Get current user rank if not in top results
+    let userRank: CompetitiveLeaderboardEntryDto | undefined;
+    const userInEntries = entries.find((e) => e.isCurrentUser);
+
+    if (!userInEntries && currentUserId) {
+      userRank = await this.getCompetitiveUserRankEntry(currentUserId);
+    }
+
+    return {
+      entries,
+      total: entries.length,
+      userRank,
+    };
+  }
+
+  /**
+   * Get user's competitive stats including rank
+   */
+  async getCompetitiveStats(userId: string): Promise<CompetitiveStatsDto | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) return null;
+
+    const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+    const winRate = user.competitiveGames > 0
+      ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+      : 0;
+
+    // Calculate rank
+    let rank: number | undefined;
+    if (user.competitiveGames > 0) {
+      const higherRatedCount = await this.userRepo
+        .createQueryBuilder('user')
+        .where('user.competitiveGames > 0')
+        .andWhere('user.rating > :rating', { rating: user.rating })
+        .andWhere('user.username IS NOT NULL')
+        .andWhere("user.username != ''")
+        .getCount();
+      rank = higherRatedCount + 1;
+    }
+
+    return {
+      rating: user.rating,
+      competitiveGames: user.competitiveGames,
+      competitiveWins: user.competitiveWins,
+      competitiveDraws: user.competitiveDraws,
+      competitiveLosses: losses,
+      winRate,
+      rank,
+    };
+  }
+
+  /**
+   * Get user's competitive rank entry
+   */
+  private async getCompetitiveUserRankEntry(
+    userId: string,
+  ): Promise<CompetitiveLeaderboardEntryDto | undefined> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user || user.competitiveGames === 0) return undefined;
+
+    // Count users with higher rating
+    const higherRatedCount = await this.userRepo
+      .createQueryBuilder('user')
+      .where('user.competitiveGames > 0')
+      .andWhere('user.rating > :rating', { rating: user.rating })
+      .andWhere('user.username IS NOT NULL')
+      .andWhere("user.username != ''")
+      .getCount();
+
+    const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+    const winRate = user.competitiveGames > 0
+      ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+      : 0;
+
+    return {
+      rank: higherRatedCount + 1,
+      userId: user.id,
+      username: user.username || 'Anonymous',
+      rating: user.rating,
+      competitiveGames: user.competitiveGames,
+      competitiveWins: user.competitiveWins,
+      competitiveDraws: user.competitiveDraws,
+      winRate,
+      isCurrentUser: true,
+    };
   }
 }
 
