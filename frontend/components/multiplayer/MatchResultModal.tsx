@@ -100,6 +100,18 @@ export function MatchResultModal({
 
   const config = getResultConfig();
 
+  // Check if match ended in a way that rematch doesn't make sense
+  // - Surrender: player intentionally quit
+  // - Timeout: time expired, players may have left
+  // - Disconnect: opponent left/disconnected
+  const reasonLower = reason.toLowerCase();
+  const shouldHideRematch =
+    reasonLower.includes("surrendered") ||
+    reasonLower.includes("timeout") ||
+    reasonLower.includes("time") ||
+    reasonLower.includes("disconnected") ||
+    reasonLower.includes("left");
+
   const handlePlayAgain = () => {
     clearActiveMatch();
     resetMatch();
@@ -246,7 +258,8 @@ export function MatchResultModal({
           </div>
         )}
 
-        {/* Rematch section */}
+        {/* Rematch section - hidden for surrender/timeout/disconnect matches */}
+        {!shouldHideRematch && (
         <div style={{ marginBottom: "16px" }}>
           {rematchStatus === "none" && (
             <button
@@ -369,6 +382,7 @@ export function MatchResultModal({
             </div>
           )}
         </div>
+        )}
 
         {/* Action buttons */}
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>

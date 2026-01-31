@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Smile, Zap, Flame, Lock, Swords, Play, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/store/auth";
-import { useUIStore } from "@/store/ui";
+import { useUIStore, Difficulty } from "@/store/ui";
 import { useMatchStore } from "@/store/match";
+import { useGameStore, GameStatus } from "@/store/game";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 
 // Key for storing active match info in localStorage
@@ -36,14 +38,33 @@ function isMatchValid(savedAt?: number): boolean {
 
 export default function HomePage() {
   const t = useTranslations();
+  const router = useRouter();
   const { isAuthenticated, _hasHydrated: authHydrated } = useAuthStore();
-  const { colorMode } = useUIStore();
-  const [selectedDifficulty, setSelectedDifficulty] = useState<
-    "easy" | "normal" | "hard"
-  >("easy");
+  const { colorMode, selectedDifficulty, setSelectedDifficulty } = useUIStore();
   const [mounted, setMounted] = useState(false);
   const [activeMatch, setActiveMatch] = useState<ActiveMatchInfo | null>(null);
   const { status: matchStatus } = useMatchStore();
+
+  // Handler for starting a new game - clears old game state and navigates
+  const handleStartGame = () => {
+    const gameStore = useGameStore.getState();
+    const currentStatus = gameStore.status;
+    const currentDifficulty = gameStore.difficulty;
+
+    // Clear game state if:
+    // 1. Game is completed or failed (need to start fresh)
+    // 2. Difficulty is different from selected (user wants different difficulty)
+    if (
+      currentStatus === GameStatus.COMPLETED ||
+      currentStatus === GameStatus.FAILED ||
+      (currentDifficulty && currentDifficulty !== selectedDifficulty)
+    ) {
+      useGameStore.getState().clearGame();
+    }
+
+    // Navigate to game page
+    router.push("/game");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -483,8 +504,8 @@ export default function HomePage() {
 
         {/* Start Button */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <Link
-            href="/game"
+          <button
+            onClick={handleStartGame}
             style={{
               display: "inline-block",
               backgroundColor: "#f97316",
@@ -495,10 +516,12 @@ export default function HomePage() {
               borderRadius: "9999px",
               textDecoration: "none",
               boxShadow: "0 10px 25px rgba(249, 115, 22, 0.3)",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)})
-          </Link>
+          </button>
         </div>
 
         {/* Competitive Mode Section */}

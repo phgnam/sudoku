@@ -52,6 +52,7 @@ export const SOCKET_EVENTS = {
   MATCH_CREATE: "match:create",
   MATCH_JOIN: "match:join",
   MATCH_LEAVE: "match:leave",
+  MATCH_SURRENDER: "match:surrender",
   MATCH_READY: "match:ready",
   MATCH_UNREADY: "match:unready",
   MATCH_MOVE: "match:move",
@@ -90,9 +91,26 @@ export const SOCKET_EVENTS = {
   MATCH_REMATCH_CREATED: "match:rematchCreated",
   MATCH_REMATCH_DECLINED: "match:rematchDeclined",
   MATCH_REMATCH_EXPIRED: "match:rematchExpired",
+
+  // Matchmaking events
+  MATCHMAKING_JOIN: "matchmaking:join",
+  MATCHMAKING_CANCEL: "matchmaking:cancel",
+  MATCHMAKING_JOINED: "matchmaking:joined",
+  MATCHMAKING_FOUND: "matchmaking:found",
+  MATCHMAKING_STATUS: "matchmaking:status",
+  MATCHMAKING_CANCELLED: "matchmaking:cancelled",
 } as const;
 
 export const MATCH_CONFIG = {
   MAX_DURATION_MS: 20 * 60 * 1000, // 20 minutes
   RECONNECT_GRACE_PERIOD_MS: 30 * 1000, // 30 seconds
+} as const;
+
+export const MATCHMAKING_CONFIG = {
+  INITIAL_SEARCH_RADIUS: 200,    // ±200 ELO points
+  RADIUS_EXPAND_INTERVAL: 10000, // Expand every 10 seconds
+  RADIUS_EXPAND_AMOUNT: 50,      // Add 50 points each expansion
+  MAX_SEARCH_RADIUS: 500,        // Cap at ±500
+  MATCH_CHECK_INTERVAL: 2000,    // Check for matches every 2s
+  MAX_QUEUE_TIME: 300000,        // 5 minutes max wait
 } as const;

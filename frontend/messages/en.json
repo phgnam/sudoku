@@ -210,12 +210,17 @@
   "competitive": {
     "title": "Competitive Mode",
     "subtitle": "Challenge other players in real-time",
-    "backToLobby": "← Back to Lobby",
-    "backToHome": "← Back to Home",
+    "backToLobby": "Back to Lobby",
+    "backToHome": "Back to Home",
     "lobby": {
       "title": "Competitive Lobby",
       "createRoom": "Create Room",
       "joinRoom": "Join Room",
+      "quickMatch": "Quick Match",
+      "quickMatchDesc": "Find an opponent automatically based on your rating",
+      "quickMatchSelectDifficulty": "Select difficulty and find a match",
+      "findMatch": "Find Match",
+      "searching": "Searching...",
       "enterCode": "Enter Room Code",
       "roomCodePlaceholder": "e.g. ABC123",
       "creating": "Creating...",
@@ -243,6 +248,17 @@
       "selectDifficulty": "Select difficulty and create your room",
       "enterCodeDesc": "Enter the room code shared by your friend",
       "back": "Back"
+    },
+    "quickMatch": {
+      "searching": "Searching for opponent...",
+      "position": "Queue Position",
+      "estimatedWait": "Est. Wait",
+      "waitTime": "Wait Time",
+      "searchRange": "ELO Range",
+      "difficulty": "Difficulty",
+      "cancel": "Cancel Search",
+      "found": "Match Found!",
+      "connecting": "Connecting..."
     },
     "waitingRoom": {
       "title": "Waiting Room",
@@ -275,7 +291,8 @@
       "spectators": "watching",
       "submit": "Submit Solution",
       "submitRejected": "Solution rejected",
-      "reconnecting": "Reconnecting..."
+      "reconnecting": "Reconnecting...",
+      "opponentDisconnected": "Opponent disconnected. Waiting {seconds}s for reconnection..."
     },
     "result": {
       "victory": "Victory!",
@@ -288,8 +305,8 @@
       "home": "Home",
       "newMatch": "New Match",
       "rematch": {
-        "request": "🔄 Request Rematch",
-        "waiting": "⏳ Waiting for opponent to respond...",
+        "request": "Request Rematch",
+        "waiting": "Waiting for opponent to respond...",
         "received": "wants a rematch!",
         "accept": "✓ Accept",
         "decline": "✕ Decline",
@@ -313,6 +330,11 @@
       "matchFull": "Match is full",
       "notAuthenticated": "Not authenticated",
       "connectionLost": "Connection lost"
-    }
+    },
+    "surrender": "Surrender",
+    "surrenderTitle": "Surrender?",
+    "surrenderWarning": "You will lose this match and your ELO rating will decrease. Are you sure you want to surrender?",
+    "confirmSurrender": "Yes, Surrender",
+    "cancel": "Cancel"
   }
 }

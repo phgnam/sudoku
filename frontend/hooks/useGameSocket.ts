@@ -6,7 +6,7 @@ import { api, fetchApi } from "@/lib/api";
 import { SOCKET_EVENTS } from "@/lib/constants";
 
 export function useGameSocket() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const {
     id: gameId,
     setGame,
@@ -17,11 +17,20 @@ export function useGameSocket() {
     setStatus,
   } = useGameStore();
 
+  // Get display name for player (username or email prefix for registered users)
+  const getDisplayName = useCallback(() => {
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split("@")[0];
+    // For anonymous users, socket service will use stored guest name
+    return undefined;
+  }, [user]);
+
   useEffect(() => {
     if (!token) return;
 
-    // Connect socket
-    const socket = socketService.connect(token);
+    // Connect socket with player name
+    const playerName = getDisplayName();
+    const socket = socketService.connect(token, playerName);
 
     // Join game room if game exists
     if (gameId) {

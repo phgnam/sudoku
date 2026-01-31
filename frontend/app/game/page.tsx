@@ -82,7 +82,7 @@ export default function GamePage() {
   const router = useRouter();
   const t = useTranslations();
   const { token, isAuthenticated, _hasHydrated: authHydrated } = useAuthStore();
-  const { showTutorial, setShowTutorial } = useUIStore();
+  const { showTutorial, setShowTutorial, selectedDifficulty } = useUIStore();
   const {
     id: gameId,
     difficulty,
@@ -192,7 +192,7 @@ export default function GamePage() {
         // Prevent duplicate game creation (React StrictMode or race conditions)
         isCreatingGameRef.current = true;
 
-        // Create new game - default to easy for now
+        // Create new game with selected difficulty from UI store
         try {
           const response = await fetch(api.games.create(), {
             method: "POST",
@@ -200,7 +200,7 @@ export default function GamePage() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${currentToken}`,
             },
-            body: JSON.stringify({ difficulty: "easy" }),
+            body: JSON.stringify({ difficulty: selectedDifficulty }),
           });
 
           if (!response.ok) {
@@ -241,7 +241,7 @@ export default function GamePage() {
 
     initGame();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated, authHydrated, token, gameId]);
+  }, [hasHydrated, authHydrated, token, gameId, selectedDifficulty]);
 
   // Recalculate wrongCells whenever currentState changes (ensures consistency)
   useEffect(() => {
@@ -637,10 +637,10 @@ export default function GamePage() {
       // Clear current game state
       useGameStore.getState().clearGame();
 
-      // Create new game
+      // Create new game with selected difficulty
       const game = await fetchApi<GameApiResponse>(api.games.create(), {
         method: "POST",
-        body: JSON.stringify({ difficulty: "easy" }),
+        body: JSON.stringify({ difficulty: selectedDifficulty }),
       });
 
       setGame(mapGameResponseToState(game));

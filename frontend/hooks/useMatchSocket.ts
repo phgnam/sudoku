@@ -52,15 +52,24 @@ function clearActiveMatch() {
 }
 
 export function useMatchSocket() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const matchStore = useMatchStore();
   const { matchId, status } = matchStore;
+
+  // Get display name for player (username or email prefix for registered users)
+  const getDisplayName = useCallback(() => {
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split("@")[0];
+    // For anonymous users, socket service will use stored guest name
+    return undefined;
+  }, [user]);
 
   useEffect(() => {
     if (!token) return;
 
-    // Ensure socket is connected
-    const socket = socketService.connect(token);
+    // Ensure socket is connected with player name
+    const playerName = getDisplayName();
+    const socket = socketService.connect(token, playerName);
 
     // === Match Created ===
     socket.on(
@@ -337,6 +346,45 @@ export function useMatchSocket() {
       matchStore.setRematchExpired();
     });
 
+    // === Matchmaking Events ===
+    socket.on(
+      SOCKET_EVENTS.MATCHMAKING_JOINED,
+      (data: { position: number; estimatedWait: number; searchRadius: number }) => {
+        matchStore.setQueueStatus(data.position, data.estimatedWait, data.searchRadius);
+      },
+    );
+
+    socket.on(
+      SOCKET_EVENTS.MATCHMAKING_STATUS,
+      (data: { position: number; estimatedWait: number; searchRadius: number }) => {
+        matchStore.setQueueStatus(data.position, data.estimatedWait, data.searchRadius);
+      },
+    );
+
+    socket.on(
+      SOCKET_EVENTS.MATCHMAKING_FOUND,
+      (data: {
+        matchId: string;
+        opponent: { opponentId: string; opponentName: string; opponentRating: number };
+      }) => {
+        const opponent = {
+          id: data.opponent.opponentId,
+          name: data.opponent.opponentName,
+        };
+        matchStore.setMatched(data.matchId, opponent, data.opponent.opponentRating);
+      },
+    );
+
+    socket.on(
+      SOCKET_EVENTS.MATCHMAKING_CANCELLED,
+      (data: { reason: string }) => {
+        matchStore.cancelQueue();
+        if (data.reason && data.reason !== "Cancelled by user") {
+          matchStore.setError(data.reason);
+        }
+      },
+    );
+
     // Cleanup
     return () => {
       socket.off(SOCKET_EVENTS.MATCH_CREATED);
@@ -358,6 +406,10 @@ export function useMatchSocket() {
       socket.off(SOCKET_EVENTS.MATCH_REMATCH_CREATED);
       socket.off(SOCKET_EVENTS.MATCH_REMATCH_DECLINED);
       socket.off(SOCKET_EVENTS.MATCH_REMATCH_EXPIRED);
+      socket.off(SOCKET_EVENTS.MATCHMAKING_JOINED);
+      socket.off(SOCKET_EVENTS.MATCHMAKING_STATUS);
+      socket.off(SOCKET_EVENTS.MATCHMAKING_FOUND);
+      socket.off(SOCKET_EVENTS.MATCHMAKING_CANCELLED);
       socket.off("match:rejoin");
       socket.off(MATCH_PLAYER_RECONNECTED);
     };
@@ -391,6 +443,13 @@ export function useMatchSocket() {
   const leaveMatch = useCallback(() => {
     if (!matchId) return;
     socketService.emit(SOCKET_EVENTS.MATCH_LEAVE, { matchId });
+    matchStore.reset();
+  }, [matchId]);
+
+  // Surrender match - counts as a loss with ELO penalty
+  const surrender = useCallback(() => {
+    if (!matchId) return;
+    socketService.emit(SOCKET_EVENTS.MATCH_SURRENDER, { matchId });
     matchStore.reset();
   }, [matchId]);
 
@@ -438,17 +497,31 @@ export function useMatchSocket() {
     clearActiveMatch();
   }, []);
 
+  // Matchmaking actions
+  const joinQueue = useCallback((difficulty: string) => {
+    matchStore.setQueuing(difficulty);
+    socketService.emit(SOCKET_EVENTS.MATCHMAKING_JOIN, { difficulty });
+  }, []);
+
+  const cancelQueue = useCallback(() => {
+    socketService.emit(SOCKET_EVENTS.MATCHMAKING_CANCEL, {});
+    matchStore.cancelQueue();
+  }, []);
+
   return {
     createMatch,
     joinMatch,
     setReady,
     setUnready,
     leaveMatch,
+    surrender,
     sendMove,
     submitSolution,
     syncMatch,
     requestRematch,
     declineRematch,
     clearMatchStorage,
+    joinQueue,
+    cancelQueue,
   };
 }

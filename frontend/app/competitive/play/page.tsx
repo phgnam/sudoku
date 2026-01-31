@@ -93,6 +93,8 @@ export default function CompetitivePlayPage() {
     syncMatch,
     requestRematch,
     declineRematch,
+    leaveMatch,
+    surrender,
   } = useMatchSocket();
 
   const [selectedCell, setSelectedCell] = useState<{
@@ -100,6 +102,10 @@ export default function CompetitivePlayPage() {
     col: number;
   } | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
+
+  // Countdown timer for opponent disconnect
+  const [disconnectCountdown, setDisconnectCountdown] = useState<number>(30);
 
   // Track if we're waiting for rejoin
   const [waitingForRejoin, setWaitingForRejoin] = useState(true);
@@ -109,6 +115,30 @@ export default function CompetitivePlayPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Countdown effect for opponent disconnect
+  useEffect(() => {
+    if (!opponentDisconnected) {
+      // Reset countdown when opponent reconnects or is not disconnected
+      setDisconnectCountdown(30);
+      return;
+    }
+
+    // Start countdown from 30
+    setDisconnectCountdown(30);
+
+    const interval = setInterval(() => {
+      setDisconnectCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [opponentDisconnected]);
 
   // Give some time for socket to reconnect and receive rejoin event
   useEffect(() => {
@@ -513,8 +543,7 @@ export default function CompetitivePlayPage() {
                   color: isDark ? "#fcd34d" : "#92400e",
                 }}
               >
-                {opponentDisconnectReason ||
-                  "Đối thủ đã mất kết nối. Đang chờ kết nối lại..."}
+                {t("game.opponentDisconnected", { seconds: disconnectCountdown })}
               </span>
             </div>
           </div>
@@ -621,7 +650,14 @@ export default function CompetitivePlayPage() {
         {/* Back to lobby link */}
         <div style={{ textAlign: "center", marginTop: "40px" }}>
           <button
-            onClick={() => router.push("/competitive")}
+            onClick={() => {
+              if (status === "playing") {
+                setShowSurrenderConfirm(true);
+              } else {
+                leaveMatch();
+                router.push("/competitive");
+              }
+            }}
             style={{
               padding: "14px 28px",
               backgroundColor: isDark ? "#374151" : "#e5e7eb",
@@ -638,10 +674,92 @@ export default function CompetitivePlayPage() {
             }}
           >
             <ArrowLeft style={{ width: "18px", height: "18px" }} />
-            {t("backToLobby")}
+            {status === "playing" ? t("surrender") : t("backToLobby")}
           </button>
         </div>
       </div>
+
+      {/* Surrender Confirmation Modal */}
+      {showSurrenderConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: isDark ? "#1f2937" : "#ffffff",
+              padding: "32px",
+              borderRadius: "16px",
+              maxWidth: "400px",
+              textAlign: "center",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <h3
+              style={{
+                color: "#ef4444",
+                marginBottom: "16px",
+                fontSize: "20px",
+              }}
+            >
+              {t("surrenderTitle") || "Surrender?"}
+            </h3>
+            <p
+              style={{
+                color: isDark ? "#9ca3af" : "#6b7280",
+                marginBottom: "24px",
+                lineHeight: 1.6,
+              }}
+            >
+              {t("surrenderWarning") ||
+                "You will lose this match and your ELO rating will decrease. Are you sure?"}
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                onClick={() => setShowSurrenderConfirm(false)}
+                style={{
+                  padding: "12px 24px",
+                  backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                  color: colors.title,
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                {t("cancel") || "Cancel"}
+              </button>
+              <button
+                onClick={() => {
+                  surrender();
+                  router.push("/competitive");
+                }}
+                style={{
+                  padding: "12px 24px",
+                  backgroundColor: "#ef4444",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                {t("confirmSurrender") || "Yes, Surrender"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Result Modal */}
       {showResult && result && (

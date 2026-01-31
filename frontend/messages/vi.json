@@ -210,12 +210,17 @@
   "competitive": {
     "title": "Chế độ Thi đấu",
     "subtitle": "Thách đấu người chơi khác theo thời gian thực",
-    "backToLobby": "← Quay lại Sảnh",
+    "backToLobby": "Quay lại Sảnh",
     "backToHome": "← Về trang chủ",
     "lobby": {
       "title": "Sảnh Thi đấu",
       "createRoom": "Tạo phòng",
       "joinRoom": "Vào phòng",
+      "quickMatch": "Tìm trận nhanh",
+      "quickMatchDesc": "Tự động tìm đối thủ phù hợp với điểm xếp hạng của bạn",
+      "quickMatchSelectDifficulty": "Chọn độ khó và tìm trận đấu",
+      "findMatch": "Tìm trận",
+      "searching": "Đang tìm...",
       "enterCode": "Nhập mã phòng",
       "roomCodePlaceholder": "VD: ABC123",
       "creating": "Đang tạo...",
@@ -243,6 +248,17 @@
       "selectDifficulty": "Chọn độ khó và tạo phòng",
       "enterCodeDesc": "Nhập mã phòng được bạn bè chia sẻ",
       "back": "Quay lại"
+    },
+    "quickMatch": {
+      "searching": "Đang tìm đối thủ...",
+      "position": "Vị trí hàng đợi",
+      "estimatedWait": "Thời gian ước tính",
+      "waitTime": "Thời gian chờ",
+      "searchRange": "Khoảng ELO",
+      "difficulty": "Độ khó",
+      "cancel": "Hủy tìm kiếm",
+      "found": "Đã tìm thấy trận!",
+      "connecting": "Đang kết nối..."
     },
     "waitingRoom": {
       "title": "Phòng chờ",
@@ -275,7 +291,8 @@
       "spectators": "đang xem",
       "submit": "Nộp bài",
       "submitRejected": "Bài giải bị từ chối",
-      "reconnecting": "Đang kết nối lại..."
+      "reconnecting": "Đang kết nối lại...",
+      "opponentDisconnected": "Đối thủ mất kết nối. Đang chờ kết nối lại ({seconds}s)..."
     },
     "result": {
       "victory": "Chiến thắng!",
@@ -288,8 +305,8 @@
       "home": "Trang chủ",
       "newMatch": "Trận mới",
       "rematch": {
-        "request": "🔄 Yêu cầu đấu lại",
-        "waiting": "⏳ Đang chờ đối thủ phản hồi...",
+        "request": "Yêu cầu đấu lại",
+        "waiting": "Đang chờ đối thủ phản hồi...",
         "received": "muốn đấu lại!",
         "accept": "✓ Chấp nhận",
         "decline": "✕ Từ chối",
@@ -313,6 +330,11 @@
       "matchFull": "Phòng đã đầy",
       "notAuthenticated": "Chưa đăng nhập",
       "connectionLost": "Mất kết nối"
-    }
+    },
+    "surrender": "Đầu hàng",
+    "surrenderTitle": "Đầu hàng?",
+    "surrenderWarning": "Bạn sẽ thua trận đấu này và mất điểm ELO. Bạn có chắc chắn muốn đầu hàng không?",
+    "confirmSurrender": "Có, đầu hàng",
+    "cancel": "Hủy"
   }
 }

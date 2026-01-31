@@ -8,7 +8,9 @@ export type MatchStatus =
   | "joined" // Guest joined, waiting for ready
   | "ready" // Both players ready, starting soon
   | "playing" // Game in progress
-  | "finished"; // Game ended
+  | "finished" // Game ended
+  | "queuing" // In matchmaking queue
+  | "matched"; // Found opponent, transitioning to match
 
 export interface Opponent {
   id: string;
@@ -49,6 +51,12 @@ export interface MatchState {
     | "declined"
     | "expired";
   rematchRequestedBy: string | null;
+  // Matchmaking queue state
+  queuePosition: number | null;
+  estimatedWait: number | null; // seconds
+  searchRadius: number | null;
+  queueDifficulty: string | null;
+  queueJoinedAt: number | null;
 }
 
 interface MatchStore extends MatchState {
@@ -108,6 +116,11 @@ interface MatchStore extends MatchState {
     opponentFilledCount: number;
     spectatorCount: number;
   }) => void;
+  // Matchmaking queue actions
+  setQueuing: (difficulty: string) => void;
+  setQueueStatus: (position: number, estimatedWait: number, searchRadius: number) => void;
+  setMatched: (matchId: string, opponent: Opponent, opponentRating: number) => void;
+  cancelQueue: () => void;
 }
 
 const initialState: MatchState = {
@@ -138,6 +151,12 @@ const initialState: MatchState = {
   // Rematch state
   rematchStatus: "none",
   rematchRequestedBy: null,
+  // Matchmaking queue state
+  queuePosition: null,
+  estimatedWait: null,
+  searchRadius: null,
+  queueDifficulty: null,
+  queueJoinedAt: null,
 };
 
 export const useMatchStore = create<MatchStore>((set, get) => ({
@@ -345,4 +364,44 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
       opponentDisconnectReason: null,
     });
   },
+
+  // Matchmaking queue actions
+  setQueuing: (difficulty) =>
+    set({
+      status: "queuing",
+      queueDifficulty: difficulty,
+      queueJoinedAt: Date.now(),
+      queuePosition: null,
+      estimatedWait: null,
+      searchRadius: null,
+      error: null,
+    }),
+
+  setQueueStatus: (position, estimatedWait, searchRadius) =>
+    set({
+      queuePosition: position,
+      estimatedWait,
+      searchRadius,
+    }),
+
+  setMatched: (matchId, opponent, _opponentRating) =>
+    set({
+      status: "matched",
+      matchId,
+      opponent,
+      queuePosition: null,
+      estimatedWait: null,
+      searchRadius: null,
+    }),
+
+  cancelQueue: () =>
+    set({
+      status: "idle",
+      queuePosition: null,
+      estimatedWait: null,
+      searchRadius: null,
+      queueDifficulty: null,
+      queueJoinedAt: null,
+      error: null,
+    }),
 }));

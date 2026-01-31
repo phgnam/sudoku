@@ -1,10 +1,34 @@
 import { io, Socket } from "socket.io-client";
 
+const GUEST_NAME_KEY = "sudoku_guest_name";
+
+// Generate and persist guest name for anonymous users
+function getOrCreateGuestName(): string {
+  if (typeof window === "undefined") {
+    return `Guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  }
+
+  let guestName = localStorage.getItem(GUEST_NAME_KEY);
+  if (!guestName) {
+    guestName = `Guest_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    localStorage.setItem(GUEST_NAME_KEY, guestName);
+  }
+  return guestName;
+}
+
 class SocketService {
   private socket: Socket | null = null;
   private token: string | null = null;
+  private playerName: string | null = null;
 
-  connect(token: string) {
+  connect(token: string, name?: string) {
+    // Update player name if provided, otherwise use stored guest name
+    if (name) {
+      this.playerName = name;
+    } else if (!this.playerName) {
+      this.playerName = getOrCreateGuestName();
+    }
+
     if (this.socket?.connected) {
       return this.socket;
     }
@@ -15,6 +39,7 @@ class SocketService {
     this.socket = io(wsUrl, {
       auth: {
         token,
+        name: this.playerName,
       },
       transports: ["websocket", "polling"],
     });
@@ -22,6 +47,17 @@ class SocketService {
     this.setupEventHandlers();
 
     return this.socket;
+  }
+
+  // Update player name and reconnect if needed
+  setPlayerName(name: string) {
+    this.playerName = name;
+    // If already connected, disconnect and reconnect with new name
+    if (this.socket?.connected && this.token) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.connect(this.token, name);
+    }
   }
 
   private setupEventHandlers() {
