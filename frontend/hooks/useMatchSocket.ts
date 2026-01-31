@@ -413,7 +413,7 @@ export function useMatchSocket() {
       socket.off("match:rejoin");
       socket.off(MATCH_PLAYER_RECONNECTED);
     };
-  }, [token]);
+  }, [token, getDisplayName]);
 
   // === Actions ===
   const createMatch = useCallback((difficulty: string) => {

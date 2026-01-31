@@ -128,7 +128,7 @@ export function useSpectatorSocket(matchId: string | null) {
       socket.off(SOCKET_EVENTS.MATCH_ERROR);
       setIsConnected(false);
     };
-  }, [token, setSpectateState, updateState, setSpectatorCount, setMatchEnded, setError]);
+  }, [token, getDisplayName, setSpectateState, updateState, setSpectatorCount, setMatchEnded, setError]);
 
   // Auto-join when matchId is provided and connected
   useEffect(() => {

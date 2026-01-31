@@ -17,7 +17,7 @@ import {
   EloService,
   MatchmakingService,
 } from '../match/services';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import './types/socket.types'; // Import to activate module augmentation
 import type {
   JwtPayload,
@@ -35,7 +35,7 @@ const MATCH_DURATION_MS = 20 * 60 * 1000;
     origin: '*',
   },
 })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   @WebSocketServer()
   server: TypedServer;
 
@@ -62,6 +62,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     // Start matchmaking interval
     this.startMatchmakingLoop();
+  }
+
+  onModuleDestroy(): void {
+    // Clean up matchmaking interval to prevent memory leaks
+    if (this.matchmakingInterval) {
+      clearInterval(this.matchmakingInterval);
+      this.matchmakingInterval = null;
+      this.logger.log('Matchmaking interval cleared');
+    }
   }
 
   private startMatchmakingLoop(): void {

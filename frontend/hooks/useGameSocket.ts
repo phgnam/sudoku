@@ -116,7 +116,7 @@ export function useGameSocket() {
       socket.off(SOCKET_EVENTS.GAME_STATE);
       socket.off(SOCKET_EVENTS.GAME_ERROR);
     };
-  }, [token, gameId]);
+  }, [token, gameId, getDisplayName]);
 
   const makeMove = useCallback(
     (row: number, col: number, value: number) => {
