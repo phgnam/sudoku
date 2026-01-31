@@ -1,15 +1,18 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { LeaderboardService } from './leaderboard.service';
 import {
   LeaderboardQueryDto,
   LeaderboardResponseDto,
   UserRankResponseDto,
+  CompetitiveLeaderboardResponseDto,
+  CompetitiveStatsDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -67,6 +70,53 @@ export class LeaderboardController {
       query.difficulty,
       query.period,
     );
+  }
+
+  // ============ Competitive Leaderboard Endpoints ============
+
+  @Get('competitive')
+  @ApiOperation({
+    summary: 'Get competitive ELO leaderboard',
+    description: 'Get top players ranked by ELO rating. Only includes users who have played at least 1 competitive match.',
+  })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of entries to return (default: 50)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Competitive leaderboard retrieved successfully',
+    type: CompetitiveLeaderboardResponseDto,
+  })
+  async getCompetitiveLeaderboard(
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @CurrentUser() user?: any,
+  ): Promise<CompetitiveLeaderboardResponseDto> {
+    // Clamp limit to reasonable bounds
+    const clampedLimit = Math.min(Math.max(1, limit), 100);
+    return this.leaderboardService.getCompetitiveLeaderboard(
+      clampedLimit,
+      user?.userId,
+    );
+  }
+
+  @Get('competitive/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get current user competitive stats',
+    description: "Get the authenticated user's competitive rating, wins, losses, and rank",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User competitive stats retrieved successfully',
+    type: CompetitiveStatsDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  async getMyCompetitiveStats(
+    @CurrentUser() user: any,
+  ): Promise<CompetitiveStatsDto | null> {
+    return this.leaderboardService.getCompetitiveStats(user.userId);
   }
 }
 

@@ -66,3 +66,80 @@ export class UserRankResponseDto {
   period: string;
 }
 
+// ============ Competitive Leaderboard DTOs ============
+
+export class CompetitiveLeaderboardEntryDto {
+  @ApiProperty({ example: 1, description: 'Rank position' })
+  rank: number;
+
+  @ApiProperty({ example: 'user-uuid-123', description: 'User ID' })
+  userId: string;
+
+  @ApiProperty({ example: 'PlayerOne', description: 'Username' })
+  username: string;
+
+  @ApiProperty({ example: 1250, description: 'ELO rating' })
+  rating: number;
+
+  @ApiProperty({ example: 50, description: 'Total competitive matches played' })
+  competitiveGames: number;
+
+  @ApiProperty({ example: 30, description: 'Competitive wins' })
+  competitiveWins: number;
+
+  @ApiProperty({ example: 5, description: 'Competitive draws' })
+  competitiveDraws: number;
+
+  @ApiPropertyOptional({
+    example: 60,
+    description: 'Win rate percentage',
+  })
+  winRate?: number;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Whether this entry is the current user',
+  })
+  isCurrentUser?: boolean;
+}
+
+export class CompetitiveLeaderboardResponseDto {
+  @ApiProperty({
+    type: [CompetitiveLeaderboardEntryDto],
+    description: 'List of competitive leaderboard entries',
+  })
+  entries: CompetitiveLeaderboardEntryDto[];
+
+  @ApiProperty({ example: 50, description: 'Total entries returned' })
+  total: number;
+
+  @ApiPropertyOptional({
+    type: CompetitiveLeaderboardEntryDto,
+    description: "Current user's rank (if authenticated and not in top entries)",
+  })
+  userRank?: CompetitiveLeaderboardEntryDto;
+}
+
+export class CompetitiveStatsDto {
+  @ApiProperty({ example: 1250, description: 'Current ELO rating' })
+  rating: number;
+
+  @ApiProperty({ example: 50, description: 'Total competitive games' })
+  competitiveGames: number;
+
+  @ApiProperty({ example: 30, description: 'Competitive wins' })
+  competitiveWins: number;
+
+  @ApiProperty({ example: 5, description: 'Competitive draws' })
+  competitiveDraws: number;
+
+  @ApiProperty({ example: 15, description: 'Competitive losses' })
+  competitiveLosses: number;
+
+  @ApiProperty({ example: 60, description: 'Win rate percentage' })
+  winRate: number;
+
+  @ApiPropertyOptional({ example: 42, description: 'Rank position (if available)' })
+  rank?: number;
+}
+

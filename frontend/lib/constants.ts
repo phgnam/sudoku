@@ -29,7 +29,7 @@ export const THEME_COLORS = {
 } as const;
 
 export const SOCKET_EVENTS = {
-  // Client to Server
+  // Client to Server - Single Player
   GAME_JOIN: "game:join",
   GAME_MOVE: "game:move",
   GAME_UNDO: "game:undo",
@@ -38,7 +38,7 @@ export const SOCKET_EVENTS = {
   GAME_SYNC: "game:sync",
   GAME_UPDATE_TIME: "game:updateTime",
 
-  // Server to Client
+  // Server to Client - Single Player
   GAME_STATE: "game:state",
   GAME_TIME_UPDATED: "game:timeUpdated",
   GAME_ERROR: "game:error",
@@ -47,4 +47,52 @@ export const SOCKET_EVENTS = {
   GAME_UNDO_SUCCESS: "game:undo:success",
   GAME_HINT_SUCCESS: "game:hint:success",
   GAME_HINT_APPLY_SUCCESS: "game:hint:apply:success",
+
+  // Client to Server - Match (Competitive)
+  MATCH_CREATE: "match:create",
+  MATCH_JOIN: "match:join",
+  MATCH_LEAVE: "match:leave",
+  MATCH_READY: "match:ready",
+  MATCH_UNREADY: "match:unready",
+  MATCH_MOVE: "match:move",
+  MATCH_SUBMIT: "match:submit",
+  MATCH_SYNC: "match:sync",
+
+  // Server to Client - Match (Competitive)
+  MATCH_CREATED: "match:created",
+  MATCH_JOINED: "match:joined",
+  MATCH_PLAYER_JOINED: "match:playerJoined",
+  MATCH_PLAYER_LEFT: "match:playerLeft",
+  MATCH_PLAYER_READY: "match:playerReady",
+  MATCH_START: "match:start",
+  MATCH_OPPONENT_PROGRESS: "match:opponentProgress",
+  MATCH_OPPONENT_MOVED: "match:opponentMoved",
+  MATCH_TIME_SYNC: "match:timeSync",
+  MATCH_ENDED: "match:ended",
+  MATCH_ERROR: "match:error",
+  MATCH_CANCELLED: "match:cancelled",
+  MATCH_SUBMIT_REJECTED: "match:submitRejected",
+  // Rejoin event (reconnection)
+  MATCH_REJOIN: "match:rejoin",
+  // Spectator events
+  MATCH_SPECTATE: "match:spectate",
+  MATCH_SPECTATE_LEAVE: "match:spectateLeave",
+  MATCH_SPECTATE_STATE: "match:spectateState",
+  MATCH_SPECTATOR_COUNT: "match:spectatorCount",
+  MATCH_SPECTATOR_UPDATE: "match:spectatorUpdate",
+  MATCH_SPECTATOR_ENDED: "match:spectatorEnded",
+  MATCH_ACTIVE_MATCHES: "match:activeMatches",
+  // Rematch events
+  MATCH_REMATCH_REQUEST: "match:rematchRequest",
+  MATCH_REMATCH_DECLINE: "match:rematchDecline",
+  MATCH_REMATCH_REQUESTED: "match:rematchRequested",
+  MATCH_REMATCH_PENDING: "match:rematchPending",
+  MATCH_REMATCH_CREATED: "match:rematchCreated",
+  MATCH_REMATCH_DECLINED: "match:rematchDeclined",
+  MATCH_REMATCH_EXPIRED: "match:rematchExpired",
+} as const;
+
+export const MATCH_CONFIG = {
+  MAX_DURATION_MS: 20 * 60 * 1000, // 20 minutes
+  RECONNECT_GRACE_PERIOD_MS: 30 * 1000, // 30 seconds
 } as const;

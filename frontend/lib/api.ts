@@ -43,6 +43,12 @@ export const api = {
       const query = searchParams.toString();
       return `${API_URL}/leaderboard/me${query ? `?${query}` : ""}`;
     },
+    // Competitive leaderboard
+    competitive: (limit?: number) => {
+      const params = limit ? `?limit=${limit}` : "";
+      return `${API_URL}/leaderboard/competitive${params}`;
+    },
+    competitiveMe: () => `${API_URL}/leaderboard/competitive/me`,
   },
 };
 

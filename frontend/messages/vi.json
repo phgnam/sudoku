@@ -22,6 +22,12 @@
     "toSaveProgress": "để lưu tiến trình",
     "viewStats": "Xem thống kê",
     "startGame": "Bắt đầu chơi",
+    "activeMatch": {
+      "title": "Trận đấu đang diễn ra!",
+      "description": "Bạn có một trận đấu competitive chưa hoàn thành",
+      "continue": "Tiếp tục trận đấu",
+      "dismiss": "Bỏ qua"
+    },
     "difficulty": {
       "easy": "Dễ",
       "normal": "Trung bình",
@@ -200,6 +206,113 @@
       "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
       "error": "Đăng ký thất bại. Vui lòng thử lại."
     }
+  },
+  "competitive": {
+    "title": "Chế độ Thi đấu",
+    "subtitle": "Thách đấu người chơi khác theo thời gian thực",
+    "backToLobby": "← Quay lại Sảnh",
+    "backToHome": "← Về trang chủ",
+    "lobby": {
+      "title": "Sảnh Thi đấu",
+      "createRoom": "Tạo phòng",
+      "joinRoom": "Vào phòng",
+      "enterCode": "Nhập mã phòng",
+      "roomCodePlaceholder": "VD: ABC123",
+      "creating": "Đang tạo...",
+      "joining": "Đang vào...",
+      "or": "hoặc",
+      "yourStats": "Thống kê của bạn",
+      "rating": "Điểm xếp hạng",
+      "rank": "Hạng",
+      "games": "Số trận",
+      "wins": "Thắng",
+      "winRate": "Tỷ lệ thắng",
+      "noRankYet": "Chơi để được xếp hạng!",
+      "difficulty": {
+        "title": "Chọn độ khó",
+        "easy": "Dễ",
+        "normal": "Trung bình",
+        "hard": "Khó"
+      },
+      "tips": "Mẹo chơi",
+      "tip1": "Thắng trận sẽ tăng điểm xếp hạng của bạn",
+      "tip2": "Độ khó cao hơn cho nhiều điểm hơn",
+      "tip3": "Hoàn thành nhanh hơn để giành chiến thắng",
+      "createRoomDesc": "Tạo phòng mới và mời bạn bè của bạn",
+      "joinRoomDesc": "Nhập mã phòng để tham gia trận đấu",
+      "selectDifficulty": "Chọn độ khó và tạo phòng",
+      "enterCodeDesc": "Nhập mã phòng được bạn bè chia sẻ",
+      "back": "Quay lại"
+    },
+    "waitingRoom": {
+      "title": "Phòng chờ",
+      "roomCode": "Mã phòng",
+      "copied": "Đã sao chép!",
+      "clickToCopy": "Nhấn để sao chép",
+      "shareCode": "Chia sẻ mã này với bạn bè",
+      "difficulty": "Độ khó",
+      "players": "Người chơi",
+      "you": "Bạn",
+      "host": "Chủ phòng",
+      "subtitle": "Đang chờ người chơi sẵn sàng",
+      "waitingForOpponent": "Đang chờ đối thủ...",
+      "waiting": "Đang chờ...",
+      "ready": "Sẵn sàng",
+      "notReady": "Chưa sẵn sàng",
+      "setReady": "Sẵn sàng",
+      "setUnready": "Hủy sẵn sàng",
+      "leaveRoom": "Rời phòng",
+      "waitingBothReady": "Đang chờ cả hai người sẵn sàng...",
+      "startingSoon": "Sắp bắt đầu..."
+    },
+    "game": {
+      "vs": "đấu",
+      "you": "Bạn",
+      "opponent": "Đối thủ",
+      "yourProgress": "Tiến độ của bạn",
+      "opponentProgress": "Tiến độ đối thủ",
+      "timeRemaining": "Thời gian còn lại",
+      "spectators": "đang xem",
+      "submit": "Nộp bài",
+      "submitRejected": "Bài giải bị từ chối",
+      "reconnecting": "Đang kết nối lại..."
+    },
+    "result": {
+      "victory": "Chiến thắng!",
+      "defeat": "Thua cuộc",
+      "draw": "Hòa",
+      "vs": "đấu",
+      "rating": "Điểm",
+      "ratingChange": "Thay đổi điểm",
+      "newRating": "Điểm mới",
+      "home": "Trang chủ",
+      "newMatch": "Trận mới",
+      "rematch": {
+        "request": "🔄 Yêu cầu đấu lại",
+        "waiting": "⏳ Đang chờ đối thủ phản hồi...",
+        "received": "muốn đấu lại!",
+        "accept": "✓ Chấp nhận",
+        "decline": "✕ Từ chối",
+        "declined": "❌ Đấu lại bị từ chối",
+        "expired": "⏰ Yêu cầu đấu lại đã hết hạn"
+      }
+    },
+    "spectator": {
+      "title": "Đang xem trận đấu",
+      "matchEnded": "Trận đấu kết thúc",
+      "winner": "Người thắng",
+      "draw": "Hòa",
+      "backToLobby": "Quay lại Sảnh",
+      "spectators": "Người xem",
+      "host": "Chủ phòng",
+      "guest": "Khách"
+    },
+    "errors": {
+      "matchNotFound": "Không tìm thấy trận đấu",
+      "alreadyInMatch": "Đã ở trong trận đấu",
+      "matchFull": "Phòng đã đầy",
+      "notAuthenticated": "Chưa đăng nhập",
+      "connectionLost": "Mất kết nối"
+    }
   }
 }
-

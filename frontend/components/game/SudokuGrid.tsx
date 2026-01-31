@@ -23,6 +23,9 @@ interface SudokuGridProps {
   errorCells?: Array<{ row: number; col: number }>;
   hintCell?: HintCell | null;
   hintStepData?: HintStepData | null;
+  // Competitive mode props
+  competitive?: boolean;
+  opponentCells?: Set<string>; // "row,col" format
 }
 
 export function SudokuGrid({
@@ -32,6 +35,8 @@ export function SudokuGrid({
   errorCells = [],
   hintCell = null,
   hintStepData = null,
+  competitive = false,
+  opponentCells,
 }: SudokuGridProps) {
   const { currentState, initialState, notes, wrongCells } = useGameStore();
 
@@ -46,6 +51,10 @@ export function SudokuGrid({
     wrongCells.some((c) => c.row === row && c.col === col);
   const isCellHint = (row: number, col: number) =>
     hintCell?.row === row && hintCell?.col === col;
+
+  // Check if opponent has filled this cell (competitive mode)
+  const isOpponentCell = (row: number, col: number) =>
+    competitive && opponentCells?.has(`${row},${col}`);
 
   // Check if cell is the target cell in hint step
   const isHintTarget = (row: number, col: number) =>
@@ -222,6 +231,8 @@ export function SudokuGrid({
     >
       <div
         data-testid="sudoku-grid"
+        role="grid"
+        aria-label="Sudoku puzzle grid"
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(9, ${CELL_SIZE}px)`,
@@ -259,14 +270,31 @@ export function SudokuGrid({
               displayContent = renderNotes(row, col);
             }
 
+            const isSelected = isCellSelected(row, col);
+            const isError = isCellError(row, col) || isCellWrong(row, col);
+
             return (
               <button
                 key={`${row}-${col}`}
                 data-testid={`cell-${row}-${col}`}
                 onClick={() => !isInitial && onCellSelect(row, col)}
                 style={getCellStyle(row, col, value)}
+                aria-label={`Row ${row + 1}, Column ${col + 1}${value ? `, value ${value}` : ', empty'}${isInitial ? ', given' : ''}${isSelected ? ', selected' : ''}${isError ? ', error' : ''}`}
+                aria-disabled={isInitial}
               >
                 {displayContent}
+                {/* Opponent filled cell overlay (competitive mode) */}
+                {isOpponentCell(row, col) && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: "rgba(251, 146, 60, 0.35)",
+                      pointerEvents: "none",
+                      borderRadius: "2px",
+                    }}
+                  />
+                )}
               </button>
             );
           }),

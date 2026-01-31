@@ -2,22 +2,90 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Smile, Zap, Flame, Lock } from "lucide-react";
+import { Smile, Zap, Flame, Lock, Swords, Play, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
+import { useMatchStore } from "@/store/match";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+
+// Key for storing active match info in localStorage
+const ACTIVE_MATCH_KEY = "sudoku_active_match";
+
+interface ActiveMatchInfo {
+  matchId: string;
+  myState: number[][];
+  savedAt?: number; // Timestamp when saved
+}
+
+// Helper to clear active match from localStorage
+function clearActiveMatch() {
+  try {
+    localStorage.removeItem(ACTIVE_MATCH_KEY);
+  } catch (e) {
+    console.error("Failed to clear active match:", e);
+  }
+}
+
+// Check if saved match is still valid (less than 30 minutes old)
+function isMatchValid(savedAt?: number): boolean {
+  if (!savedAt) return false;
+  const MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
+  return Date.now() - savedAt < MAX_AGE_MS;
+}
 
 export default function HomePage() {
   const t = useTranslations();
   const { isAuthenticated, _hasHydrated: authHydrated } = useAuthStore();
   const { colorMode } = useUIStore();
-  const [selectedDifficulty, setSelectedDifficulty] = useState<"easy" | "normal" | "hard">("easy");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<
+    "easy" | "normal" | "hard"
+  >("easy");
   const [mounted, setMounted] = useState(false);
+  const [activeMatch, setActiveMatch] = useState<ActiveMatchInfo | null>(null);
+  const { status: matchStatus } = useMatchStore();
 
   useEffect(() => {
     setMounted(true);
+
+    // Check for active competitive match in localStorage
+    try {
+      const savedMatch = localStorage.getItem(ACTIVE_MATCH_KEY);
+      if (savedMatch) {
+        const parsed = JSON.parse(savedMatch) as ActiveMatchInfo;
+        // Only show if matchId exists and match is still valid (less than 30 min old)
+        if (parsed.matchId && isMatchValid(parsed.savedAt)) {
+          setActiveMatch(parsed);
+        } else {
+          // Clear expired/invalid match data
+          clearActiveMatch();
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load active match:", e);
+      clearActiveMatch();
+    }
   }, []);
+
+  // Clear banner if match store shows match has finished
+  // Note: Only clear for "finished" status, not "idle" - idle is the default state
+  // and clearing on idle would erase valid saved matches on initial load
+  useEffect(() => {
+    if (matchStatus === "finished") {
+      if (activeMatch) {
+        clearActiveMatch();
+        setActiveMatch(null);
+      }
+    }
+  }, [matchStatus, activeMatch]);
+
+  // Handler to dismiss the active match banner
+  const handleDismissActiveMatch = () => {
+    clearActiveMatch();
+    setActiveMatch(null);
+    // Also reset match store if needed
+    useMatchStore.getState().reset();
+  };
 
   // Wait for both component mount and auth hydration
   const isReady = mounted && authHydrated;
@@ -37,9 +105,18 @@ export default function HomePage() {
   };
 
   const selectedStyles = {
-    easy: { backgroundColor: isDark ? "#064e3b" : "#ecfdf5", borderColor: "#34d399" },
-    normal: { backgroundColor: isDark ? "#78350f" : "#fffbeb", borderColor: "#fbbf24" },
-    hard: { backgroundColor: isDark ? "#7f1d1d" : "#fef2f2", borderColor: "#f87171" },
+    easy: {
+      backgroundColor: isDark ? "#064e3b" : "#ecfdf5",
+      borderColor: "#34d399",
+    },
+    normal: {
+      backgroundColor: isDark ? "#78350f" : "#fffbeb",
+      borderColor: "#fbbf24",
+    },
+    hard: {
+      backgroundColor: isDark ? "#7f1d1d" : "#fef2f2",
+      borderColor: "#f87171",
+    },
   };
 
   const cardStyle = {
@@ -49,7 +126,9 @@ export default function HomePage() {
     borderWidth: "2px",
     borderStyle: "solid" as const,
     borderColor: colors.cardBorder,
-    boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.3)" : "0 4px 14px rgba(79, 70, 229, 0.1)",
+    boxShadow: isDark
+      ? "0 4px 14px rgba(0, 0, 0, 0.3)"
+      : "0 4px 14px rgba(79, 70, 229, 0.1)",
     cursor: "pointer",
     transition: "all 0.2s ease",
   };
@@ -70,19 +149,156 @@ export default function HomePage() {
     >
       <div style={{ maxWidth: "900px", width: "100%" }}>
         {/* Theme Switcher */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "16px",
+          }}
+        >
           <ThemeSwitcher />
         </div>
 
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <h1 style={{ fontSize: "48px", fontWeight: 700, color: colors.title, marginBottom: "16px" }}>
-            {t('home.title')}
+          <h1
+            style={{
+              fontSize: "48px",
+              fontWeight: 700,
+              color: colors.title,
+              marginBottom: "16px",
+            }}
+          >
+            {t("home.title")}
           </h1>
           <p style={{ fontSize: "18px", color: colors.subtitle }}>
-            {t('home.subtitle')}
+            {t("home.subtitle")}
           </p>
         </div>
+
+        {/* Active Competitive Match Banner */}
+        {activeMatch && isAuthenticated() && (
+          <div
+            style={{
+              marginBottom: "32px",
+              padding: "20px 24px",
+              background: isDark
+                ? "linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.3) 100%)"
+                : "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+              borderRadius: "16px",
+              border: "2px solid #22c55e",
+              position: "relative",
+            }}
+          >
+            {/* Dismiss button */}
+            <button
+              onClick={handleDismissActiveMatch}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "12px",
+                width: "28px",
+                height: "28px",
+                borderRadius: "50%",
+                backgroundColor: isDark
+                  ? "rgba(0, 0, 0, 0.3)"
+                  : "rgba(0, 0, 0, 0.1)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              title={t("home.activeMatch.dismiss") || "Bỏ qua"}
+            >
+              <X
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  color: isDark ? "#86efac" : "#166534",
+                }}
+              />
+            </button>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "12px",
+                    backgroundColor: isDark
+                      ? "rgba(34, 197, 94, 0.3)"
+                      : "#bbf7d0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Swords
+                    style={{ width: "28px", height: "28px", color: "#16a34a" }}
+                  />
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 700,
+                      color: isDark ? "#86efac" : "#15803d",
+                      margin: 0,
+                    }}
+                  >
+                    {t("home.activeMatch.title")}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: isDark ? "#4ade80" : "#166534",
+                      margin: 0,
+                    }}
+                  >
+                    {t("home.activeMatch.description")}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/competitive/play"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#22c55e",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: "16px",
+                  padding: "12px 24px",
+                  borderRadius: "9999px",
+                  textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(34, 197, 94, 0.4)",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <Play style={{ width: "20px", height: "20px" }} />
+                {t("home.activeMatch.continue")}
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Difficulty Selection */}
         <div
@@ -103,11 +319,39 @@ export default function HomePage() {
             }}
           >
             <div style={{ marginBottom: "16px" }}>
-              <Smile width={64} height={64} style={{ width: "64px", height: "64px", color: "#10b981", margin: "0 auto" }} />
+              <Smile
+                width={64}
+                height={64}
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  color: "#10b981",
+                  margin: "0 auto",
+                }}
+              />
             </div>
-            <h3 style={{ fontSize: "24px", fontWeight: 700, color: colors.title, marginBottom: "8px" }}>{t('home.difficulty.easy')}</h3>
-            <p style={{ fontSize: "14px", color: colors.text }}>{t('home.difficulty.easyDesc')}</p>
-            <p style={{ fontSize: "12px", color: colors.textMuted, marginTop: "8px" }}>{t('home.difficulty.easyCells')}</p>
+            <h3
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "8px",
+              }}
+            >
+              {t("home.difficulty.easy")}
+            </h3>
+            <p style={{ fontSize: "14px", color: colors.text }}>
+              {t("home.difficulty.easyDesc")}
+            </p>
+            <p
+              style={{
+                fontSize: "12px",
+                color: colors.textMuted,
+                marginTop: "8px",
+              }}
+            >
+              {t("home.difficulty.easyCells")}
+            </p>
           </button>
 
           {/* Normal */}
@@ -124,16 +368,53 @@ export default function HomePage() {
           >
             <div style={{ marginBottom: "16px" }}>
               {isNormalUnlocked ? (
-                <Zap width={64} height={64} style={{ width: "64px", height: "64px", color: "#f59e0b", margin: "0 auto" }} />
+                <Zap
+                  width={64}
+                  height={64}
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    color: "#f59e0b",
+                    margin: "0 auto",
+                  }}
+                />
               ) : (
-                <Lock width={64} height={64} style={{ width: "64px", height: "64px", color: "#94a3b8", margin: "0 auto" }} />
+                <Lock
+                  width={64}
+                  height={64}
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    color: "#94a3b8",
+                    margin: "0 auto",
+                  }}
+                />
               )}
             </div>
-            <h3 style={{ fontSize: "24px", fontWeight: 700, color: colors.title, marginBottom: "8px" }}>{t('home.difficulty.normal')}</h3>
+            <h3
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "8px",
+              }}
+            >
+              {t("home.difficulty.normal")}
+            </h3>
             <p style={{ fontSize: "14px", color: colors.text }}>
-              {isNormalUnlocked ? t('home.difficulty.normalDesc') : t('home.difficulty.normalLocked')}
+              {isNormalUnlocked
+                ? t("home.difficulty.normalDesc")
+                : t("home.difficulty.normalLocked")}
             </p>
-            <p style={{ fontSize: "12px", color: colors.textMuted, marginTop: "8px" }}>{t('home.difficulty.normalCells')}</p>
+            <p
+              style={{
+                fontSize: "12px",
+                color: colors.textMuted,
+                marginTop: "8px",
+              }}
+            >
+              {t("home.difficulty.normalCells")}
+            </p>
           </button>
 
           {/* Hard */}
@@ -150,21 +431,58 @@ export default function HomePage() {
           >
             <div style={{ marginBottom: "16px" }}>
               {isHardUnlocked ? (
-                <Flame width={64} height={64} style={{ width: "64px", height: "64px", color: "#ef4444", margin: "0 auto" }} />
+                <Flame
+                  width={64}
+                  height={64}
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    color: "#ef4444",
+                    margin: "0 auto",
+                  }}
+                />
               ) : (
-                <Lock width={64} height={64} style={{ width: "64px", height: "64px", color: "#94a3b8", margin: "0 auto" }} />
+                <Lock
+                  width={64}
+                  height={64}
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    color: "#94a3b8",
+                    margin: "0 auto",
+                  }}
+                />
               )}
             </div>
-            <h3 style={{ fontSize: "24px", fontWeight: 700, color: colors.title, marginBottom: "8px" }}>{t('home.difficulty.hard')}</h3>
+            <h3
+              style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "8px",
+              }}
+            >
+              {t("home.difficulty.hard")}
+            </h3>
             <p style={{ fontSize: "14px", color: colors.text }}>
-              {isHardUnlocked ? t('home.difficulty.hardDesc') : t('home.difficulty.hardLocked')}
+              {isHardUnlocked
+                ? t("home.difficulty.hardDesc")
+                : t("home.difficulty.hardLocked")}
             </p>
-            <p style={{ fontSize: "12px", color: colors.textMuted, marginTop: "8px" }}>{t('home.difficulty.hardCells')}</p>
+            <p
+              style={{
+                fontSize: "12px",
+                color: colors.textMuted,
+                marginTop: "8px",
+              }}
+            >
+              {t("home.difficulty.hardCells")}
+            </p>
           </button>
         </div>
 
         {/* Start Button */}
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <Link
             href="/game"
             style={{
@@ -179,35 +497,131 @@ export default function HomePage() {
               boxShadow: "0 10px 25px rgba(249, 115, 22, 0.3)",
             }}
           >
-            {t('home.startGame')} ({t(`home.difficulty.${selectedDifficulty}`)})
+            {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)})
+          </Link>
+        </div>
+
+        {/* Competitive Mode Section */}
+        <div
+          style={{
+            ...cardStyle,
+            textAlign: "center",
+            marginBottom: "32px",
+            background: isDark
+              ? "linear-gradient(135deg, #1e293b 0%, #312e81 100%)"
+              : "linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)",
+            borderColor: isDark ? "#8b5cf6" : "#a78bfa",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "16px",
+              marginBottom: "16px",
+            }}
+          >
+            <Swords
+              width={48}
+              height={48}
+              style={{ width: "48px", height: "48px", color: "#8b5cf6" }}
+            />
+            <h2
+              style={{
+                fontSize: "28px",
+                fontWeight: 700,
+                color: colors.title,
+                margin: 0,
+              }}
+            >
+              {t("competitive.title")}
+            </h2>
+          </div>
+          <p
+            style={{
+              fontSize: "16px",
+              color: colors.text,
+              marginBottom: "24px",
+            }}
+          >
+            {t("competitive.subtitle")}
+          </p>
+          <Link
+            href="/competitive"
+            style={{
+              display: "inline-block",
+              backgroundColor: "#8b5cf6",
+              color: "white",
+              fontWeight: 700,
+              fontSize: "18px",
+              padding: "14px 40px",
+              borderRadius: "9999px",
+              textDecoration: "none",
+              boxShadow: "0 10px 25px rgba(139, 92, 246, 0.3)",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Swords width={20} height={20} />
+              {t("competitive.lobby.joinRoom")}
+            </span>
           </Link>
         </div>
 
         {/* Auth Status */}
-        <div style={{ textAlign: "center", marginTop: "32px", fontSize: "14px", color: colors.text }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "32px",
+            fontSize: "14px",
+            color: colors.text,
+          }}
+        >
           {!isReady ? (
-            <p style={{ opacity: 0 }}>{t('common.loading')}</p>
+            <p style={{ opacity: 0 }}>{t("common.loading")}</p>
           ) : !isAuthenticated() ? (
             <p>
-              {t('home.playingAsGuest')} •{" "}
-              <Link href="/auth/login" style={{ color: "#818cf8", fontWeight: 600 }}>{t('common.signIn')}</Link>
-              {" "}{t('common.or')}{" "}
-              <Link href="/auth/signup" style={{ color: "#818cf8", fontWeight: 600 }}>{t('common.signUp')}</Link>
-              {" "}{t('home.toSaveProgress')}
+              {t("home.playingAsGuest")} •{" "}
+              <Link
+                href="/auth/login"
+                style={{ color: "#818cf8", fontWeight: 600 }}
+              >
+                {t("common.signIn")}
+              </Link>{" "}
+              {t("common.or")}{" "}
+              <Link
+                href="/auth/signup"
+                style={{ color: "#818cf8", fontWeight: 600 }}
+              >
+                {t("common.signUp")}
+              </Link>{" "}
+              {t("home.toSaveProgress")}
             </p>
           ) : (
             <p>
-              {t('home.signedIn')} •{" "}
-              <Link href="/dashboard" style={{ color: "#818cf8", fontWeight: 600 }}>{t('home.viewStats')}</Link>
+              {t("home.signedIn")} •{" "}
+              <Link
+                href="/dashboard"
+                style={{ color: "#818cf8", fontWeight: 600 }}
+              >
+                {t("home.viewStats")}
+              </Link>
               {" • "}
               <button
                 onClick={() => {
                   useAuthStore.getState().clearAuth();
                   window.location.reload();
                 }}
-                style={{ color: "#818cf8", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
+                style={{
+                  color: "#818cf8",
+                  fontWeight: 600,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
               >
-                {t('common.signOut')}
+                {t("common.signOut")}
               </button>
             </p>
           )}
