@@ -107,8 +107,8 @@ export function useMatchSocket() {
     // === Player Ready ===
     socket.on(
       SOCKET_EVENTS.MATCH_PLAYER_READY,
-      (data: { playerId: string }) => {
-        matchStore.setOpponentReady(data.playerId);
+      (data: { playerId: string; ready: boolean }) => {
+        matchStore.setOpponentReady(data.playerId, data.ready);
       },
     );
 

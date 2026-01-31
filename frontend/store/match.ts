@@ -59,7 +59,7 @@ interface MatchStore extends MatchState {
   setJoined: (matchId: string, opponent: Opponent) => void;
   setOpponent: (opponent: Opponent) => void;
   setMyReady: (ready: boolean) => void;
-  setOpponentReady: (playerId: string) => void;
+  setOpponentReady: (playerId: string, ready: boolean) => void;
   startMatch: (
     puzzle: number[][],
     startTime: number,
@@ -180,11 +180,11 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
 
   setMyReady: (ready) => set({ myReady: ready }),
 
-  setOpponentReady: (playerId) => {
+  setOpponentReady: (playerId, ready) => {
     const state = get();
-    // If the playerId is opponent's ID, set opponent ready
+    // If the playerId is opponent's ID, set opponent ready state
     if (state.opponent?.id === playerId) {
-      set({ opponentReady: true });
+      set({ opponentReady: ready });
     }
   },
 
