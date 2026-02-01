@@ -3,6 +3,11 @@ import { authService } from "./auth-service";
 
 const GUEST_NAME_KEY = "sudoku_guest_name";
 
+// Retry configuration for initial connection failures
+const MAX_CONNECT_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 10000;
+
 // Generate and persist guest name for anonymous users
 function getOrCreateGuestName(): string {
   if (typeof window === "undefined") {
@@ -24,6 +29,8 @@ class SocketService {
   private logoutHandler: (() => void) | null = null;
   private handlersAttached = false;
   private isReconnecting = false;
+  private connectRetryCount = 0;
+  private connectRetryTimeout: ReturnType<typeof setTimeout> | null = null;
 
   connect(token: string, name?: string): Socket | null {
     // Validate token
@@ -43,6 +50,12 @@ class SocketService {
       return this.socket;
     }
 
+    // Clear any pending retry
+    if (this.connectRetryTimeout) {
+      clearTimeout(this.connectRetryTimeout);
+      this.connectRetryTimeout = null;
+    }
+
     this.token = token;
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000";
 
@@ -59,8 +72,54 @@ class SocketService {
     });
 
     this.setupEventHandlers();
+    this.setupConnectRetryHandler();
 
     return this.socket;
+  }
+
+  /**
+   * Handle initial connection failures with exponential backoff.
+   * Socket.io's built-in reconnection only works after successful connection.
+   */
+  private setupConnectRetryHandler(): void {
+    if (!this.socket) return;
+
+    const onConnectError = (error: Error) => {
+      // Only retry if not connected and under retry limit
+      if (this.socket?.connected || this.connectRetryCount >= MAX_CONNECT_RETRIES) {
+        if (this.connectRetryCount >= MAX_CONNECT_RETRIES) {
+          console.error("[Socket] Max connection retries reached");
+        }
+        return;
+      }
+
+      this.connectRetryCount++;
+      const delay = Math.min(
+        INITIAL_RETRY_DELAY_MS * Math.pow(2, this.connectRetryCount - 1),
+        MAX_RETRY_DELAY_MS
+      );
+
+      console.warn(`[Socket] Connection failed, retrying in ${delay}ms (attempt ${this.connectRetryCount}/${MAX_CONNECT_RETRIES})`);
+
+      this.connectRetryTimeout = setTimeout(() => {
+        if (this.token && !this.socket?.connected) {
+          this.disconnect();
+          this.connect(this.token, this.playerName ?? undefined);
+        }
+      }, delay);
+    };
+
+    const onConnect = () => {
+      // Reset retry count on successful connection
+      this.connectRetryCount = 0;
+      if (this.connectRetryTimeout) {
+        clearTimeout(this.connectRetryTimeout);
+        this.connectRetryTimeout = null;
+      }
+    };
+
+    this.socket.on("connect_error", onConnectError);
+    this.socket.on("connect", onConnect);
   }
 
   // Update player name and reconnect if needed
@@ -133,6 +192,13 @@ class SocketService {
   }
 
   disconnect() {
+    // Clear any pending connection retry
+    if (this.connectRetryTimeout) {
+      clearTimeout(this.connectRetryTimeout);
+      this.connectRetryTimeout = null;
+    }
+    this.connectRetryCount = 0;
+
     // Remove auth logout listener to prevent memory leak
     if (this.logoutHandler && typeof window !== "undefined") {
       window.removeEventListener("auth:logout", this.logoutHandler);

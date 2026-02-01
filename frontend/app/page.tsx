@@ -1,15 +1,22 @@
 "use client";
 
-import Link from "next/link";
+// External libs
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Smile, Zap, Flame, Lock, Swords, Play, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Smile, Zap, Flame, Lock, Swords, Play, X } from "lucide-react";
+
+// Stores
 import { useAuthStore } from "@/store/auth";
 import { useUIStore, Difficulty } from "@/store/ui";
 import { useMatchStore } from "@/store/match";
 import { useGameStore, GameStatus } from "@/store/game";
+
+// Components
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+
+// Lib/utils
 import {
   loadActiveMatch,
   clearActiveMatch,
