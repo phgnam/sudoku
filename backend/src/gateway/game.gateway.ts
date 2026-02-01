@@ -12,6 +12,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameService } from '../game/services/game.service';
 import {
+  MutationService,
+  MUTATION_INTERVAL_MS,
+} from '../game/services/mutation.service';
+import {
   MatchManagerService,
   MatchService,
   EloService,
@@ -26,7 +30,7 @@ import type {
   MatchPlayer,
 } from './types/socket.types';
 import { RATE_LIMITS, RateLimitEntry } from './types/rate-limit.types';
-import { Difficulty, User } from '../database/entities';
+import { Difficulty, User, GameStatus, GameMode } from '../database/entities';
 
 // Match timeout in milliseconds (20 minutes)
 const MATCH_DURATION_MS = 20 * 60 * 1000;
@@ -65,6 +69,7 @@ export class GameGateway
   constructor(
     private jwtService: JwtService,
     private gameService: GameService,
+    private mutationService: MutationService,
     private matchManager: MatchManagerService,
     private matchService: MatchService,
     private eloService: EloService,
@@ -420,7 +425,7 @@ export class GameGateway
       }
 
       // Join user's private room for broadcasts
-      void client.join(userId);
+      void client.join(`user:${userId}`);
 
       // Store player name from handshake if provided
       const playerName = client.handshake.auth.name as string | undefined;
@@ -501,7 +506,7 @@ export class GameGateway
     }
   }
 
-  handleDisconnect(client: TypedSocket): void {
+  async handleDisconnect(client: TypedSocket): Promise<void> {
     const userId = client.data.userId;
     this.logger.log(
       `Client disconnected: ${client.id}, userId: ${userId ?? 'unknown'}`,
@@ -564,6 +569,22 @@ export class GameGateway
         });
       }
     }
+
+    // Stop mutation timers for any active single-player mutating games
+    try {
+      // Find active mutating games for this user
+      const activeGames = await this.gameService.findActiveGamesByUser(userId);
+      for (const game of activeGames) {
+        if (game.gameMode === GameMode.MUTATING) {
+          this.mutationService.stopMutationTimer(game.id);
+          this.logger.debug(`Stopped mutation timer for game ${game.id} on user disconnect`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to cleanup mutation timers on disconnect:`, error);
+    }
+
+    this.logger.debug(`Disconnect cleanup complete for user ${userId}`);
   }
 
   /**
@@ -676,18 +697,150 @@ export class GameGateway
   }
 
   @SubscribeMessage('game:join')
-  handleJoinGame(
+  async handleJoinGame(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() data: { gameId: string },
-  ): { event: string; data: { gameId: string } } {
+  ): Promise<{ event: string; data: { gameId: string } }> {
     const { gameId } = data;
+    const userId = client.data.userId;
 
     // Join game-specific room
     void client.join(`game:${gameId}`);
 
     this.logger.log(`Client ${client.id} joined game ${gameId}`);
 
+    // Check if game is mutating mode and active - start mutation timer
+    try {
+      const game = await this.gameService.getGame(gameId);
+      if (
+        game.gameMode === GameMode.MUTATING &&
+        game.status === GameStatus.ACTIVE
+      ) {
+        // #14: Only start timer if not already running (prevents reset on multiple tabs)
+        if (!this.mutationService.hasActiveTimer(gameId)) {
+          this.startMutationTimerForGame(gameId, userId);
+        } else {
+          this.logger.debug(`Mutation timer already running for game ${gameId}, skipping restart`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to check game mode for ${gameId}:`, error);
+    }
+
     return { event: 'game:joined', data: { gameId } };
+  }
+
+  /**
+   * Handle leaving a game - cleanup mutation timer if needed
+   */
+  @SubscribeMessage('game:leave')
+  async handleLeaveGame(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() data: { gameId: string },
+  ): Promise<{ event: string; data: { gameId: string } }> {
+    const { gameId } = data;
+    const userId = client.data.userId;
+
+    // Leave game-specific room
+    void client.leave(`game:${gameId}`);
+
+    // Stop mutation timer for this game
+    this.stopMutationTimerForGame(gameId, userId);
+
+    this.logger.log(`Client ${client.id} left game ${gameId}`);
+
+    return { event: 'game:left', data: { gameId } };
+  }
+
+  /**
+   * Start mutation timer for a mutating game
+   */
+  private startMutationTimerForGame(gameId: string, userId: string): void {
+    // Set up callback for mutation events
+    this.mutationService.startMutationTimer(gameId, async () => {
+      await this.handleMutationTick(gameId, userId);
+    });
+
+    // Calculate next mutation time and notify user
+    const nextMutationAt = Date.now() + MUTATION_INTERVAL_MS;
+    this.server.to(`user:${userId}`).emit('mutation:started', {
+      gameId,
+      intervalMs: MUTATION_INTERVAL_MS,
+      nextMutationAt,
+    });
+
+    this.logger.log(`Mutation timer started for game ${gameId}`);
+  }
+
+  /**
+   * Handle mutation tick - select target and apply mutation
+   */
+  private async handleMutationTick(
+    gameId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      // Select a random cell to mutate
+      const target = await this.mutationService.selectMutationTarget(gameId);
+
+      if (target) {
+        // Apply the mutation
+        const mutationEvent = await this.mutationService.applyMutation(
+          gameId,
+          target.row,
+          target.col,
+        );
+
+        if (mutationEvent) {
+          // Reset failure count on success
+          this.mutationService.resetMutationFailures(gameId);
+
+          // Emit mutation:occurred to user
+          this.server.to(`user:${userId}`).emit('mutation:occurred', {
+            gameId: mutationEvent.gameId,
+            row: mutationEvent.row,
+            col: mutationEvent.col,
+            previousValue: mutationEvent.previousValue,
+            mutationNumber: mutationEvent.mutationNumber,
+            nextMutationIn: mutationEvent.nextMutationIn,
+          });
+
+          this.logger.log(
+            `Mutation #${mutationEvent.mutationNumber} occurred in game ${gameId} at (${target.row}, ${target.col})`,
+          );
+        } else {
+          // applyMutation returned null (game completed/failed/empty cell)
+          // Record failure - may auto-stop timer
+          this.mutationService.recordMutationFailure(gameId);
+        }
+      } else {
+        // No eligible cells - record failure
+        // recordMutationFailure will auto-stop after MAX_CONSECUTIVE_FAILURES
+        const stopped = this.mutationService.recordMutationFailure(gameId);
+        if (!stopped) {
+          this.logger.log(
+            `No eligible cells for mutation in game ${gameId}, skipping`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Mutation tick error for game ${gameId}:`, error);
+      // Record failure on error too
+      this.mutationService.recordMutationFailure(gameId);
+    }
+  }
+
+  /**
+   * Stop mutation timer for a game
+   */
+  private stopMutationTimerForGame(gameId: string, userId?: string): void {
+    this.mutationService.stopMutationTimer(gameId);
+
+    if (userId) {
+      this.server.to(`user:${userId}`).emit('mutation:stopped', { gameId });
+    }
+
+    this.logger.log(`Mutation timer stopped for game ${gameId}`);
   }
 
   @SubscribeMessage('game:move')
@@ -723,6 +876,15 @@ export class GameGateway
         status: updatedGame.status,
         timeElapsed: updatedGame.timeElapsed,
       });
+
+      // Stop mutation timer if game is completed or failed
+      if (
+        updatedGame.gameMode === GameMode.MUTATING &&
+        (updatedGame.status === GameStatus.COMPLETED ||
+          updatedGame.status === GameStatus.FAILED)
+      ) {
+        this.stopMutationTimerForGame(gameId, client.data.userId);
+      }
 
       return { event: 'game:move:success', data: updatedGame };
     } catch (error) {

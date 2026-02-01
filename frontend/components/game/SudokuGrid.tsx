@@ -27,6 +27,7 @@ interface SudokuGridProps {
   // Competitive mode props
   competitive?: boolean;
   opponentCells?: Set<string>; // "row,col" format
+  mutatingCell?: { row: number; col: number; previousValue?: number } | null;
 }
 
 export function SudokuGrid({
@@ -38,6 +39,7 @@ export function SudokuGrid({
   hintStepData = null,
   competitive = false,
   opponentCells,
+  mutatingCell = null,
 }: SudokuGridProps) {
   const { currentState, initialState, notes, wrongCells } = useGameStore();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -74,6 +76,8 @@ export function SudokuGrid({
     wrongCells.some((c) => c.row === row && c.col === col);
   const isCellHint = (row: number, col: number) =>
     hintCell?.row === row && hintCell?.col === col;
+  const isCellMutating = (row: number, col: number) =>
+    mutatingCell?.row === row && mutatingCell?.col === col;
 
   // Check if opponent has filled this cell (competitive mode)
   const isOpponentCell = (row: number, col: number) =>
@@ -181,6 +185,15 @@ export function SudokuGrid({
       }
     }
 
+    // Mutation animation - dramatic colorful effect
+    const isMutating = isCellMutating(row, col);
+    if (isMutating) {
+      backgroundColor = "linear-gradient(135deg, rgba(239, 68, 68, 0.6), rgba(251, 146, 60, 0.6))";
+      textColor = "#ffffff";
+      animation = "mutationPulse 1s ease-out, mutationShake 0.5s ease-in-out";
+      boxShadow = "0 0 40px rgba(239, 68, 68, 0.8), 0 0 80px rgba(251, 146, 60, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.4)";
+    }
+
     return {
       width: `${CELL_SIZE}px`,
       height: `${CELL_SIZE}px`,
@@ -189,7 +202,8 @@ export function SudokuGrid({
       justifyContent: "center",
       fontSize: "20px",
       fontWeight: 700,
-      backgroundColor,
+      background: isMutating ? backgroundColor : undefined,
+      backgroundColor: isMutating ? undefined : backgroundColor,
       color: value === 0 && !forceShowText ? "transparent" : textColor,
       cursor: isInitial ? "not-allowed" : "pointer",
       borderRight: (col + 1) % 3 === 0 && col !== 8 ? "2px solid #4f46e5" : "1px solid #c7d2fe",
@@ -200,6 +214,7 @@ export function SudokuGrid({
       boxShadow,
       animation,
       transition: "background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease",
+      zIndex: isMutating ? 10 : undefined,
     };
   };
 
@@ -273,10 +288,24 @@ export function SudokuGrid({
             const hasNotes = notes[row]?.[col]?.length > 0;
             const isHintingThisCell = isCellHint(row, col);
             const hintValue = isHintingThisCell && hintCell?.phase === "highlight" ? hintCell?.value : null;
+            const isMutating = isCellMutating(row, col);
 
             // Determine what to display
             let displayContent: React.ReactNode = "";
-            if (value !== 0) {
+
+            // Special handling for mutating cell - show previous value with fade-out animation
+            if (isMutating && mutatingCell?.previousValue) {
+              displayContent = (
+                <span
+                  style={{
+                    animation: "mutationValueFade 0.6s ease-out forwards",
+                    display: "inline-block",
+                  }}
+                >
+                  {mutatingCell.previousValue}
+                </span>
+              );
+            } else if (value !== 0) {
               displayContent = value;
             } else if (isHintingThisCell && hintCell?.phase === "highlight" && hintValue) {
               // Show hint value with special styling during highlight phase

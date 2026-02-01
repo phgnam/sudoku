@@ -17,6 +17,11 @@ export enum GameStatus {
   ABANDONED = 'abandoned',
 }
 
+export enum GameMode {
+  CLASSIC = 'classic',
+  MUTATING = 'mutating',
+}
+
 export interface Move {
   row: number;
   col: number;
@@ -88,4 +93,13 @@ export class Game {
 
   @VersionColumn()
   version: number;
+
+  @Column({ type: 'text', default: 'classic' })
+  gameMode: string; // Use string for SQLite compatibility
+
+  @Column({ default: 0 })
+  mutationCount: number;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastMutationAt: Date | null;
 }

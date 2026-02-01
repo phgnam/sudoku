@@ -9,6 +9,7 @@ import { Repository, EntityManager } from 'typeorm';
 import {
   Game,
   GameStatus,
+  GameMode,
   Move,
   User,
   Puzzle,
@@ -38,7 +39,11 @@ export class GameService {
   ) {}
 
   // Create a new game
-  async createGame(userId: string, difficulty: string) {
+  async createGame(
+    userId: string,
+    difficulty: string,
+    gameMode: string = GameMode.CLASSIC,
+  ) {
     // Verify user exists
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -77,6 +82,9 @@ export class GameService {
       mistakes: 0,
       timeElapsed: 0,
       status: GameStatus.ACTIVE,
+      gameMode,
+      mutationCount: 0,
+      lastMutationAt: null,
     });
 
     const savedGame = await this.gameRepository.save(game);
@@ -322,6 +330,69 @@ export class GameService {
     return this.gameRepository.save(game);
   }
 
+  // Handle mutation for mutating game mode
+  async handleMutation(gameId: string): Promise<{
+    row: number;
+    col: number;
+    previousValue: number;
+  } | null> {
+    const game = await this.gameRepository.findOne({
+      where: { id: gameId },
+      relations: ['puzzle'],
+    });
+
+    if (!game || game.status !== GameStatus.ACTIVE) {
+      return null;
+    }
+
+    if (game.gameMode !== GameMode.MUTATING) {
+      return null;
+    }
+
+    const puzzle = game.puzzle;
+    const currentState = game.currentState;
+    const hintedCells = game.hintedCells || [];
+
+    // Find eligible cells (filled by player, not initial, not hinted)
+    const eligibleCells: { row: number; col: number }[] = [];
+
+    for (let row = 0; row < 9; row++) {
+      for (let col = 0; col < 9; col++) {
+        const isFilledByPlayer = currentState[row][col] !== 0;
+        const isInitialCell = puzzle.puzzle[row][col] !== 0;
+        const isHintedCell = hintedCells.some(
+          (c) => c.row === row && c.col === col,
+        );
+
+        if (isFilledByPlayer && !isInitialCell && !isHintedCell) {
+          eligibleCells.push({ row, col });
+        }
+      }
+    }
+
+    if (eligibleCells.length === 0) {
+      return null;
+    }
+
+    // Select random cell
+    const randomIndex = Math.floor(Math.random() * eligibleCells.length);
+    const target = eligibleCells[randomIndex];
+    const previousValue = currentState[target.row][target.col];
+
+    // Clear the cell
+    game.currentState[target.row][target.col] = 0;
+    game.mutationCount++;
+    game.lastMutationAt = new Date();
+
+    await this.gameRepository.save(game);
+
+    return {
+      row: target.row,
+      col: target.col,
+      previousValue,
+    };
+  }
+
   // Update user stats when game completes
   private async updateUserStats(userId: string, difficulty: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -514,5 +585,17 @@ export class GameService {
       hard: calculateDifficultyStats('hard'),
       recentGames,
     };
+  }
+
+  /**
+   * Find all active games for a user
+   */
+  async findActiveGamesByUser(userId: string): Promise<Game[]> {
+    return this.gameRepository.find({
+      where: {
+        userId,
+        status: GameStatus.ACTIVE,
+      },
+    });
   }
 }

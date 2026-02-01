@@ -29,11 +29,6 @@ export function useGameSocket() {
     // Early return if socket connection failed
     if (!socket) return;
 
-    // Join game room if game exists
-    if (gameId) {
-      socket.emit(SOCKET_EVENTS.GAME_JOIN, { gameId });
-    }
-
     // Listen for game state updates
     socket.on(SOCKET_EVENTS.GAME_STATE, (data: any) => {
       // Sync hintedCells from backend if available
@@ -113,7 +108,37 @@ export function useGameSocket() {
       socket.off(SOCKET_EVENTS.GAME_STATE);
       socket.off(SOCKET_EVENTS.GAME_ERROR);
     };
-  }, [token, gameId, getDisplayName]);
+  }, [token, getDisplayName, setGame, updateState, addMove, incrementHints, incrementMistakes, setStatus]);
+
+  // Separate effect to join game room when gameId changes
+  // This ensures we properly join the game room even after game creation
+  useEffect(() => {
+    if (!token || !gameId) return;
+
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    // Function to emit game:join
+    const joinGameRoom = () => {
+      socket.emit(SOCKET_EVENTS.GAME_JOIN, { gameId });
+    };
+
+    // If already connected, join immediately
+    if (socket.connected) {
+      joinGameRoom();
+    }
+
+    // Also listen for connect event in case socket connects later
+    socket.on('connect', joinGameRoom);
+
+    return () => {
+      // Leave game room on unmount or gameId change
+      if (socket.connected) {
+        socket.emit('game:leave', { gameId });
+      }
+      socket.off('connect', joinGameRoom);
+    };
+  }, [token, gameId]);
 
   const makeMove = useCallback(
     (row: number, col: number, value: number) => {

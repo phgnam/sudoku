@@ -73,7 +73,11 @@ export class GameController {
     @Body() createGameDto: CreateGameDto,
     @CurrentUser() user: any,
   ) {
-    return this.gameService.createGame(user.userId, createGameDto.difficulty);
+    return this.gameService.createGame(
+      user.userId,
+      createGameDto.difficulty,
+      createGameDto.gameMode || 'classic',
+    );
   }
 
   @Get(':id')

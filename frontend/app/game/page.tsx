@@ -12,13 +12,15 @@ import { SudokuGrid } from "@/components/game/SudokuGrid";
 import { NumberPad } from "@/components/game/NumberPad";
 import { GameControls } from "@/components/game/GameControls";
 import { GameTimer } from "@/components/game/GameTimer";
+import { MutationTimer } from "@/components/game/MutationTimer";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import { EnhancedModal } from "@/components/ui/EnhancedModal";
 import { Tutorial } from "@/components/game/Tutorial";
 import { DebugPanel } from "@/components/game/DebugPanel";
-import { GAME_CONFIG } from "@/lib/constants";
+import { GAME_CONFIG, GAME_MODES, MUTATION_CONFIG } from "@/lib/constants";
 import { api, fetchApi } from "@/lib/api";
 import { initDevMode } from "@/lib/dev-mode";
+import { useMutationSocket } from "@/hooks/useMutationSocket";
 
 // Game API response type
 interface GameApiResponse {
@@ -34,7 +36,7 @@ interface GameApiResponse {
 }
 
 // Helper to convert API response to game state
-const mapGameResponseToState = (game: GameApiResponse) => ({
+const mapGameResponseToState = (game: GameApiResponse & { gameMode?: string }) => ({
   id: game.id,
   difficulty: game.difficulty,
   currentState: game.currentState,
@@ -47,6 +49,7 @@ const mapGameResponseToState = (game: GameApiResponse) => ({
   status: game.status || GameStatus.ACTIVE,
   wrongCells: [] as Array<{ row: number; col: number }>,
   hintedCells: [] as Array<{ row: number; col: number }>,
+  gameMode: (game.gameMode as 'classic' | 'mutating') || 'classic',
 });
 
 // Check if placing a number causes a conflict (same logic as backend isValidMove)
@@ -105,9 +108,19 @@ export default function GamePage() {
     isHintedCell,
     addWrongCell,
     removeWrongCell,
+    // Mutation mode state
+    gameMode,
+    mutationCount,
+    nextMutationAt,
+    lastMutatedCell,
+    mutationAnimating,
+    setGameMode,
   } = useGameStore();
 
   const { makeMove, undoMove, requestHint, applyHintToBackend } = useGameSocket();
+
+  // Initialize mutation socket events
+  useMutationSocket();
 
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
@@ -200,7 +213,10 @@ export default function GamePage() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${currentToken}`,
             },
-            body: JSON.stringify({ difficulty: selectedDifficulty }),
+            body: JSON.stringify({
+              difficulty: selectedDifficulty,
+              gameMode: useGameStore.getState().gameMode || 'classic',
+            }),
           });
 
           if (!response.ok) {
@@ -269,6 +285,16 @@ export default function GamePage() {
       useGameStore.setState({ wrongCells: newWrongCells });
     }
   }, [currentState, hasHydrated]);
+
+  // #19: Clear selected cell if it was mutated
+  useEffect(() => {
+    if (lastMutatedCell && selectedCell) {
+      if (lastMutatedCell.row === selectedCell.row &&
+          lastMutatedCell.col === selectedCell.col) {
+        setSelectedCell(null);
+      }
+    }
+  }, [lastMutatedCell, selectedCell]);
 
   // Calculate number counts for each digit 1-9
   const numberCounts = useMemo((): Record<number, number> => {
@@ -830,6 +856,22 @@ export default function GamePage() {
             >
               {currentDifficulty.label}
             </span>
+            {gameMode === 'mutating' && (
+              <span
+                className="mutation-mode-badge ml-2"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  backgroundColor: "#fef3c715",
+                  color: "#f59e0b",
+                  border: "1px solid #f59e0b40",
+                }}
+              >
+                🧬 Mutating
+              </span>
+            )}
           </div>
 
           {/* Divider */}
@@ -878,6 +920,26 @@ export default function GamePage() {
 
           {/* Timer */}
           <GameTimer />
+
+          {/* Mutation Timer - only show in mutating mode */}
+          {gameMode === 'mutating' && status === GameStatus.ACTIVE && (
+            <>
+              {/* Divider before mutation timer */}
+              <div
+                style={{
+                  width: "1px",
+                  height: "24px",
+                  backgroundColor: "#e2e8f0",
+                }}
+                className="dark:bg-slate-600"
+              />
+              <MutationTimer
+                nextMutationAt={nextMutationAt}
+                mutationCount={mutationCount}
+                isPaused={status !== GameStatus.ACTIVE}
+              />
+            </>
+          )}
 
           {/* Divider */}
           <div
@@ -1057,6 +1119,7 @@ export default function GamePage() {
                     }
                   : null
               }
+              mutatingCell={mutationAnimating ? lastMutatedCell : null}
             />
           </div>
 

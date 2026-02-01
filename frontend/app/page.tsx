@@ -23,6 +23,8 @@ import {
   isMatchValid,
   ActiveMatchInfo,
 } from "@/lib/match-storage";
+import { GAME_MODES, GameMode } from "@/lib/constants";
+import { socketService } from "@/lib/socket";
 
 export default function HomePage() {
   const t = useTranslations();
@@ -30,6 +32,7 @@ export default function HomePage() {
   const { isAuthenticated, _hasHydrated: authHydrated } = useAuthStore();
   const { colorMode, selectedDifficulty, setSelectedDifficulty } = useUIStore();
   const [mounted, setMounted] = useState(false);
+  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>(GAME_MODES.CLASSIC);
   const [activeMatch, setActiveMatch] = useState<ActiveMatchInfo | null>(null);
   const { status: matchStatus } = useMatchStore();
 
@@ -38,19 +41,32 @@ export default function HomePage() {
     const gameStore = useGameStore.getState();
     const currentStatus = gameStore.status;
     const currentDifficulty = gameStore.difficulty;
+    const currentGameMode = gameStore.gameMode;
+    const currentGameId = gameStore.id;
 
     // Clear game state if:
-    // 1. Game is completed or failed (need to start fresh)
-    // 2. Difficulty is different from selected (user wants different difficulty)
-    if (
+    // 1. Game is completed or failed
+    // 2. Difficulty is different
+    // 3. Game mode is different
+    const shouldClearGame =
       currentStatus === GameStatus.COMPLETED ||
       currentStatus === GameStatus.FAILED ||
-      (currentDifficulty && currentDifficulty !== selectedDifficulty)
-    ) {
+      (currentDifficulty && currentDifficulty !== selectedDifficulty) ||
+      (currentGameMode && currentGameMode !== selectedGameMode);
+
+    if (shouldClearGame) {
+      // #27: Stop mutation timer if leaving a mutating game
+      if (currentGameMode === 'mutating' && currentGameId && currentStatus === GameStatus.ACTIVE) {
+        if (socketService.getSocket()?.connected) {
+          socketService.emit('game:leave', { gameId: currentGameId });
+        }
+      }
       useGameStore.getState().clearGame();
     }
 
-    // Navigate to game page
+    // Set the game mode in store before navigating
+    useGameStore.getState().setGameMode(selectedGameMode);
+
     router.push("/game");
   };
 
@@ -481,6 +497,83 @@ export default function HomePage() {
           </button>
         </div>
 
+        {/* Game Mode Selection */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "16px",
+            marginBottom: "32px",
+            maxWidth: "600px",
+            margin: "0 auto 32px",
+          }}
+        >
+          {/* Classic Mode */}
+          <button
+            onClick={() => setSelectedGameMode(GAME_MODES.CLASSIC)}
+            style={{
+              ...cardStyle,
+              padding: "20px",
+              textAlign: "center",
+              ...(selectedGameMode === GAME_MODES.CLASSIC
+                ? {
+                    backgroundColor: isDark ? "#1e3a5f" : "#e0f2fe",
+                    borderColor: "#0ea5e9",
+                  }
+                : {}),
+            }}
+          >
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🎯</div>
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "4px",
+              }}
+            >
+              {t("home.gameMode.classic")}
+            </h3>
+            <p style={{ fontSize: "12px", color: colors.text }}>
+              {t("home.gameMode.classicDesc")}
+            </p>
+          </button>
+
+          {/* Mutating Mode */}
+          <button
+            onClick={() => setSelectedGameMode(GAME_MODES.MUTATING)}
+            style={{
+              ...cardStyle,
+              padding: "20px",
+              textAlign: "center",
+              ...(selectedGameMode === GAME_MODES.MUTATING
+                ? {
+                    backgroundColor: isDark ? "#4a1d1d" : "#fef2f2",
+                    borderColor: "#ef4444",
+                  }
+                : {}),
+            }}
+          >
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🧬</div>
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "4px",
+              }}
+            >
+              {t("home.gameMode.mutating")}
+            </h3>
+            <p style={{ fontSize: "12px", color: colors.text }}>
+              {t("home.gameMode.mutatingDesc")}
+            </p>
+            <span className="mutation-mode-badge" style={{ marginTop: "8px", display: "inline-block" }}>
+              ⚡ 30s
+            </span>
+          </button>
+        </div>
+
         {/* Start Button */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <button
@@ -499,7 +592,7 @@ export default function HomePage() {
               cursor: "pointer",
             }}
           >
-            {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)})
+            {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)}{selectedGameMode === GAME_MODES.MUTATING ? " • 🧬" : ""})
           </button>
         </div>
 
