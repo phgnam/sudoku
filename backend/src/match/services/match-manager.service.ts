@@ -436,8 +436,8 @@ export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
     playerId: string,
     completionTime: number,
   ): Promise<LiveMatch | null> {
-    // Acquire lock - if another completion is in progress, wait with retry loop
-    const maxRetries = 10;
+    // Wait for any existing lock to be released, checking if match finished
+    const maxRetries = 20; // Increased to 1 second total wait
     const retryDelay = 50; // ms
 
     for (let i = 0; i < maxRetries; i++) {
@@ -446,17 +446,17 @@ export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
       }
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
       const match = this.matches.get(matchId);
+      // Only return early if the match has already been decided
       if (match?.status === 'finished') return match;
     }
 
-    // Check if lock is still held after retry loop - if so, return current match state
-    if (this.completionLocks.get(matchId)) {
-      const match = this.matches.get(matchId);
-      // Another completion is still in progress - return current state without proceeding
-      return match || null;
+    // After waiting, check match status again - only skip if already finished
+    const currentMatch = this.matches.get(matchId);
+    if (currentMatch?.status === 'finished') {
+      return currentMatch;
     }
 
-    // Acquire lock now that it's available
+    // Acquire lock - proceed to record this player's completion
     this.completionLocks.set(matchId, true);
 
     try {
