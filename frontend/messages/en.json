@@ -22,6 +22,13 @@
     "toSaveProgress": "to save progress",
     "viewStats": "View Stats",
     "startGame": "Start Game",
+    "gameMode": {
+      "title": "Game Mode",
+      "classic": "Classic",
+      "classicDesc": "Traditional Sudoku experience",
+      "mutating": "Mutating",
+      "mutatingDesc": "Cells disappear every 30 seconds!"
+    },
     "activeMatch": {
       "title": "Match in progress!",
       "description": "You have an unfinished competitive match",
@@ -47,6 +54,11 @@
     "difficulty": "Difficulty",
     "mistakes": "Mistakes",
     "newGame": "New Game",
+    "mutation": {
+      "warning": "Mutation in",
+      "occurred": "Cell mutated!",
+      "badge": "Mutating"
+    },
     "newGameConfirm": {
       "title": "Start new game?",
       "message": "Current game progress will be lost. Are you sure you want to start a new game?"

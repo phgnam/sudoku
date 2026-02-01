@@ -34,6 +34,12 @@ export interface GameState {
   timeElapsed: number;
   status: GameStatus;
   isLoading: boolean;
+  // Mutation mode state
+  gameMode: 'classic' | 'mutating';
+  mutationCount: number;
+  nextMutationAt: number | null;
+  lastMutatedCell: { row: number; col: number; previousValue?: number } | null;
+  mutationAnimating: boolean;
 }
 
 interface GameStore extends GameState {
@@ -56,6 +62,13 @@ interface GameStore extends GameState {
   addWrongCell: (row: number, col: number) => void;
   removeWrongCell: (row: number, col: number) => void;
   isWrongCell: (row: number, col: number) => boolean;
+  // Mutation mode methods
+  setGameMode: (mode: 'classic' | 'mutating') => void;
+  handleMutation: (row: number, col: number) => void;
+  setMutationAnimating: (animating: boolean) => void;
+  setNextMutationAt: (timestamp: number | null) => void;
+  incrementMutationCount: () => void;
+  setLastMutatedCell: (cell: { row: number; col: number; previousValue?: number } | null) => void;
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
@@ -90,6 +103,12 @@ const initialState: GameState = {
   timeElapsed: 0,
   status: GameStatus.ACTIVE,
   isLoading: false,
+  // Mutation mode initial state
+  gameMode: 'classic',
+  mutationCount: 0,
+  nextMutationAt: null,
+  lastMutatedCell: null,
+  mutationAnimating: false,
 };
 
 // For hydration tracking
@@ -199,6 +218,41 @@ export const useGameStore = create<GameStore>()(
         const state = useGameStore.getState();
         return state.wrongCells.some((c: { row: number; col: number }) => c.row === row && c.col === col);
       },
+
+      // Mutation mode methods
+      setGameMode: (gameMode) => set({ gameMode }),
+
+      handleMutation: (row, col) => set((state) => {
+        // Clear the cell value
+        const newState = state.currentState.map((r, ri) =>
+          r.map((c, ci) => (ri === row && ci === col ? 0 : c))
+        );
+
+        // #17: Clear notes for mutated cell
+        const newNotes = state.notes.map((r, ri) =>
+          r.map((c, ci) => (ri === row && ci === col ? [] : c))
+        );
+
+        // #16: Filter out moves targeting the mutated cell from history
+        // This prevents undo from restoring a mutated cell's value
+        const filteredHistory = state.moveHistory.filter(
+          (m) => !(m.row === row && m.col === col)
+        );
+
+        return {
+          currentState: newState,
+          notes: newNotes,
+          moveHistory: filteredHistory,
+          lastMutatedCell: { row, col },
+          mutationCount: state.mutationCount + 1,
+          mutationAnimating: true,
+        };
+      }),
+
+      setMutationAnimating: (mutationAnimating) => set({ mutationAnimating }),
+      setNextMutationAt: (nextMutationAt) => set({ nextMutationAt }),
+      incrementMutationCount: () => set((state) => ({ mutationCount: state.mutationCount + 1 })),
+      setLastMutatedCell: (lastMutatedCell) => set({ lastMutatedCell }),
 
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => set({ _hasHydrated: hasHydrated }),

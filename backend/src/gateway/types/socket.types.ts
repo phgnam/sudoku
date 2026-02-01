@@ -165,6 +165,23 @@ export interface ServerToClientEvents {
     searchRadius: number;
   }) => void;
   'matchmaking:cancelled': (data: { reason: string }) => void;
+
+  // Mutation events (Mutating Sudoku mode)
+  'mutation:warning': (data: { gameId: string; secondsRemaining: number }) => void;
+  'mutation:occurred': (data: {
+    gameId: string;
+    row: number;
+    col: number;
+    previousValue: number;
+    mutationNumber: number;
+    nextMutationIn: number;
+  }) => void;
+  'mutation:started': (data: {
+    gameId: string;
+    intervalMs: number;
+    nextMutationAt: number;
+  }) => void;
+  'mutation:stopped': (data: { gameId: string }) => void;
 }
 
 // Client to server events (what client sends to server)

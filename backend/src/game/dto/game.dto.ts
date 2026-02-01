@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsNumber, Min, Max, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  Max,
+  IsString,
+  IsOptional,
+  IsIn,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateGameDto {
@@ -10,6 +18,17 @@ export class CreateGameDto {
   @IsNotEmpty()
   @IsString()
   difficulty: string; // 'easy' | 'normal' | 'hard'
+
+  @ApiPropertyOptional({
+    description: 'Game mode',
+    enum: ['classic', 'mutating'],
+    example: 'classic',
+    default: 'classic',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['classic', 'mutating'])
+  gameMode?: 'classic' | 'mutating';
 }
 
 export class MakeMoveDto {

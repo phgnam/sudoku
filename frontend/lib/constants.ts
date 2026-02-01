@@ -99,6 +99,12 @@ export const SOCKET_EVENTS = {
   MATCHMAKING_FOUND: "matchmaking:found",
   MATCHMAKING_STATUS: "matchmaking:status",
   MATCHMAKING_CANCELLED: "matchmaking:cancelled",
+
+  // Mutation events (Server to Client)
+  MUTATION_WARNING: "mutation:warning",
+  MUTATION_OCCURRED: "mutation:occurred",
+  MUTATION_STARTED: "mutation:started",
+  MUTATION_STOPPED: "mutation:stopped",
 } as const;
 
 export const MATCH_CONFIG = {
@@ -114,3 +120,16 @@ export const MATCHMAKING_CONFIG = {
   MATCH_CHECK_INTERVAL: 2000,    // Check for matches every 2s
   MAX_QUEUE_TIME: 300000,        // 5 minutes max wait
 } as const;
+
+export const MUTATION_CONFIG = {
+  INTERVAL_MS: 30000,           // 30 seconds between mutations
+  WARNING_BEFORE_MS: 5000,      // Show warning 5 seconds before
+  ANIMATION_DURATION_MS: 800,   // Duration of mutation animation
+} as const;
+
+export const GAME_MODES = {
+  CLASSIC: 'classic',
+  MUTATING: 'mutating',
+} as const;
+
+export type GameMode = typeof GAME_MODES[keyof typeof GAME_MODES];

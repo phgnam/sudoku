@@ -22,6 +22,13 @@
     "toSaveProgress": "để lưu tiến trình",
     "viewStats": "Xem thống kê",
     "startGame": "Bắt đầu chơi",
+    "gameMode": {
+      "title": "Chế độ chơi",
+      "classic": "Cổ điển",
+      "classicDesc": "Trải nghiệm Sudoku truyền thống",
+      "mutating": "Đột biến",
+      "mutatingDesc": "Ô sẽ biến mất mỗi 30 giây!"
+    },
     "activeMatch": {
       "title": "Trận đấu đang diễn ra!",
       "description": "Bạn có một trận đấu competitive chưa hoàn thành",
@@ -47,6 +54,11 @@
     "difficulty": "Độ khó",
     "mistakes": "Lỗi",
     "newGame": "Ván mới",
+    "mutation": {
+      "warning": "Đột biến trong",
+      "occurred": "Ô đã bị xóa!",
+      "badge": "Đột biến"
+    },
     "newGameConfirm": {
       "title": "Bắt đầu game mới?",
       "message": "Tiến trình game hiện tại sẽ bị mất. Bạn có chắc muốn bắt đầu game mới không?"
