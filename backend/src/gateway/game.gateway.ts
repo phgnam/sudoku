@@ -519,8 +519,10 @@ export class GameGateway
     if (!userId) return;
 
     // Check if user has other active sockets connected
+    // Note: The disconnecting socket may still be in the room at this point,
+    // so we need to check if size > 1 (more than just this socket)
     const userRoom = this.server.sockets.adapter.rooms.get(`user:${userId}`);
-    const hasOtherConnections = userRoom && userRoom.size > 0;
+    const hasOtherConnections = userRoom && userRoom.size > 1;
 
     // Remove from matchmaking queue if queued
     if (this.matchmakingService.isInQueue(userId)) {
@@ -758,15 +760,16 @@ export class GameGateway
 
     // Check if user has other active sockets connected
     // Only stop mutation timer if this was the last connection
+    // Note: Current socket is still in room, so check > 1
     const userRoom = this.server.sockets.adapter.rooms.get(`user:${userId}`);
-    const hasOtherConnections = userRoom && userRoom.size > 0;
+    const hasOtherConnections = userRoom && userRoom.size > 1;
 
     if (!hasOtherConnections) {
       // Stop mutation timer for this game only if no other connections
       this.stopMutationTimerForGame(gameId, userId);
       this.logger.log(`Client ${client.id} left game ${gameId}, stopped mutation timer`);
     } else {
-      this.logger.log(`Client ${client.id} left game ${gameId}, but user still has ${userRoom?.size} connections`);
+      this.logger.log(`Client ${client.id} left game ${gameId}, but user still has ${userRoom?.size ? userRoom.size - 1 : 0} other connections`);
     }
 
     return { event: 'game:left', data: { gameId } };

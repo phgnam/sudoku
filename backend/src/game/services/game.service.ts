@@ -331,11 +331,17 @@ export class GameService {
   }
 
   // Handle mutation for mutating game mode
-  async handleMutation(gameId: string): Promise<{
+  // retryCount is used internally to limit retries on optimistic lock conflicts
+  async handleMutation(
+    gameId: string,
+    retryCount = 0,
+  ): Promise<{
     row: number;
     col: number;
     previousValue: number;
   } | null> {
+    const MAX_RETRIES = 3;
+
     const game = await this.gameRepository.findOne({
       where: { id: gameId },
       relations: ['puzzle'],
@@ -405,8 +411,14 @@ export class GameService {
 
     // If no rows affected, the game was modified by another operation
     if (updateResult.affected === 0) {
-      // Reload and retry the mutation
-      return this.handleMutation(gameId);
+      // Retry with limit to prevent stack overflow
+      if (retryCount >= MAX_RETRIES) {
+        // Give up after max retries - the game is under heavy contention
+        // The next scheduled mutation tick will try again
+        return null;
+      }
+      // Reload and retry the mutation with incremented retry count
+      return this.handleMutation(gameId, retryCount + 1);
     }
 
     return {
