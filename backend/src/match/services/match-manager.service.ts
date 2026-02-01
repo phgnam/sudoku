@@ -449,7 +449,14 @@ export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
       if (match?.status === 'finished') return match;
     }
 
-    // Set lock (even if we timed out waiting, proceed with caution)
+    // Check if lock is still held after retry loop - if so, return current match state
+    if (this.completionLocks.get(matchId)) {
+      const match = this.matches.get(matchId);
+      // Another completion is still in progress - return current state without proceeding
+      return match || null;
+    }
+
+    // Acquire lock now that it's available
     this.completionLocks.set(matchId, true);
 
     try {
