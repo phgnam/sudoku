@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const REFRESH_TIMEOUT_MS = 10 * 1000; // 10 seconds
+const IS_DEV = process.env.NODE_ENV === "development";
 
 class AuthService {
   private static instance: AuthService;
@@ -33,7 +34,7 @@ class AuthService {
 
       // Validate exp field exists and is a number
       if (typeof decoded.exp !== "number") {
-        this.logError("refreshTokenIfNeeded", new Error("Token missing exp claim"));
+        this.logError("refreshTokenIfNeeded", "INVALID_TOKEN_FORMAT");
         return token;
       }
 
@@ -74,36 +75,37 @@ class AuthService {
       });
 
       if (!response.ok) {
-        // On 401/403, trigger logout
+        // On 401/403, log generic auth failure
         if (response.status === 401 || response.status === 403) {
-          this.logError("doRefresh", new Error(`Auth failed: ${response.status}`));
+          this.logError("doRefresh", "AUTH_FAILED");
           // Don't call handleUnauthorized here to avoid circular calls
           // Return current token and let the next request handle 401
+        } else {
+          this.logError("doRefresh", "REFRESH_FAILED");
         }
-        this.logError("doRefresh", new Error(`Token refresh failed: ${response.status}`));
         return currentToken; // Graceful fallback
       }
 
       const data = await response.json();
 
-      // Validate response has accessToken
+      // Validate response structure without leaking expected format
       if (!data?.accessToken) {
-        this.logError("doRefresh", new Error("Invalid refresh response: missing accessToken"));
+        this.logError("doRefresh", "INVALID_RESPONSE");
         return currentToken; // Graceful fallback
       }
 
       try {
         localStorage.setItem("token", data.accessToken);
-      } catch (storageError) {
-        this.logError("doRefresh", storageError, { type: "storage_quota" });
+      } catch {
+        this.logError("doRefresh", "STORAGE_ERROR");
         // Return new token anyway for this session (won't persist across reload)
       }
       return data.accessToken;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        this.logError("doRefresh", new Error("Token refresh timed out"));
+        this.logError("doRefresh", "TIMEOUT");
       } else {
-        this.logError("doRefresh", error);
+        this.logError("doRefresh", "NETWORK_ERROR");
       }
       return currentToken; // Graceful fallback on network/timeout errors
     } finally {
@@ -148,12 +150,50 @@ class AuthService {
     };
   }
 
-  private logError(context: string, error: unknown, meta?: object): void {
-    console.error(`[AuthService:${context}]`, {
-      error: error instanceof Error ? error.message : error,
+  /**
+   * Sanitize sensitive data from log messages.
+   * Redacts JWTs, emails, and file paths.
+   */
+  private sanitize(value: string): string {
+    return value
+      // Redact JWT tokens (header.payload.signature format)
+      .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[REDACTED_TOKEN]")
+      // Redact email addresses
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[REDACTED_EMAIL]")
+      // Redact file paths (Unix and Windows)
+      .replace(/(?:\/[\w.-]+)+|(?:[A-Z]:\\[\w\\.-]+)/g, "[REDACTED_PATH]");
+  }
+
+  /**
+   * Log errors with sanitization.
+   * Stack traces only shown in development.
+   */
+  private logError(context: string, error: unknown): void {
+    let message: string;
+    let stack: string | undefined;
+
+    if (error instanceof Error) {
+      message = this.sanitize(error.message);
+      stack = IS_DEV ? error.stack : undefined;
+    } else if (typeof error === "string") {
+      // Error codes (e.g., "AUTH_FAILED") - no sanitization needed
+      message = error;
+    } else {
+      message = "Unknown error";
+    }
+
+    const logPayload: Record<string, unknown> = {
+      code: typeof error === "string" ? error : undefined,
+      message,
       timestamp: new Date().toISOString(),
-      ...meta,
-    });
+    };
+
+    // Only include stack in development
+    if (IS_DEV && stack) {
+      logPayload.stack = this.sanitize(stack);
+    }
+
+    console.error(`[AuthService:${context}]`, logPayload);
   }
 }
 
