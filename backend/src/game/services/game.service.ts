@@ -349,7 +349,12 @@ export class GameService {
       return null;
     }
 
+    // Guard: ensure puzzle relation exists (can be null if puzzle was deleted)
     const puzzle = game.puzzle;
+    if (!puzzle || !puzzle.puzzle) {
+      return null;
+    }
+
     const currentState = game.currentState;
     const hintedCells = game.hintedCells || [];
 
@@ -379,12 +384,30 @@ export class GameService {
     const target = eligibleCells[randomIndex];
     const previousValue = currentState[target.row][target.col];
 
+    // Use optimistic locking with version check to prevent overwriting newer moves
+    const currentVersion = game.version;
+
     // Clear the cell
     game.currentState[target.row][target.col] = 0;
     game.mutationCount++;
     game.lastMutationAt = new Date();
 
-    await this.gameRepository.save(game);
+    // Try to save with version check - reload if version mismatch
+    const updateResult = await this.gameRepository.update(
+      { id: game.id, version: currentVersion },
+      {
+        currentState: game.currentState,
+        mutationCount: game.mutationCount,
+        lastMutationAt: game.lastMutationAt,
+        version: currentVersion + 1,
+      },
+    );
+
+    // If no rows affected, the game was modified by another operation
+    if (updateResult.affected === 0) {
+      // Reload and retry the mutation
+      return this.handleMutation(gameId);
+    }
 
     return {
       row: target.row,

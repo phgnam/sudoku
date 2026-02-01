@@ -518,6 +518,10 @@ export class GameGateway
 
     if (!userId) return;
 
+    // Check if user has other active sockets connected
+    const userRoom = this.server.sockets.adapter.rooms.get(`user:${userId}`);
+    const hasOtherConnections = userRoom && userRoom.size > 0;
+
     // Remove from matchmaking queue if queued
     if (this.matchmakingService.isInQueue(userId)) {
       this.matchmakingService.removeFromQueue(userId);
@@ -526,9 +530,31 @@ export class GameGateway
       );
     }
 
+    // Stop mutation timers for any active single-player mutating games
+    // Only if user has no other active connections (prevents stopping timers for multi-tab users)
+    if (!hasOtherConnections) {
+      try {
+        // Find active mutating games for this user
+        const activeGames = await this.gameService.findActiveGamesByUser(userId);
+        for (const game of activeGames) {
+          if (game.gameMode === GameMode.MUTATING) {
+            this.mutationService.stopMutationTimer(game.id);
+            this.logger.debug(`Stopped mutation timer for game ${game.id} on user disconnect`);
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Failed to cleanup mutation timers on disconnect:`, error);
+      }
+    } else {
+      this.logger.debug(`User ${userId} still has ${userRoom?.size} active connections, not stopping mutation timers`);
+    }
+
     // Check if player is in a match
     const match = this.matchManager.findMatchByPlayer(userId);
-    if (!match) return;
+    if (!match) {
+      this.logger.debug(`Disconnect cleanup complete for user ${userId}`);
+      return;
+    }
 
     if (match.status === 'waiting' || match.status === 'ready') {
       // In lobby: immediately remove player and notify
@@ -568,20 +594,6 @@ export class GameGateway
             'Opponent disconnected. Waiting 30 seconds for reconnection...',
         });
       }
-    }
-
-    // Stop mutation timers for any active single-player mutating games
-    try {
-      // Find active mutating games for this user
-      const activeGames = await this.gameService.findActiveGamesByUser(userId);
-      for (const game of activeGames) {
-        if (game.gameMode === GameMode.MUTATING) {
-          this.mutationService.stopMutationTimer(game.id);
-          this.logger.debug(`Stopped mutation timer for game ${game.id} on user disconnect`);
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Failed to cleanup mutation timers on disconnect:`, error);
     }
 
     this.logger.debug(`Disconnect cleanup complete for user ${userId}`);
@@ -744,10 +756,18 @@ export class GameGateway
     // Leave game-specific room
     void client.leave(`game:${gameId}`);
 
-    // Stop mutation timer for this game
-    this.stopMutationTimerForGame(gameId, userId);
+    // Check if user has other active sockets connected
+    // Only stop mutation timer if this was the last connection
+    const userRoom = this.server.sockets.adapter.rooms.get(`user:${userId}`);
+    const hasOtherConnections = userRoom && userRoom.size > 0;
 
-    this.logger.log(`Client ${client.id} left game ${gameId}`);
+    if (!hasOtherConnections) {
+      // Stop mutation timer for this game only if no other connections
+      this.stopMutationTimerForGame(gameId, userId);
+      this.logger.log(`Client ${client.id} left game ${gameId}, stopped mutation timer`);
+    } else {
+      this.logger.log(`Client ${client.id} left game ${gameId}, but user still has ${userRoom?.size} connections`);
+    }
 
     return { event: 'game:left', data: { gameId } };
   }
@@ -868,7 +888,7 @@ export class GameGateway
       );
 
       // Broadcast to all clients in the user's room (all tabs/devices)
-      this.server.to(client.data.userId).emit('game:state', {
+      this.server.to(`user:${client.data.userId}`).emit('game:state', {
         gameId,
         currentState: updatedGame.currentState,
         moveHistory: updatedGame.moveHistory,
@@ -905,7 +925,7 @@ export class GameGateway
       const updatedGame = await this.gameService.undoMove(gameId);
 
       // Broadcast to all user's clients
-      this.server.to(client.data.userId).emit('game:state', {
+      this.server.to(`user:${client.data.userId}`).emit('game:state', {
         gameId,
         currentState: updatedGame.currentState,
         moveHistory: updatedGame.moveHistory,
@@ -964,7 +984,7 @@ export class GameGateway
       );
 
       // Broadcast to all clients in the user's room
-      this.server.to(client.data.userId).emit('game:state', {
+      this.server.to(`user:${client.data.userId}`).emit('game:state', {
         gameId,
         currentState: updatedGame.currentState,
         moveHistory: updatedGame.moveHistory,
@@ -1022,7 +1042,7 @@ export class GameGateway
       await this.gameService.updateTime(gameId, timeElapsed);
 
       // Broadcast time update to all user's clients
-      this.server.to(client.data.userId).emit('game:timeUpdated', {
+      this.server.to(`user:${client.data.userId}`).emit('game:timeUpdated', {
         gameId,
         timeElapsed,
       });

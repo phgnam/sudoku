@@ -41,8 +41,14 @@ export class MutationService implements OnModuleDestroy {
     // Stop existing timer if any
     this.stopMutationTimer(gameId);
 
-    const timer = setInterval(async () => {
-      await callback(gameId);
+    const timer = setInterval(() => {
+      // Wrap callback in error handler to avoid unhandled promise rejections
+      callback(gameId).catch((error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Mutation callback error for game ${gameId}: ${errorMessage}`);
+        // Increment failure count - the calling code should handle stopping timer if too many failures
+        this.recordMutationFailure(gameId);
+      });
     }, MUTATION_INTERVAL_MS);
 
     this.activeGameTimers.set(gameId, timer);
