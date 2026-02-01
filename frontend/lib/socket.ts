@@ -103,7 +103,8 @@ class SocketService {
 
       this.connectRetryTimeout = setTimeout(() => {
         if (this.token && !this.socket?.connected) {
-          this.disconnect();
+          // Use internal cleanup to preserve retry count
+          this.cleanupSocket();
           this.connect(this.token, this.playerName ?? undefined);
         }
       }, delay);
@@ -191,6 +192,23 @@ class SocketService {
     }
   }
 
+  /**
+   * Internal cleanup without resetting retry state.
+   * Used during retry attempts to preserve connectRetryCount.
+   */
+  private cleanupSocket(): void {
+    // Remove auth logout listener
+    if (this.logoutHandler && typeof window !== "undefined") {
+      window.removeEventListener("auth:logout", this.logoutHandler);
+      this.logoutHandler = null;
+    }
+    this.handlersAttached = false;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
   disconnect() {
     // Clear any pending connection retry
     if (this.connectRetryTimeout) {
@@ -199,17 +217,7 @@ class SocketService {
     }
     this.connectRetryCount = 0;
 
-    // Remove auth logout listener to prevent memory leak
-    if (this.logoutHandler && typeof window !== "undefined") {
-      window.removeEventListener("auth:logout", this.logoutHandler);
-      this.logoutHandler = null;
-    }
-    // Reset handlers flag so they can be re-attached on next connect
-    this.handlersAttached = false;
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
+    this.cleanupSocket();
   }
 
   getSocket() {
