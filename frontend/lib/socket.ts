@@ -68,8 +68,9 @@ class SocketService {
     this.playerName = name;
     // If already connected, disconnect and reconnect with new name
     if (this.socket?.connected && this.token) {
-      this.socket.disconnect();
-      this.socket = null;
+      // Use this.disconnect() to properly reset handlersAttached flag
+      // so event handlers get re-attached to the new socket
+      this.disconnect();
       this.connect(this.token, name);
     }
   }

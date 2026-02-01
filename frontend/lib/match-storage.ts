@@ -58,6 +58,9 @@ export function clearActiveMatch(): void {
 
 export function isMatchValid(savedAt?: number): boolean {
   if (!savedAt || savedAt < 0) return false;
-  return Date.now() - savedAt < MAX_AGE_MS;
+  const now = Date.now();
+  // Reject future timestamps (clock skew, tampering, or bugs)
+  if (savedAt > now) return false;
+  return now - savedAt < MAX_AGE_MS;
 }
 
