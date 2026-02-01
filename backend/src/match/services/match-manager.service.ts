@@ -76,12 +76,12 @@ export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
     this.persistInterval = setInterval(() => this.persistAllMatches(), 30000);
   }
 
-  onModuleDestroy() {
+  async onModuleDestroy() {
     if (this.persistInterval) {
       clearInterval(this.persistInterval);
     }
-    // Final persist on shutdown
-    this.persistAllMatches();
+    // Final persist on shutdown - await to ensure data is saved
+    await this.persistAllMatches();
   }
 
   /**
@@ -436,13 +436,20 @@ export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
     playerId: string,
     completionTime: number,
   ): Promise<LiveMatch | null> {
-    // Acquire lock - if another completion is in progress, wait briefly
-    if (this.completionLocks.get(matchId)) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+    // Acquire lock - if another completion is in progress, wait with retry loop
+    const maxRetries = 10;
+    const retryDelay = 50; // ms
+
+    for (let i = 0; i < maxRetries; i++) {
+      if (!this.completionLocks.get(matchId)) {
+        break; // Lock is available
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
       const match = this.matches.get(matchId);
       if (match?.status === 'finished') return match;
     }
 
+    // Set lock (even if we timed out waiting, proceed with caution)
     this.completionLocks.set(matchId, true);
 
     try {

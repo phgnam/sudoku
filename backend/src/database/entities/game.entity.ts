@@ -38,7 +38,7 @@ export class Game {
   @Column({ nullable: true })
   userId: string;
 
-  @Column()
+  @Column({ nullable: true })
   puzzleId: string;
 
   @Column({

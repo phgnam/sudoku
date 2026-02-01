@@ -88,14 +88,13 @@ describe('HintService', () => {
       // Test that highlight_suggestion returns correct structure
       const hint = service.generateHint(testBoard, solution);
 
-      // If no conflicts, should be highlight_suggestion (has single-possibility cells)
-      if (hint.type === 'highlight_suggestion') {
-        expect(hint.data).toHaveProperty('row');
-        expect(hint.data).toHaveProperty('col');
-        expect(hint.data).toHaveProperty('possibleValue');
-        expect(typeof hint.data.possibleValue).toBe('number');
-        expect(hint.data).toHaveProperty('steps');
-      }
+      // Assert the expected type explicitly - test fails if type is wrong
+      expect(hint.type).toBe('highlight_suggestion');
+      expect(hint.data).toHaveProperty('row');
+      expect(hint.data).toHaveProperty('col');
+      expect(hint.data).toHaveProperty('possibleValue');
+      expect(typeof hint.data.possibleValue).toBe('number');
+      expect(hint.data).toHaveProperty('steps');
     });
   });
 });

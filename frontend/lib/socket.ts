@@ -101,9 +101,21 @@ class SocketService {
           // Reconnect with new token
           this.disconnect();
           this.connect(accessToken, this.playerName ?? undefined);
+        } else {
+          // Token refresh failed - redirect to login
+          console.error("Token refresh failed with status:", response.status);
+          this.disconnect();
+          localStorage.removeItem("token");
+          localStorage.removeItem("sessionId");
+          window.location.href = "/login";
         }
       } catch (error) {
         console.error("Failed to refresh token:", error);
+        // Network error during refresh - redirect to login
+        this.disconnect();
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionId");
+        window.location.href = "/login";
       }
     });
 

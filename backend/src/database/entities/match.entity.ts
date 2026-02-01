@@ -28,7 +28,7 @@ export class Match {
   @PrimaryColumn({ type: 'varchar', length: 10 })
   id: string; // Custom 6-char alphanumeric ID (e.g., "ABC123")
 
-  @Column()
+  @Column({ nullable: true })
   hostId: string;
 
   @Column({ nullable: true })

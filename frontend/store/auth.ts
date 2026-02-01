@@ -65,28 +65,32 @@ export const useAuthStore = create<AuthState>()(
       sessionId: null,
       _hasHydrated: false,
 
-      setAuth: (user, token, sessionId) => {
+      setAuth: (user, token, sessionId, skipBroadcast = false) => {
         set({ user, token, sessionId: sessionId || null });
         // Store in localStorage for API calls using safe wrapper
         safeLocalStorage.setItem("token", token);
         if (sessionId) {
           safeLocalStorage.setItem("sessionId", sessionId);
         }
-        // Broadcast to other tabs
-        AUTH_CHANNEL?.postMessage({
-          type: "AUTH_UPDATE",
-          user,
-          token,
-          sessionId,
-        });
+        // Broadcast to other tabs (skip if this update came from another tab)
+        if (!skipBroadcast) {
+          AUTH_CHANNEL?.postMessage({
+            type: "AUTH_UPDATE",
+            user,
+            token,
+            sessionId,
+          });
+        }
       },
 
-      clearAuth: () => {
+      clearAuth: (skipBroadcast = false) => {
         set({ user: null, token: null, sessionId: null });
         safeLocalStorage.removeItem("token");
         safeLocalStorage.removeItem("sessionId");
-        // Broadcast logout to other tabs
-        AUTH_CHANNEL?.postMessage({ type: "AUTH_CLEAR" });
+        // Broadcast logout to other tabs (skip if this update came from another tab)
+        if (!skipBroadcast) {
+          AUTH_CHANNEL?.postMessage({ type: "AUTH_CLEAR" });
+        }
       },
 
       isAuthenticated: () => {
@@ -106,14 +110,17 @@ export const useAuthStore = create<AuthState>()(
         AUTH_CHANNEL?.addEventListener("message", (event) => {
           const store = useAuthStore.getState();
           if (event.data.type === "AUTH_UPDATE") {
-            store.setAuth(
+            // Use internal set to update state without re-broadcasting
+            (store.setAuth as (user: User, token: string, sessionId?: string, skipBroadcast?: boolean) => void)(
               event.data.user,
               event.data.token,
-              event.data.sessionId
+              event.data.sessionId,
+              true // Skip broadcast to prevent infinite loop
             );
           }
           if (event.data.type === "AUTH_CLEAR") {
-            store.clearAuth();
+            // Use internal clear to update state without re-broadcasting
+            (store.clearAuth as (skipBroadcast?: boolean) => void)(true);
           }
         });
       },

@@ -15,6 +15,7 @@ import {
   AnonymousTokenResponseDto,
   MessageResponseDto,
   UserResponseDto,
+  RefreshTokenResponseDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -119,7 +120,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Token refreshed successfully',
-    type: AuthResponseDto,
+    type: RefreshTokenResponseDto,
   })
   @ApiResponse({
     status: 401,
