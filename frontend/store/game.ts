@@ -205,8 +205,24 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: "sudoku-game-storage",
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate game store:', error);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('sudoku-game-storage');
+          }
+        }
         state?.setHasHydrated(true);
+      },
+      merge: (persistedState, currentState) => {
+        try {
+          if (persistedState && typeof persistedState === 'object') {
+            return { ...currentState, ...(persistedState as Partial<GameState>) };
+          }
+        } catch {
+          console.error('Corrupted game state, resetting');
+        }
+        return currentState;
       },
     },
   ),

@@ -47,4 +47,3 @@ export class LeaderboardQueryDto {
   @Max(100)
   limit?: number = 50;
 }
-

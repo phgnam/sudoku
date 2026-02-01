@@ -200,13 +200,22 @@ export class DashboardStatsResponseDto {
   @ApiProperty({ description: 'Current winning streak', example: 5 })
   currentStreak: number;
 
-  @ApiProperty({ description: 'Easy difficulty stats', type: DifficultyStatsDto })
+  @ApiProperty({
+    description: 'Easy difficulty stats',
+    type: DifficultyStatsDto,
+  })
   easy: DifficultyStatsDto;
 
-  @ApiProperty({ description: 'Normal difficulty stats', type: DifficultyStatsDto })
+  @ApiProperty({
+    description: 'Normal difficulty stats',
+    type: DifficultyStatsDto,
+  })
   normal: DifficultyStatsDto;
 
-  @ApiProperty({ description: 'Hard difficulty stats', type: DifficultyStatsDto })
+  @ApiProperty({
+    description: 'Hard difficulty stats',
+    type: DifficultyStatsDto,
+  })
   hard: DifficultyStatsDto;
 
   @ApiProperty({

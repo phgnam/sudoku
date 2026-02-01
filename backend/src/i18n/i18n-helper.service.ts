@@ -20,7 +20,7 @@ export class I18nHelperService {
    */
   translate(key: string, args?: Record<string, string | number>): string {
     const lang = I18nContext.current()?.lang;
-    return this.i18n.translate(key, { lang, args }) as string;
+    return this.i18n.translate(key, { lang, args });
   }
 
   /**
@@ -105,7 +105,6 @@ export class I18nHelperService {
     lang: string,
     args?: Record<string, string | number>,
   ): string {
-    return this.i18n.translate(key, { lang, args }) as string;
+    return this.i18n.translate(key, { lang, args });
   }
 }
-

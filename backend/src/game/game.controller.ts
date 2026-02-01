@@ -162,8 +162,7 @@ export class GameController {
   @Post(':id/hint')
   @ApiOperation({
     summary: 'Get a hint',
-    description:
-      'Get a hint for the next move. Limited to 3 hints per game.',
+    description: 'Get a hint for the next move. Limited to 3 hints per game.',
   })
   @ApiParam({
     name: 'id',
@@ -211,10 +210,7 @@ export class GameController {
     status: 404,
     description: 'Game not found',
   })
-  async applyHint(
-    @Param('id') id: string,
-    @Body() body: ApplyHintDto,
-  ) {
+  async applyHint(@Param('id') id: string, @Body() body: ApplyHintDto) {
     return this.gameService.applyHint(id, body.row, body.col, body.value);
   }
 

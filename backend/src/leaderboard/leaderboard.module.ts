@@ -11,4 +11,3 @@ import { GameHistory, User } from '../database/entities';
   exports: [LeaderboardService],
 })
 export class LeaderboardModule {}
-

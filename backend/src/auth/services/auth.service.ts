@@ -144,6 +144,31 @@ export class AuthService {
     };
   }
 
+  // Refresh token for authenticated user
+  async refreshToken(userId: string): Promise<{ accessToken: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      isAnonymous: !user.email,
+    };
+
+    // Use different expiry for registered vs anonymous users
+    const accessToken = user.email
+      ? this.jwtService.sign(payload, {
+          expiresIn: this.configService.get('JWT_EXPIRES_IN', '1h'),
+        })
+      : this.jwtService.sign(payload, {
+          expiresIn: this.configService.get('ANONYMOUS_JWT_EXPIRES_IN', '30d'),
+        });
+
+    return { accessToken };
+  }
+
   // Migrate anonymous user to authenticated user
   async migrateAnonymousUser(sessionId: string, userId: string) {
     // Find anonymous user

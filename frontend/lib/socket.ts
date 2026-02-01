@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 
 const GUEST_NAME_KEY = "sudoku_guest_name";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // Generate and persist guest name for anonymous users
 function getOrCreateGuestName(): string {
@@ -42,6 +43,10 @@ class SocketService {
         name: this.playerName,
       },
       transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     this.setupEventHandlers();
@@ -73,6 +78,44 @@ class SocketService {
 
     this.socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error);
+    });
+
+    // Handle token expiring soon - refresh and reconnect
+    this.socket.on("auth:expiringSoon", async () => {
+      console.log("Token expiring soon, refreshing...");
+      try {
+        const currentToken = localStorage.getItem("token");
+        if (!currentToken) return;
+
+        const response = await fetch(`${API_URL}/auth/refresh`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const { accessToken } = await response.json();
+          localStorage.setItem("token", accessToken);
+          // Reconnect with new token
+          this.disconnect();
+          this.connect(accessToken, this.playerName ?? undefined);
+        }
+      } catch (error) {
+        console.error("Failed to refresh token:", error);
+      }
+    });
+
+    // Handle token expired error - redirect to login
+    this.socket.on("error", (data: { code?: string; message?: string }) => {
+      if (data.code === "TOKEN_EXPIRED") {
+        console.log("Token expired, redirecting to login...");
+        this.disconnect();
+        localStorage.removeItem("token");
+        localStorage.removeItem("sessionId");
+        window.location.href = "/login";
+      }
     });
   }
 

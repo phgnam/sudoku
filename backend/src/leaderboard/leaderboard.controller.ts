@@ -1,4 +1,11 @@
-import { Controller, Get, Query, UseGuards, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -77,9 +84,15 @@ export class LeaderboardController {
   @Get('competitive')
   @ApiOperation({
     summary: 'Get competitive ELO leaderboard',
-    description: 'Get top players ranked by ELO rating. Only includes users who have played at least 1 competitive match.',
+    description:
+      'Get top players ranked by ELO rating. Only includes users who have played at least 1 competitive match.',
   })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of entries to return (default: 50)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of entries to return (default: 50)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Competitive leaderboard retrieved successfully',
@@ -102,7 +115,8 @@ export class LeaderboardController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get current user competitive stats',
-    description: "Get the authenticated user's competitive rating, wins, losses, and rank",
+    description:
+      "Get the authenticated user's competitive rating, wins, losses, and rank",
   })
   @ApiResponse({
     status: 200,
@@ -119,4 +133,3 @@ export class LeaderboardController {
     return this.leaderboardService.getCompetitiveStats(user.userId);
   }
 }
-

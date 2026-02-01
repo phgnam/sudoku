@@ -7,7 +7,12 @@ import { MatchModule } from '../match/match.module';
 import { User } from '../database/entities';
 
 @Module({
-  imports: [GameModule, AuthModule, MatchModule, TypeOrmModule.forFeature([User])],
+  imports: [
+    GameModule,
+    AuthModule,
+    MatchModule,
+    TypeOrmModule.forFeature([User]),
+  ],
   providers: [GameGateway],
 })
 export class GatewayModule {}

@@ -44,7 +44,8 @@ export class LeaderboardResponseDto {
 
   @ApiPropertyOptional({
     type: LeaderboardEntryDto,
-    description: "Current user's rank (if authenticated and not in top entries)",
+    description:
+      "Current user's rank (if authenticated and not in top entries)",
   })
   userRank?: LeaderboardEntryDto;
 }
@@ -115,7 +116,8 @@ export class CompetitiveLeaderboardResponseDto {
 
   @ApiPropertyOptional({
     type: CompetitiveLeaderboardEntryDto,
-    description: "Current user's rank (if authenticated and not in top entries)",
+    description:
+      "Current user's rank (if authenticated and not in top entries)",
   })
   userRank?: CompetitiveLeaderboardEntryDto;
 }
@@ -139,7 +141,9 @@ export class CompetitiveStatsDto {
   @ApiProperty({ example: 60, description: 'Win rate percentage' })
   winRate: number;
 
-  @ApiPropertyOptional({ example: 42, description: 'Rank position (if available)' })
+  @ApiPropertyOptional({
+    example: 42,
+    description: 'Rank position (if available)',
+  })
   rank?: number;
 }
-

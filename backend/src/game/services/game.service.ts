@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import {
   Game,
   GameStatus,
@@ -100,60 +105,100 @@ export class GameService {
     return game;
   }
 
-  // Make a move
-  async makeMove(gameId: string, row: number, col: number, value: number, timeElapsed?: number) {
-    const game = await this.getGame(gameId);
+  // Make a move with pessimistic locking to prevent race conditions
+  async makeMove(
+    gameId: string,
+    row: number,
+    col: number,
+    value: number,
+    timeElapsed?: number,
+    expectedVersion?: number,
+  ) {
+    return this.gameRepository.manager.transaction(async (manager) => {
+      // Use pessimistic write lock to prevent concurrent modifications
+      const game = await manager.findOne(Game, {
+        where: { id: gameId },
+        relations: ['puzzle'],
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (game.status !== GameStatus.ACTIVE) {
-      throw new Error('Game is not active');
-    }
-
-    // Update timeElapsed from client (for display purposes only, NOT used for leaderboard)
-    // SECURITY NOTE: Leaderboard uses server-calculated time (completedAt - startedAt)
-    if (timeElapsed !== undefined) {
-      game.timeElapsed = timeElapsed;
-    }
-
-    const previousValue = game.currentState[row][col];
-
-    // Create move record
-    const move: Move = {
-      row,
-      col,
-      previousValue,
-      newValue: value,
-      timestamp: Date.now(),
-    };
-
-    // Update game state
-    game.currentState[row][col] = value;
-    game.moveHistory.push(move);
-
-    // Validate move
-    if (
-      value !== 0 &&
-      !this.validator.isValidMove(game.currentState, row, col, value)
-    ) {
-      game.mistakes++;
-
-      if (game.mistakes >= 3) {
-        game.status = GameStatus.FAILED;
+      if (!game) {
+        throw new NotFoundException('Game not found');
       }
-    }
 
-    // Check if game is complete
-    if (this.validator.isComplete(game.currentState)) {
-      game.status = GameStatus.COMPLETED;
-      game.completedAt = new Date();
+      // Check version for optimistic locking if provided
+      if (expectedVersion !== undefined && game.version !== expectedVersion) {
+        throw new ConflictException(
+          'Game state has changed. Please refresh and try again.',
+        );
+      }
 
-      // Update user stats
-      await this.updateUserStats(game.userId, game.difficulty);
+      if (game.status !== GameStatus.ACTIVE) {
+        throw new BadRequestException('Game is not active');
+      }
 
-      // Create game history record for leaderboard
-      await this.createGameHistory(game);
-    }
+      // Protect initial puzzle cells from modification
+      const puzzle = await manager.findOne(Puzzle, {
+        where: { id: game.puzzleId },
+      });
+      if (puzzle && puzzle.puzzle[row][col] !== 0) {
+        throw new BadRequestException('Cannot modify initial puzzle cells');
+      }
 
-    return this.gameRepository.save(game);
+      // Update timeElapsed from client (for display purposes only, NOT used for leaderboard)
+      // SECURITY NOTE: Leaderboard uses server-calculated time (completedAt - startedAt)
+      if (timeElapsed !== undefined) {
+        game.timeElapsed = timeElapsed;
+      }
+
+      const previousValue = game.currentState[row][col];
+
+      // Create move record
+      const move: Move = {
+        row,
+        col,
+        previousValue,
+        newValue: value,
+        timestamp: Date.now(),
+      };
+
+      // Update game state
+      game.currentState[row][col] = value;
+      game.moveHistory.push(move);
+
+      // Validate move
+      if (
+        value !== 0 &&
+        !this.validator.isValidMove(game.currentState, row, col, value)
+      ) {
+        game.mistakes++;
+
+        if (game.mistakes >= 3) {
+          game.status = GameStatus.FAILED;
+        }
+      }
+
+      // Check if game is complete
+      if (this.validator.isComplete(game.currentState)) {
+        game.status = GameStatus.COMPLETED;
+        game.completedAt = new Date();
+        await manager.save(Game, game);
+
+        // Update user stats within transaction
+        await this.updateUserStatsInTransaction(
+          game.userId,
+          game.difficulty,
+          manager,
+        );
+
+        // Create game history record for leaderboard within transaction
+        await this.createGameHistoryInTransaction(game, manager);
+
+        return game;
+      }
+
+      return manager.save(Game, game);
+    });
   }
 
   // Undo last move (skip hinted cells)
@@ -178,7 +223,9 @@ export class GameService {
     }
 
     if (lastMoveIndex < 0) {
-      throw new Error('No moves to undo (all remaining moves are on hinted cells)');
+      throw new Error(
+        'No moves to undo (all remaining moves are on hinted cells)',
+      );
     }
 
     const lastMove = game.moveHistory.splice(lastMoveIndex, 1)[0];
@@ -188,7 +235,13 @@ export class GameService {
   }
 
   // Apply hint value to game state (without creating a move in history)
-  async applyHint(gameId: string, row: number, col: number, value: number, timeElapsed?: number) {
+  async applyHint(
+    gameId: string,
+    row: number,
+    col: number,
+    value: number,
+    timeElapsed?: number,
+  ) {
     const game = await this.getGame(gameId);
 
     // Update timeElapsed from client (for display purposes only, NOT used for leaderboard)
@@ -215,14 +268,24 @@ export class GameService {
 
     // Check if game is complete after applying hint
     if (this.validator.isComplete(game.currentState)) {
-      game.status = GameStatus.COMPLETED;
-      game.completedAt = new Date();
+      // Wrap completion logic in transaction for atomicity (Issue #12)
+      await this.gameRepository.manager.transaction(async (manager) => {
+        game.status = GameStatus.COMPLETED;
+        game.completedAt = new Date();
+        await manager.save(Game, game);
 
-      // Update user stats
-      await this.updateUserStats(game.userId, game.difficulty);
+        // Update user stats within transaction
+        await this.updateUserStatsInTransaction(
+          game.userId,
+          game.difficulty,
+          manager,
+        );
 
-      // Create game history record for leaderboard
-      await this.createGameHistory(game);
+        // Create game history record for leaderboard within transaction
+        await this.createGameHistoryInTransaction(game, manager);
+      });
+
+      return game;
     }
 
     return this.gameRepository.save(game);
@@ -278,6 +341,30 @@ export class GameService {
     await this.userRepository.save(user);
   }
 
+  // Update user stats within a transaction
+  private async updateUserStatsInTransaction(
+    userId: string,
+    difficulty: string,
+    manager: EntityManager,
+  ) {
+    const user = await manager.findOne(User, { where: { id: userId } });
+    if (!user) return;
+
+    switch (difficulty) {
+      case 'easy':
+        user.easyCompleted++;
+        break;
+      case 'normal':
+        user.normalCompleted++;
+        break;
+      case 'hard':
+        user.hardCompleted++;
+        break;
+    }
+
+    await manager.save(User, user);
+  }
+
   // Create game history record for leaderboard
   // SECURITY: Calculate timeElapsed on server-side to prevent cheating
   private async createGameHistory(game: Game): Promise<void> {
@@ -303,6 +390,32 @@ export class GameService {
     await this.gameHistoryRepository.save(gameHistory);
   }
 
+  // Create game history within a transaction
+  private async createGameHistoryInTransaction(
+    game: Game,
+    manager: EntityManager,
+  ): Promise<void> {
+    const completedAt = game.completedAt || new Date();
+    const startedAt = game.startedAt;
+
+    // Calculate timeElapsed server-side (in seconds)
+    const serverCalculatedTime = Math.floor(
+      (completedAt.getTime() - startedAt.getTime()) / 1000,
+    );
+
+    const gameHistory = manager.create(GameHistory, {
+      userId: game.userId,
+      gameId: game.id,
+      difficulty: game.difficulty,
+      timeElapsed: serverCalculatedTime,
+      hintsUsed: game.hintsUsed,
+      mistakes: game.mistakes,
+      completedAt: completedAt,
+    });
+
+    await manager.save(GameHistory, gameHistory);
+  }
+
   // Get dashboard stats for a user
   async getDashboardStats(userId: string): Promise<DashboardStatsResponse> {
     // Get all games for this user
@@ -325,7 +438,9 @@ export class GameService {
     // Calculate win rate based on finished games (completed + failed), excluding active and abandoned
     const finishedGames = completedGames + failedGames;
     const winRate =
-      finishedGames > 0 ? Math.round((completedGames / finishedGames) * 100) : 0;
+      finishedGames > 0
+        ? Math.round((completedGames / finishedGames) * 100)
+        : 0;
 
     // Calculate total time played (only from completed games)
     const totalTimePlayed = games
@@ -340,8 +455,11 @@ export class GameService {
       );
       const failed = diffGames.filter((g) => g.status === GameStatus.FAILED);
 
-      const completedTimes = completed.map((g) => g.timeElapsed).filter((t) => t > 0);
-      const bestTime = completedTimes.length > 0 ? Math.min(...completedTimes) : null;
+      const completedTimes = completed
+        .map((g) => g.timeElapsed)
+        .filter((t) => t > 0);
+      const bestTime =
+        completedTimes.length > 0 ? Math.min(...completedTimes) : null;
       const avgTime =
         completedTimes.length > 0
           ? Math.round(
@@ -363,7 +481,10 @@ export class GameService {
     for (const game of games) {
       if (game.status === GameStatus.COMPLETED) {
         currentStreak++;
-      } else if (game.status === GameStatus.FAILED || game.status === GameStatus.ABANDONED) {
+      } else if (
+        game.status === GameStatus.FAILED ||
+        game.status === GameStatus.ABANDONED
+      ) {
         break;
       }
       // Active games don't affect streak

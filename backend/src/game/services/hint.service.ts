@@ -225,10 +225,18 @@ export class HintService {
     }
 
     const revealHint = this.generateRevealCellHint(currentGrid, solution);
-    if (revealHint) {
-      return revealHint;
+    if (!revealHint) {
+      // Puzzle is already complete - return no-op hint
+      return {
+        type: HintType.REVEAL_CELL,
+        data: {
+          type: 'complete' as const,
+          message: 'Puzzle already solved!',
+          cell: null,
+          value: null,
+        },
+      };
     }
-
-    return this.generateRevealCellHint(currentGrid, solution)!;
+    return revealHint;
   }
 }

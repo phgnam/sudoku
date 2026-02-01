@@ -4,4 +4,8 @@ export { MatchService } from './match.service';
 export { EloService } from './elo.service';
 export type { EloResult } from './elo.service';
 export { MatchmakingService } from './matchmaking.service';
-export type { QueueEntry, QueueStatus, MatchedPair } from './matchmaking.service';
+export type {
+  QueueEntry,
+  QueueStatus,
+  MatchedPair,
+} from './matchmaking.service';
