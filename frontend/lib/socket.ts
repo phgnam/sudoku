@@ -1,7 +1,12 @@
 import { io, Socket } from "socket.io-client";
+import { authService } from "./auth-service";
 
 const GUEST_NAME_KEY = "sudoku_guest_name";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+// Retry configuration for initial connection failures
+const MAX_CONNECT_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 10000;
 
 // Generate and persist guest name for anonymous users
 function getOrCreateGuestName(): string {
@@ -21,8 +26,19 @@ class SocketService {
   private socket: Socket | null = null;
   private token: string | null = null;
   private playerName: string | null = null;
+  private logoutHandler: (() => void) | null = null;
+  private handlersAttached = false;
+  private isReconnecting = false;
+  private connectRetryCount = 0;
+  private connectRetryTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  connect(token: string, name?: string) {
+  connect(token: string, name?: string): Socket | null {
+    // Validate token
+    if (!token) {
+      console.warn("[Socket] Cannot connect with empty token");
+      return null;
+    }
+
     // Update player name if provided, otherwise use stored guest name
     if (name) {
       this.playerName = name;
@@ -32,6 +48,12 @@ class SocketService {
 
     if (this.socket?.connected) {
       return this.socket;
+    }
+
+    // Clear any pending retry
+    if (this.connectRetryTimeout) {
+      clearTimeout(this.connectRetryTimeout);
+      this.connectRetryTimeout = null;
     }
 
     this.token = token;
@@ -50,8 +72,55 @@ class SocketService {
     });
 
     this.setupEventHandlers();
+    this.setupConnectRetryHandler();
 
     return this.socket;
+  }
+
+  /**
+   * Handle initial connection failures with exponential backoff.
+   * Socket.io's built-in reconnection only works after successful connection.
+   */
+  private setupConnectRetryHandler(): void {
+    if (!this.socket) return;
+
+    const onConnectError = (error: Error) => {
+      // Only retry if not connected and under retry limit
+      if (this.socket?.connected || this.connectRetryCount >= MAX_CONNECT_RETRIES) {
+        if (this.connectRetryCount >= MAX_CONNECT_RETRIES) {
+          console.error("[Socket] Max connection retries reached");
+        }
+        return;
+      }
+
+      this.connectRetryCount++;
+      const delay = Math.min(
+        INITIAL_RETRY_DELAY_MS * Math.pow(2, this.connectRetryCount - 1),
+        MAX_RETRY_DELAY_MS
+      );
+
+      console.warn(`[Socket] Connection failed, retrying in ${delay}ms (attempt ${this.connectRetryCount}/${MAX_CONNECT_RETRIES})`);
+
+      this.connectRetryTimeout = setTimeout(() => {
+        if (this.token && !this.socket?.connected) {
+          // Use internal cleanup to preserve retry count
+          this.cleanupSocket();
+          this.connect(this.token, this.playerName ?? undefined);
+        }
+      }, delay);
+    };
+
+    const onConnect = () => {
+      // Reset retry count on successful connection
+      this.connectRetryCount = 0;
+      if (this.connectRetryTimeout) {
+        clearTimeout(this.connectRetryTimeout);
+        this.connectRetryTimeout = null;
+      }
+    };
+
+    this.socket.on("connect_error", onConnectError);
+    this.socket.on("connect", onConnect);
   }
 
   // Update player name and reconnect if needed
@@ -59,14 +128,16 @@ class SocketService {
     this.playerName = name;
     // If already connected, disconnect and reconnect with new name
     if (this.socket?.connected && this.token) {
-      this.socket.disconnect();
-      this.socket = null;
+      // Use this.disconnect() to properly reset handlersAttached flag
+      // so event handlers get re-attached to the new socket
+      this.disconnect();
       this.connect(this.token, name);
     }
   }
 
   private setupEventHandlers() {
-    if (!this.socket) return;
+    if (!this.socket || this.handlersAttached) return;
+    this.handlersAttached = true;
 
     this.socket.on("connect", () => {
       console.log("Socket connected:", this.socket?.id);
@@ -80,62 +151,73 @@ class SocketService {
       console.error("Socket connection error:", error);
     });
 
-    // Handle token expiring soon - refresh and reconnect
+    // Handle token expiring soon - use centralized auth service with deduplication
     this.socket.on("auth:expiringSoon", async () => {
-      console.log("Token expiring soon, refreshing...");
+      if (this.isReconnecting) return; // Prevent race condition
+      this.isReconnecting = true;
+
+      console.log("[Socket] Token expiring soon, refreshing...");
       try {
-        const currentToken = localStorage.getItem("token");
-        if (!currentToken) return;
-
-        const response = await fetch(`${API_URL}/auth/refresh`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${currentToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const { accessToken } = await response.json();
-          localStorage.setItem("token", accessToken);
+        const newToken = await authService.refreshTokenIfNeeded();
+        if (newToken && newToken !== this.token) {
           // Reconnect with new token
           this.disconnect();
-          this.connect(accessToken, this.playerName ?? undefined);
-        } else {
-          // Token refresh failed - redirect to login
-          console.error("Token refresh failed with status:", response.status);
-          this.disconnect();
-          localStorage.removeItem("token");
-          localStorage.removeItem("sessionId");
-          window.location.href = "/login";
+          this.connect(newToken, this.playerName ?? undefined);
         }
       } catch (error) {
-        console.error("Failed to refresh token:", error);
-        // Network error during refresh - redirect to login
+        console.error("[Socket] Token refresh failed:", error);
         this.disconnect();
-        localStorage.removeItem("token");
-        localStorage.removeItem("sessionId");
-        window.location.href = "/login";
+        authService.handleUnauthorized();
+      } finally {
+        this.isReconnecting = false;
       }
     });
 
-    // Handle token expired error - redirect to login
+    // Handle token expired error - use centralized logout
     this.socket.on("error", (data: { code?: string; message?: string }) => {
       if (data.code === "TOKEN_EXPIRED") {
-        console.log("Token expired, redirecting to login...");
+        console.log("[Socket] Token expired, logging out...");
         this.disconnect();
-        localStorage.removeItem("token");
-        localStorage.removeItem("sessionId");
-        window.location.href = "/login";
+        authService.handleUnauthorized();
       }
     });
+
+    // Listen for auth logout event from authService (with cleanup support)
+    if (typeof window !== "undefined" && !this.logoutHandler) {
+      this.logoutHandler = () => {
+        console.log("[Socket] Auth logout event received, disconnecting...");
+        this.disconnect();
+      };
+      window.addEventListener("auth:logout", this.logoutHandler);
+    }
   }
 
-  disconnect() {
+  /**
+   * Internal cleanup without resetting retry state.
+   * Used during retry attempts to preserve connectRetryCount.
+   */
+  private cleanupSocket(): void {
+    // Remove auth logout listener
+    if (this.logoutHandler && typeof window !== "undefined") {
+      window.removeEventListener("auth:logout", this.logoutHandler);
+      this.logoutHandler = null;
+    }
+    this.handlersAttached = false;
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
+  }
+
+  disconnect() {
+    // Clear any pending connection retry
+    if (this.connectRetryTimeout) {
+      clearTimeout(this.connectRetryTimeout);
+      this.connectRetryTimeout = null;
+    }
+    this.connectRetryCount = 0;
+
+    this.cleanupSocket();
   }
 
   getSocket() {

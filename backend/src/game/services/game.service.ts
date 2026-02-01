@@ -105,7 +105,9 @@ export class GameService {
     return game;
   }
 
-  // Make a move with pessimistic locking to prevent race conditions
+  // Make a move with optimistic locking to prevent race conditions
+  // Note: SQLite doesn't support pessimistic locking, so we rely on
+  // transaction isolation + version check for concurrency control
   async makeMove(
     gameId: string,
     row: number,
@@ -115,11 +117,10 @@ export class GameService {
     expectedVersion?: number,
   ) {
     return this.gameRepository.manager.transaction(async (manager) => {
-      // Use pessimistic write lock to prevent concurrent modifications
+      // Fetch game within transaction (SQLite uses SERIALIZABLE by default)
       const game = await manager.findOne(Game, {
         where: { id: gameId },
         relations: ['puzzle'],
-        lock: { mode: 'pessimistic_write' },
       });
 
       if (!game) {

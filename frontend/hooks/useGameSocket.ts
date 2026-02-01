@@ -4,9 +4,11 @@ import { useAuthStore } from "@/store/auth";
 import { socketService } from "@/lib/socket";
 import { api, fetchApi } from "@/lib/api";
 import { SOCKET_EVENTS } from "@/lib/constants";
+import { useDisplayName } from "./useDisplayName";
 
 export function useGameSocket() {
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
+  const getDisplayName = useDisplayName();
   const {
     id: gameId,
     setGame,
@@ -17,20 +19,15 @@ export function useGameSocket() {
     setStatus,
   } = useGameStore();
 
-  // Get display name for player (username or email prefix for registered users)
-  const getDisplayName = useCallback(() => {
-    if (user?.username) return user.username;
-    if (user?.email) return user.email.split("@")[0];
-    // For anonymous users, socket service will use stored guest name
-    return undefined;
-  }, [user]);
-
   useEffect(() => {
     if (!token) return;
 
     // Connect socket with player name
     const playerName = getDisplayName();
     const socket = socketService.connect(token, playerName);
+
+    // Early return if socket connection failed
+    if (!socket) return;
 
     // Join game room if game exists
     if (gameId) {
