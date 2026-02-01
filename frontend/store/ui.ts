@@ -11,12 +11,14 @@ interface UIState {
   soundEnabled: boolean;
   showTutorial: boolean;
   selectedDifficulty: Difficulty;
+  _hasHydrated: boolean;
   setTheme: (theme: Theme) => void;
   setColorMode: (mode: ColorMode) => void;
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
   setShowTutorial: (show: boolean) => void;
   setSelectedDifficulty: (difficulty: Difficulty) => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -27,6 +29,7 @@ export const useUIStore = create<UIState>()(
       soundEnabled: true,
       showTutorial: true,
       selectedDifficulty: "easy",
+      _hasHydrated: false,
 
       setTheme: (theme) => set({ theme }),
       setColorMode: (colorMode) => set({ colorMode }),
@@ -35,9 +38,13 @@ export const useUIStore = create<UIState>()(
       setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
       setShowTutorial: (showTutorial) => set({ showTutorial }),
       setSelectedDifficulty: (selectedDifficulty) => set({ selectedDifficulty }),
+      setHasHydrated: (hasHydrated) => set({ _hasHydrated: hasHydrated }),
     }),
     {
       name: "ui-storage",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

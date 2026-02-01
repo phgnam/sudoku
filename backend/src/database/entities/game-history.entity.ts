@@ -38,7 +38,7 @@ export class GameHistory {
   @CreateDateColumn()
   completedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.gameHistory)
+  @ManyToOne(() => User, (user) => user.gameHistory, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 }

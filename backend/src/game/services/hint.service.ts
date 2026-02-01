@@ -5,6 +5,7 @@ export enum HintType {
   REVEAL_CELL = 'reveal_cell',
   SHOW_CONFLICTS = 'show_conflicts',
   HIGHLIGHT_SUGGESTION = 'highlight_suggestion',
+  PUZZLE_COMPLETE = 'puzzle_complete',
 }
 
 export interface HintResult {
@@ -225,10 +226,15 @@ export class HintService {
     }
 
     const revealHint = this.generateRevealCellHint(currentGrid, solution);
-    if (revealHint) {
-      return revealHint;
+    if (!revealHint) {
+      // Puzzle is already complete - return distinct hint type
+      return {
+        type: HintType.PUZZLE_COMPLETE,
+        data: {
+          message: 'Puzzle already solved!',
+        },
+      };
     }
-
-    return this.generateRevealCellHint(currentGrid, solution)!;
+    return revealHint;
   }
 }

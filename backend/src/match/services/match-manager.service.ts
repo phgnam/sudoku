@@ -1,5 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Difficulty } from '../../database/entities';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+import { Match, MatchStatus, Difficulty } from '../../database/entities';
 
 export interface Spectator {
   id: string;
@@ -30,6 +38,11 @@ export interface LiveMatch {
   firstSubmitter: string | null;
   winnerId: string | null;
   createdAt: number;
+  // Completion times for draw detection (ms from start)
+  hostCompletionTime: number | null;
+  guestCompletionTime: number | null;
+  // Match result for draw logic
+  result: 'host_win' | 'guest_win' | 'draw' | null;
   // Spectator support
   spectators: Map<string, Spectator>;
   spectatorCount: number;
@@ -46,20 +59,169 @@ export interface MatchCompletionResult {
 }
 
 @Injectable()
-export class MatchManagerService {
+export class MatchManagerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MatchManagerService.name);
   private matches = new Map<string, LiveMatch>();
   private playerToMatch = new Map<string, string>(); // Quick lookup: playerId -> matchId
+  private persistInterval: NodeJS.Timeout | null = null;
+  private completionLocks = new Map<string, boolean>(); // Mutex for simultaneous completion
+
+  constructor(
+    @InjectRepository(Match)
+    private matchRepository: Repository<Match>,
+  ) {}
+
+  async onModuleInit() {
+    await this.recoverActiveMatches();
+    this.persistInterval = setInterval(() => this.persistAllMatches(), 30000);
+  }
+
+  async onModuleDestroy() {
+    if (this.persistInterval) {
+      clearInterval(this.persistInterval);
+    }
+    // Final persist on shutdown - await to ensure data is saved
+    await this.persistAllMatches();
+  }
+
+  /**
+   * Recover active matches from database on server restart
+   */
+  private async recoverActiveMatches(): Promise<void> {
+    try {
+      const activeMatches = await this.matchRepository.find({
+        where: {
+          status: In([
+            MatchStatus.WAITING,
+            MatchStatus.READY,
+            MatchStatus.PLAYING,
+          ]),
+        },
+        relations: ['puzzle'],
+      });
+
+      for (const dbMatch of activeMatches) {
+        // Reconstruct in-memory state from database
+        const liveMatch: LiveMatch = {
+          id: dbMatch.id,
+          hostId: dbMatch.hostId,
+          guestId: dbMatch.guestId || null,
+          hostReady: false, // Players must re-ready after reconnect
+          guestReady: false,
+          hostSocketId: '', // Players must reconnect
+          guestSocketId: null,
+          difficulty: dbMatch.difficulty,
+          puzzleId: dbMatch.puzzleId || null,
+          puzzle: dbMatch.puzzle?.puzzle || null,
+          solution: dbMatch.puzzle?.solution || null,
+          hostState: dbMatch.hostState || null,
+          guestState: dbMatch.guestState || null,
+          hostFilledCells: new Set(dbMatch.hostFilledCells || []),
+          guestFilledCells: new Set(dbMatch.guestFilledCells || []),
+          status: this.mapDbStatusToLive(dbMatch.status),
+          startTime: dbMatch.startedAt ? dbMatch.startedAt.getTime() : null,
+          finishedAt: null,
+          timer: null,
+          firstSubmitter: null,
+          winnerId: dbMatch.winnerId || null,
+          createdAt: dbMatch.createdAt.getTime(),
+          // Completion times from database
+          hostCompletionTime: dbMatch.hostCompletionTime || null,
+          guestCompletionTime: dbMatch.guestCompletionTime || null,
+          result: dbMatch.result
+            ? this.mapDbResultToLive(dbMatch.result)
+            : null,
+          spectators: new Map(),
+          spectatorCount: 0,
+          rematchRequestedBy: null,
+          rematchAccepted: false,
+          rematchTimer: null,
+        };
+
+        this.matches.set(dbMatch.id, liveMatch);
+
+        // Re-establish player-to-match mappings
+        this.playerToMatch.set(dbMatch.hostId, dbMatch.id);
+        if (dbMatch.guestId) {
+          this.playerToMatch.set(dbMatch.guestId, dbMatch.id);
+        }
+      }
+
+      this.logger.log(
+        `Recovered ${activeMatches.length} active matches from database`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to recover active matches:', error);
+    }
+  }
+
+  /**
+   * Map database MatchStatus to LiveMatch status string
+   */
+  private mapDbStatusToLive(
+    status: MatchStatus,
+  ): 'waiting' | 'ready' | 'playing' | 'finished' | 'cancelled' {
+    switch (status) {
+      case MatchStatus.WAITING:
+        return 'waiting';
+      case MatchStatus.READY:
+        return 'ready';
+      case MatchStatus.PLAYING:
+        return 'playing';
+      case MatchStatus.FINISHED:
+        return 'finished';
+      case MatchStatus.CANCELLED:
+        return 'cancelled';
+      default:
+        return 'waiting';
+    }
+  }
+
+  /**
+   * Map database MatchResult to LiveMatch result string
+   */
+  private mapDbResultToLive(
+    result: 'host_win' | 'guest_win' | 'draw',
+  ): 'host_win' | 'guest_win' | 'draw' {
+    return result;
+  }
+
+  /**
+   * Persist all active matches to database periodically
+   */
+  private async persistAllMatches(): Promise<void> {
+    const updates: Promise<unknown>[] = [];
+
+    for (const [id, match] of this.matches) {
+      if (match.status === 'playing' || match.status === 'ready') {
+        updates.push(
+          this.matchRepository.update(id, {
+            hostState: match.hostState || undefined,
+            guestState: match.guestState || undefined,
+            hostFilledCells: Array.from(match.hostFilledCells),
+            guestFilledCells: Array.from(match.guestFilledCells),
+          }),
+        );
+      }
+    }
+
+    if (updates.length > 0) {
+      await Promise.allSettled(updates);
+      this.logger.debug(
+        `Persisted ${updates.length} active matches to database`,
+      );
+    }
+  }
 
   /**
    * Create a new match room
    */
-  createMatch(
+  async createMatch(
     hostId: string,
     hostSocketId: string,
     difficulty: Difficulty,
-  ): string {
-    const matchId = this.generateMatchId();
+  ): Promise<string> {
+    const matchId = await this.generateUniqueMatchId();
 
     const match: LiveMatch = {
       id: matchId,
@@ -84,6 +246,10 @@ export class MatchManagerService {
       firstSubmitter: null,
       winnerId: null,
       createdAt: Date.now(),
+      // Completion times for draw detection
+      hostCompletionTime: null,
+      guestCompletionTime: null,
+      result: null,
       // Spectator support
       spectators: new Map(),
       spectatorCount: 0,
@@ -258,6 +424,90 @@ export class MatchManagerService {
     }
 
     return { complete, correct, position: isFirst ? 'first' : 'second' };
+  }
+
+  /**
+   * Handle player completion with draw detection
+   * Uses mutex to handle simultaneous completion attempts
+   * If both players complete within 500ms, result is DRAW
+   */
+  async handlePlayerComplete(
+    matchId: string,
+    playerId: string,
+    completionTime: number,
+  ): Promise<LiveMatch | null> {
+    // Wait for any existing lock to be released, checking if match finished
+    const maxRetries = 20; // Increased to 1 second total wait
+    const retryDelay = 50; // ms
+
+    for (let i = 0; i < maxRetries; i++) {
+      if (!this.completionLocks.get(matchId)) {
+        break; // Lock is available
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      const match = this.matches.get(matchId);
+      // Only return early if the match has already been decided
+      if (match?.status === 'finished') return match;
+    }
+
+    // After waiting, check match status again - only skip if already finished
+    const currentMatch = this.matches.get(matchId);
+    if (currentMatch?.status === 'finished') {
+      return currentMatch;
+    }
+
+    // Acquire lock - proceed to record this player's completion
+    this.completionLocks.set(matchId, true);
+
+    try {
+      const match = this.matches.get(matchId);
+      if (!match || match.status === 'finished') return match || null;
+
+      const isHost = playerId === match.hostId;
+
+      // Record completion time
+      if (isHost) {
+        match.hostCompletionTime = completionTime;
+      } else {
+        match.guestCompletionTime = completionTime;
+      }
+
+      // Check for simultaneous completion (within 500ms)
+      if (
+        match.hostCompletionTime !== null &&
+        match.guestCompletionTime !== null
+      ) {
+        const timeDiff = Math.abs(
+          match.hostCompletionTime - match.guestCompletionTime,
+        );
+
+        if (timeDiff <= 500) {
+          // DRAW - both completed within 500ms of each other
+          match.result = 'draw';
+          match.winnerId = null;
+          this.logger.log(
+            `Match ${matchId}: DRAW - both players completed within ${timeDiff}ms`,
+          );
+        } else if (match.hostCompletionTime < match.guestCompletionTime) {
+          match.result = 'host_win';
+          match.winnerId = match.hostId;
+        } else {
+          match.result = 'guest_win';
+          match.winnerId = match.guestId;
+        }
+      } else {
+        // First to complete wins (other player hasn't finished)
+        match.result = isHost ? 'host_win' : 'guest_win';
+        match.winnerId = playerId;
+      }
+
+      match.status = 'finished';
+      match.finishedAt = Date.now();
+
+      return match;
+    } finally {
+      this.completionLocks.delete(matchId);
+    }
   }
 
   /**
@@ -436,6 +686,41 @@ export class MatchManagerService {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+  }
+
+  /**
+   * Generate unique match ID with collision checking
+   * Checks both in-memory Map and database for collision
+   * Retries with exponential backoff, falls back to UUID prefix after maxRetries
+   */
+  private async generateUniqueMatchId(maxRetries = 5): Promise<string> {
+    for (let i = 0; i < maxRetries; i++) {
+      const id = this.generateMatchId();
+
+      // Check in-memory first (fast path)
+      if (this.matches.has(id)) {
+        continue;
+      }
+
+      // Check database for collision
+      const existing = await this.matchRepository.findOne({
+        where: { id },
+        select: ['id'],
+      });
+
+      if (!existing) {
+        return id;
+      }
+
+      // Exponential backoff on collision
+      await new Promise((r) => setTimeout(r, Math.pow(2, i) * 100));
+    }
+
+    // Fallback: use UUID prefix (8 chars for better uniqueness)
+    this.logger.warn(
+      `Match ID collision detected after ${maxRetries} retries, falling back to UUID`,
+    );
+    return uuidv4().substring(0, 8).toUpperCase();
   }
 
   /**
@@ -665,18 +950,18 @@ export class MatchManagerService {
    * Create a new match from an old one (rematch)
    * Swaps host/guest roles for fairness
    */
-  createRematch(
+  async createRematch(
     oldMatchId: string,
     hostSocketId: string,
     guestSocketId: string,
-  ): string {
+  ): Promise<string> {
     const oldMatch = this.matches.get(oldMatchId);
     if (!oldMatch || !oldMatch.guestId) {
       throw new Error('Invalid match for rematch');
     }
 
     // Swap roles: old guest becomes new host
-    const newMatchId = this.generateMatchId();
+    const newMatchId = await this.generateUniqueMatchId();
 
     const newMatch: LiveMatch = {
       id: newMatchId,
@@ -701,6 +986,10 @@ export class MatchManagerService {
       firstSubmitter: null,
       winnerId: null,
       createdAt: Date.now(),
+      // Reset completion times for new match
+      hostCompletionTime: null,
+      guestCompletionTime: null,
+      result: null,
       spectators: new Map(),
       spectatorCount: 0,
       rematchRequestedBy: null,

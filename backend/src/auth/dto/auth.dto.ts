@@ -78,6 +78,14 @@ export class AuthResponseDto {
   };
 }
 
+export class RefreshTokenResponseDto {
+  @ApiProperty({
+    description: 'JWT access token',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  accessToken: string;
+}
+
 export class AnonymousTokenResponseDto {
   @ApiProperty({
     description: 'JWT access token for anonymous user',

@@ -10,10 +10,10 @@ import { User } from './user.entity';
 import { Puzzle, Difficulty } from './puzzle.entity';
 
 export enum MatchStatus {
-  WAITING = 'waiting',     // Room created, waiting for player 2
-  READY = 'ready',         // Both players joined, waiting for ready
-  PLAYING = 'playing',     // Game in progress
-  FINISHED = 'finished',   // Game ended (win/draw/forfeit)
+  WAITING = 'waiting', // Room created, waiting for player 2
+  READY = 'ready', // Both players joined, waiting for ready
+  PLAYING = 'playing', // Game in progress
+  FINISHED = 'finished', // Game ended (win/draw/forfeit)
   CANCELLED = 'cancelled', // Room cancelled before start
 }
 
@@ -28,7 +28,7 @@ export class Match {
   @PrimaryColumn({ type: 'varchar', length: 10 })
   id: string; // Custom 6-char alphanumeric ID (e.g., "ABC123")
 
-  @Column()
+  @Column({ nullable: true })
   hostId: string;
 
   @Column({ nullable: true })
@@ -77,16 +77,15 @@ export class Match {
   endedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'hostId' })
   host: User;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'guestId' })
   guest: User;
 
-  @ManyToOne(() => Puzzle, { nullable: true })
+  @ManyToOne(() => Puzzle, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'puzzleId' })
   puzzle: Puzzle;
 }
-

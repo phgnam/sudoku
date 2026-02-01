@@ -1,5 +1,9 @@
 import { Module, Global } from '@nestjs/common';
-import { I18nModule, AcceptLanguageResolver, HeaderResolver } from 'nestjs-i18n';
+import {
+  I18nModule,
+  AcceptLanguageResolver,
+  HeaderResolver,
+} from 'nestjs-i18n';
 import * as path from 'path';
 import { I18nHelperService } from './i18n-helper.service';
 
@@ -26,4 +30,3 @@ import { I18nHelperService } from './i18n-helper.service';
   exports: [I18nModule, I18nHelperService],
 })
 export class I18nConfigModule {}
-

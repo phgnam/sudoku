@@ -1,7 +1,17 @@
+// Socket auth state for token expiry handling
+export interface SocketAuthState {
+  userId: string;
+  tokenExp: number;
+  refreshAt: number;
+}
+
 // Socket data interface
 export interface SocketData {
   userId: string;
   isAnonymous: boolean;
+  name?: string;
+  matchId?: string;
+  authState?: SocketAuthState;
 }
 
 // JWT payload interface

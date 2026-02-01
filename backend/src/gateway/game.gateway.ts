@@ -25,6 +25,7 @@ import type {
   TypedServer,
   MatchPlayer,
 } from './types/socket.types';
+import { RATE_LIMITS, RateLimitEntry } from './types/rate-limit.types';
 import { Difficulty, User } from '../database/entities';
 
 // Match timeout in milliseconds (20 minutes)
@@ -35,7 +36,9 @@ const MATCH_DURATION_MS = 20 * 60 * 1000;
     origin: '*',
   },
 })
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
+export class GameGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
+{
   @WebSocketServer()
   server: TypedServer;
 
@@ -49,6 +52,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
 
   // Matchmaking interval handle
   private matchmakingInterval: NodeJS.Timeout | null = null;
+
+  // Rate limiting map (event -> socketId -> RateLimitEntry)
+  private rateLimits = new Map<string, Map<string, RateLimitEntry>>();
+
+  // Token expiry timers (socketId -> { warningTimer, expiryTimer })
+  private tokenExpiryTimers = new Map<
+    string,
+    { warningTimer?: NodeJS.Timeout; expiryTimer?: NodeJS.Timeout }
+  >();
 
   constructor(
     private jwtService: JwtService,
@@ -71,6 +83,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       this.matchmakingInterval = null;
       this.logger.log('Matchmaking interval cleared');
     }
+    // Clean up token expiry timers
+    for (const [, timers] of this.tokenExpiryTimers) {
+      if (timers.warningTimer) clearTimeout(timers.warningTimer);
+      if (timers.expiryTimer) clearTimeout(timers.expiryTimer);
+    }
+    this.tokenExpiryTimers.clear();
+    this.logger.log('Token expiry timers cleared');
   }
 
   private startMatchmakingLoop(): void {
@@ -104,15 +123,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   }
 
   private async createMatchFromQueue(matchedPair: {
-    player1: { playerId: string; socketId: string; playerName: string; rating: number };
-    player2: { playerId: string; socketId: string; playerName: string; rating: number };
+    player1: {
+      playerId: string;
+      socketId: string;
+      playerName: string;
+      rating: number;
+    };
+    player2: {
+      playerId: string;
+      socketId: string;
+      playerName: string;
+      rating: number;
+    };
     difficulty: string;
   }): Promise<void> {
     const { player1, player2, difficulty } = matchedPair;
 
     try {
       // Create the match (requires socketId as second param)
-      const matchId = this.matchManager.createMatch(
+      const matchId = await this.matchManager.createMatch(
         player1.playerId,
         player1.socketId,
         difficulty as Difficulty,
@@ -147,7 +176,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       this.matchManager.setReady(matchId, player2.playerId, true);
 
       // Get puzzle for this difficulty
-      const puzzle = await this.matchService.getRandomPuzzle(difficulty as Difficulty);
+      const puzzle = await this.matchService.getRandomPuzzle(
+        difficulty as Difficulty,
+      );
       if (!puzzle) {
         throw new Error('No puzzle available for this difficulty');
       }
@@ -164,8 +195,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       if (!updatedMatch) return;
 
       // Create player objects
-      const hostPlayer: MatchPlayer = { id: player1.playerId, name: player1.playerName };
-      const guestPlayer: MatchPlayer = { id: player2.playerId, name: player2.playerName };
+      const hostPlayer: MatchPlayer = {
+        id: player1.playerId,
+        name: player1.playerName,
+      };
+      const guestPlayer: MatchPlayer = {
+        id: player2.playerId,
+        name: player2.playerName,
+      };
 
       // Notify player1 of match found and start
       this.server.to(player1.socketId).emit('matchmaking:found', {
@@ -219,6 +256,132 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     }
   }
 
+  /**
+   * Check rate limit for a socket event
+   * Returns false if rate limited, true if allowed
+   */
+  private checkRateLimit(socketId: string, event: string): boolean {
+    const config = RATE_LIMITS[event] || RATE_LIMITS.default;
+
+    if (!this.rateLimits.has(event)) {
+      this.rateLimits.set(event, new Map());
+    }
+    const eventLimits = this.rateLimits.get(event)!;
+
+    const now = Date.now();
+    const entry = eventLimits.get(socketId) || {
+      count: 0,
+      firstRequest: now,
+      blocked: false,
+    };
+
+    // Check if blocked
+    if (entry.blocked && now - entry.firstRequest < config.blockDurationMs) {
+      return false;
+    }
+
+    // Reset window if expired
+    if (now - entry.firstRequest > config.windowMs) {
+      entry.count = 0;
+      entry.firstRequest = now;
+      entry.blocked = false;
+    }
+
+    entry.count++;
+
+    if (entry.count > config.maxRequests) {
+      entry.blocked = true;
+      eventLimits.set(socketId, entry);
+      this.logger.warn(
+        `Rate limit exceeded for socket ${socketId} on event ${event}`,
+      );
+      return false;
+    }
+
+    eventLimits.set(socketId, entry);
+    return true;
+  }
+
+  /**
+   * Clean up rate limit entries for a disconnected socket
+   */
+  private cleanupRateLimits(socketId: string): void {
+    for (const [, eventLimits] of this.rateLimits) {
+      eventLimits.delete(socketId);
+    }
+  }
+
+  /**
+   * Schedule token expiry warning and disconnect
+   */
+  private scheduleTokenExpiryCheck(socket: TypedSocket): void {
+    const authState = socket.data.authState;
+    if (!authState) return;
+
+    const { tokenExp, refreshAt } = authState;
+    const now = Date.now();
+
+    // Clean up any existing timers for this socket
+    const existingTimers = this.tokenExpiryTimers.get(socket.id);
+    if (existingTimers) {
+      if (existingTimers.warningTimer)
+        clearTimeout(existingTimers.warningTimer);
+      if (existingTimers.expiryTimer) clearTimeout(existingTimers.expiryTimer);
+    }
+
+    const timers: {
+      warningTimer?: NodeJS.Timeout;
+      expiryTimer?: NodeJS.Timeout;
+    } = {};
+
+    // Warn client 5 min before expiry
+    if (refreshAt > now) {
+      timers.warningTimer = setTimeout(() => {
+        // Using 'any' cast to emit non-typed event for auth expiry warning
+        (socket as any).emit('auth:expiringSoon', { expiresAt: tokenExp });
+        this.logger.log(
+          `Token expiry warning sent to socket ${socket.id}, expires at ${new Date(tokenExp).toISOString()}`,
+        );
+      }, refreshAt - now);
+    }
+
+    // Disconnect on expiry
+    if (tokenExp > now) {
+      timers.expiryTimer = setTimeout(() => {
+        // Using 'any' cast to emit non-typed event for token expiry error
+        (socket as any).emit('error', {
+          code: 'TOKEN_EXPIRED',
+          message: 'Token expired',
+        });
+        socket.disconnect();
+        this.tokenExpiryTimers.delete(socket.id);
+        this.logger.log(`Socket ${socket.id} disconnected due to token expiry`);
+      }, tokenExp - now);
+    } else {
+      // Token already expired, disconnect immediately
+      (socket as any).emit('error', {
+        code: 'TOKEN_EXPIRED',
+        message: 'Token expired',
+      });
+      socket.disconnect();
+      return;
+    }
+
+    this.tokenExpiryTimers.set(socket.id, timers);
+  }
+
+  /**
+   * Clean up token expiry timers for a disconnected socket
+   */
+  private cleanupTokenExpiryTimers(socketId: string): void {
+    const timers = this.tokenExpiryTimers.get(socketId);
+    if (timers) {
+      if (timers.warningTimer) clearTimeout(timers.warningTimer);
+      if (timers.expiryTimer) clearTimeout(timers.expiryTimer);
+      this.tokenExpiryTimers.delete(socketId);
+    }
+  }
+
   handleConnection(client: TypedSocket): void {
     try {
       // Get token from auth header or handshake
@@ -233,7 +396,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify<JwtPayload>(token);
+      const payload = this.jwtService.verify<JwtPayload & { exp?: number }>(
+        token,
+      );
       const userId = payload.sub;
 
       // Store userId in socket data
@@ -241,6 +406,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         userId,
         isAnonymous: payload.isAnonymous ?? false,
       };
+
+      // Store auth state with token expiry info
+      if (payload.exp) {
+        client.data.authState = {
+          userId,
+          tokenExp: payload.exp * 1000, // Convert to ms
+          refreshAt: payload.exp * 1000 - 5 * 60 * 1000, // 5 min before expiry
+        };
+
+        // Schedule token expiry warning and disconnect
+        this.scheduleTokenExpiryCheck(client);
+      }
 
       // Join user's private room for broadcasts
       void client.join(userId);
@@ -330,12 +507,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       `Client disconnected: ${client.id}, userId: ${userId ?? 'unknown'}`,
     );
 
+    // Clean up rate limits and token expiry timers for this socket
+    this.cleanupRateLimits(client.id);
+    this.cleanupTokenExpiryTimers(client.id);
+
     if (!userId) return;
 
     // Remove from matchmaking queue if queued
     if (this.matchmakingService.isInQueue(userId)) {
       this.matchmakingService.removeFromQueue(userId);
-      this.logger.log(`Removed disconnected player ${userId} from matchmaking queue`);
+      this.logger.log(
+        `Removed disconnected player ${userId} from matchmaking queue`,
+      );
     }
 
     // Check if player is in a match
@@ -431,7 +614,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       eloChanges = await this.applyEloChanges(
         match.hostId,
         match.guestId,
-        matchResult as 'host_win' | 'guest_win',
+        matchResult,
       );
     }
 
@@ -713,7 +896,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
         };
       }
 
-      const matchId = this.matchManager.createMatch(
+      const matchId = await this.matchManager.createMatch(
         userId,
         client.id,
         difficulty,
@@ -962,6 +1145,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() data: { matchId: string },
   ): Promise<{ event: string; data: unknown }> {
+    // Rate limit check
+    if (!this.checkRateLimit(client.id, 'match:ready')) {
+      client.emit('match:error', {
+        code: 'RATE_LIMITED',
+        message: 'Too many requests. Please wait before trying again.',
+      });
+      return {
+        event: 'match:error',
+        data: { message: 'Rate limited', code: 'RATE_LIMITED' },
+      };
+    }
+
     try {
       const userId = client.data.userId;
       const { matchId } = data;
@@ -1577,7 +1772,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   // ==================== REMATCH HANDLERS ====================
 
   @SubscribeMessage('match:rematchRequest')
-  handleRematchRequest(
+  async handleRematchRequest(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() data: { matchId: string },
   ) {
@@ -1629,7 +1824,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     // Both agreed - create new match
     const hostSocketId = match.hostSocketId;
     const guestSocketId = match.guestSocketId!;
-    const newMatchId = this.matchManager.createRematch(
+    const newMatchId = await this.matchManager.createRematch(
       matchId,
       hostSocketId,
       guestSocketId,
@@ -1682,7 +1877,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   ) {
     const userId = client.data.userId;
     if (!userId) {
-      return { event: 'matchmaking:error', data: { message: 'Not authenticated' } };
+      return {
+        event: 'matchmaking:error',
+        data: { message: 'Not authenticated' },
+      };
     }
 
     const difficulty = data.difficulty || 'normal';
@@ -1724,7 +1922,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   handleMatchmakingCancel(@ConnectedSocket() client: TypedSocket) {
     const userId = client.data.userId;
     if (!userId) {
-      return { event: 'matchmaking:error', data: { message: 'Not authenticated' } };
+      return {
+        event: 'matchmaking:error',
+        data: { message: 'Not authenticated' },
+      };
     }
 
     const removed = this.matchmakingService.removeFromQueue(userId);

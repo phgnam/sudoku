@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import { useGameStore } from "@/store/game";
 import { GAME_CONFIG } from "@/lib/constants";
 
@@ -39,6 +40,28 @@ export function SudokuGrid({
   opponentCells,
 }: SudokuGridProps) {
   const { currentState, initialState, notes, wrongCells } = useGameStore();
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Mobile keyboard scroll-into-view effect
+  useEffect(() => {
+    if (selectedCell && gridRef.current) {
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) return;
+
+      const cellElement = gridRef.current.querySelector(
+        `[data-cell="${selectedCell.row}-${selectedCell.col}"]`
+      ) as HTMLElement;
+
+      if (cellElement) {
+        const rect = cellElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight * 0.6; // Account for keyboard
+
+        if (rect.bottom > viewportHeight) {
+          cellElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [selectedCell]);
 
   const isCellInitial = (row: number, col: number) => initialState[row][col] !== 0;
   const isCellSelected = (row: number, col: number) =>
@@ -223,6 +246,7 @@ export function SudokuGrid({
       style={{
         display: "inline-block",
         padding: "12px",
+        paddingBottom: 'env(safe-area-inset-bottom, 20px)',
         backgroundColor: "white",
         borderRadius: "16px",
         boxShadow: "0 10px 25px rgba(79, 70, 229, 0.15)",
@@ -230,6 +254,7 @@ export function SudokuGrid({
       }}
     >
       <div
+        ref={gridRef}
         data-testid="sudoku-grid"
         role="grid"
         aria-label="Sudoku puzzle grid"
@@ -277,6 +302,7 @@ export function SudokuGrid({
               <button
                 key={`${row}-${col}`}
                 data-testid={`cell-${row}-${col}`}
+                data-cell={`${row}-${col}`}
                 onClick={() => !isInitial && onCellSelect(row, col)}
                 style={getCellStyle(row, col, value)}
                 aria-label={`Row ${row + 1}, Column ${col + 1}${value ? `, value ${value}` : ', empty'}${isInitial ? ', given' : ''}${isSelected ? ', selected' : ''}${isError ? ', error' : ''}`}

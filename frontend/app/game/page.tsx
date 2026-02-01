@@ -597,6 +597,10 @@ export default function GamePage() {
             currentStep: 0,
           });
         }
+      } else if (hint.type === "puzzle_complete") {
+        // Puzzle is already solved - show message to user
+        console.log("Puzzle already complete:", hint.data?.message);
+        // Could show a toast notification here if desired
       }
     }
   };

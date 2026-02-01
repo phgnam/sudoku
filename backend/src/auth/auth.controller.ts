@@ -15,6 +15,7 @@ import {
   AnonymousTokenResponseDto,
   MessageResponseDto,
   UserResponseDto,
+  RefreshTokenResponseDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -107,6 +108,33 @@ export class AuthController {
       user.userId,
     );
     return { message: 'Anonymous user migrated successfully' };
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description: 'Get a new access token using current valid JWT',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token refreshed successfully',
+    type: RefreshTokenResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired JWT token',
+  })
+  async refresh(
+    @CurrentUser()
+    user: {
+      userId: string;
+      email: string;
+      isAnonymous: boolean;
+    },
+  ): Promise<{ accessToken: string }> {
+    return this.authService.refreshToken(user.userId);
   }
 
   @Get('me')

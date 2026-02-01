@@ -2,13 +2,37 @@
 class SoundManager {
   private audioContext: AudioContext | null = null;
   private enabled = true;
+  private unlocked = false;
 
-  constructor() {
-    if (typeof window !== "undefined") {
+  // Lazy AudioContext initialization for iOS Safari compatibility
+  private getContext(): AudioContext | null {
+    if (!this.audioContext && typeof window !== "undefined") {
       this.audioContext = new (
         window.AudioContext || (window as any).webkitAudioContext
       )();
     }
+    return this.audioContext;
+  }
+
+  // Call this on first user interaction to unlock audio on iOS Safari
+  async unlock(): Promise<void> {
+    if (this.unlocked) return;
+
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    // Play silent buffer to fully unlock on iOS
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+
+    this.unlocked = true;
   }
 
   setEnabled(enabled: boolean) {
@@ -17,25 +41,23 @@ class SoundManager {
 
   // Simple beep sound
   private playTone(frequency: number, duration: number, volume: number = 0.1) {
-    if (!this.enabled || !this.audioContext) return;
+    const ctx = this.getContext();
+    if (!this.enabled || !ctx || ctx.state === "suspended") return;
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
 
     oscillator.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+    gainNode.connect(ctx.destination);
 
     oscillator.frequency.value = frequency;
     oscillator.type = "sine";
 
-    gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.01,
-      this.audioContext.currentTime + duration,
-    );
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
-    oscillator.start(this.audioContext.currentTime);
-    oscillator.stop(this.audioContext.currentTime + duration);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
   }
 
   // Click sound (subtle)

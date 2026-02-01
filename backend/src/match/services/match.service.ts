@@ -1,7 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Match, MatchStatus, MatchResult, Puzzle } from '../../database/entities';
+import {
+  Match,
+  MatchStatus,
+  MatchResult,
+  Puzzle,
+} from '../../database/entities';
 import { LiveMatch } from './match-manager.service';
 
 @Injectable()
@@ -24,7 +29,9 @@ export class MatchService {
     });
 
     if (puzzles.length === 0) {
-      throw new NotFoundException(`No puzzles found for difficulty: ${difficulty}`);
+      throw new NotFoundException(
+        `No puzzles found for difficulty: ${difficulty}`,
+      );
     }
 
     return puzzles[Math.floor(Math.random() * puzzles.length)];
@@ -47,7 +54,9 @@ export class MatchService {
       status: this.mapLiveStatus(liveMatch.status),
       result: this.determineResult(liveMatch),
       winnerId: liveMatch.winnerId ?? undefined,
-      startedAt: liveMatch.startTime ? new Date(liveMatch.startTime) : undefined,
+      startedAt: liveMatch.startTime
+        ? new Date(liveMatch.startTime)
+        : undefined,
       endedAt: new Date(),
     };
 
@@ -60,7 +69,10 @@ export class MatchService {
   /**
    * Get match history for a user
    */
-  async getUserMatchHistory(userId: string, limit: number = 10): Promise<Match[]> {
+  async getUserMatchHistory(
+    userId: string,
+    limit: number = 10,
+  ): Promise<Match[]> {
     return this.matchRepository
       .createQueryBuilder('match')
       .where('match.hostId = :userId OR match.guestId = :userId', { userId })
@@ -79,25 +91,30 @@ export class MatchService {
 
   private mapLiveStatus(status: LiveMatch['status']): MatchStatus {
     switch (status) {
-      case 'waiting': return MatchStatus.WAITING;
-      case 'ready': return MatchStatus.READY;
-      case 'playing': return MatchStatus.PLAYING;
-      case 'finished': return MatchStatus.FINISHED;
-      case 'cancelled': return MatchStatus.CANCELLED;
-      default: return MatchStatus.WAITING;
+      case 'waiting':
+        return MatchStatus.WAITING;
+      case 'ready':
+        return MatchStatus.READY;
+      case 'playing':
+        return MatchStatus.PLAYING;
+      case 'finished':
+        return MatchStatus.FINISHED;
+      case 'cancelled':
+        return MatchStatus.CANCELLED;
+      default:
+        return MatchStatus.WAITING;
     }
   }
 
   private determineResult(liveMatch: LiveMatch): MatchResult | undefined {
     if (liveMatch.status !== 'finished') return undefined;
-    
+
     if (!liveMatch.winnerId) {
       return MatchResult.DRAW;
     }
-    
-    return liveMatch.winnerId === liveMatch.hostId 
-      ? MatchResult.HOST_WIN 
+
+    return liveMatch.winnerId === liveMatch.hostId
+      ? MatchResult.HOST_WIN
       : MatchResult.GUEST_WIN;
   }
 }
-

@@ -178,6 +178,7 @@ export function useGameSocket() {
       col?: number;
       value?: number;
       possibleValue?: number;
+      message?: string; // For puzzle_complete hint type
       conflicts?: Array<{ row: number; col: number }>;
       steps?: {
         row: { values: number[]; cells: Array<{ row: number; col: number }> };
@@ -198,6 +199,7 @@ export function useGameSocket() {
           col?: number;
           value?: number;
           possibleValue?: number;
+          message?: string; // For puzzle_complete hint type
           conflicts?: Array<{ row: number; col: number }>;
           steps?: {
             row: { values: number[]; cells: Array<{ row: number; col: number }> };

@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Puzzle, Difficulty } from './puzzle.entity';
@@ -37,7 +38,7 @@ export class Game {
   @Column({ nullable: true })
   userId: string;
 
-  @Column()
+  @Column({ nullable: true })
   puzzleId: string;
 
   @Column({
@@ -77,11 +78,14 @@ export class Game {
   @Column({ nullable: true })
   completedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.games)
+  @ManyToOne(() => User, (user) => user.games, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => Puzzle, (puzzle) => puzzle.games)
+  @ManyToOne(() => Puzzle, (puzzle) => puzzle.games, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'puzzleId' })
   puzzle: Puzzle;
+
+  @VersionColumn()
+  version: number;
 }

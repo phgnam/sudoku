@@ -240,10 +240,12 @@ export class LeaderboardService {
       .getMany();
 
     const entries: CompetitiveLeaderboardEntryDto[] = users.map((user, idx) => {
-      const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
-      const winRate = user.competitiveGames > 0
-        ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
-        : 0;
+      const losses =
+        user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+      const winRate =
+        user.competitiveGames > 0
+          ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+          : 0;
 
       return {
         rank: idx + 1,
@@ -276,14 +278,18 @@ export class LeaderboardService {
   /**
    * Get user's competitive stats including rank
    */
-  async getCompetitiveStats(userId: string): Promise<CompetitiveStatsDto | null> {
+  async getCompetitiveStats(
+    userId: string,
+  ): Promise<CompetitiveStatsDto | null> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) return null;
 
-    const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
-    const winRate = user.competitiveGames > 0
-      ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
-      : 0;
+    const losses =
+      user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+    const winRate =
+      user.competitiveGames > 0
+        ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+        : 0;
 
     // Calculate rank
     let rank: number | undefined;
@@ -327,10 +333,12 @@ export class LeaderboardService {
       .andWhere("user.username != ''")
       .getCount();
 
-    const losses = user.competitiveGames - user.competitiveWins - user.competitiveDraws;
-    const winRate = user.competitiveGames > 0
-      ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
-      : 0;
+    const losses =
+      user.competitiveGames - user.competitiveWins - user.competitiveDraws;
+    const winRate =
+      user.competitiveGames > 0
+        ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
+        : 0;
 
     return {
       rank: higherRatedCount + 1,
@@ -345,4 +353,3 @@ export class LeaderboardService {
     };
   }
 }
-
