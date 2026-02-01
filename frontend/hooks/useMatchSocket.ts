@@ -4,65 +4,21 @@ import { useGameStore } from "@/store/game";
 import { useAuthStore } from "@/store/auth";
 import { socketService } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/lib/constants";
+import { useDisplayName } from "./useDisplayName";
+import {
+  saveActiveMatch,
+  loadActiveMatch,
+  clearActiveMatch,
+} from "@/lib/match-storage";
 
 // Event for player reconnection (not in SOCKET_EVENTS)
 const MATCH_PLAYER_RECONNECTED = "match:playerReconnected";
 
-// Key for storing active match info in localStorage
-const ACTIVE_MATCH_KEY = "sudoku_active_match";
-
-interface ActiveMatchInfo {
-  matchId: string;
-  myState: number[][];
-  savedAt: number; // Timestamp when saved
-}
-
-// Helper to save active match to localStorage
-function saveActiveMatch(matchId: string, myState: number[][]) {
-  try {
-    localStorage.setItem(
-      ACTIVE_MATCH_KEY,
-      JSON.stringify({ matchId, myState, savedAt: Date.now() }),
-    );
-  } catch (e) {
-    console.error("Failed to save active match:", e);
-  }
-}
-
-// Helper to load active match from localStorage
-function loadActiveMatch(): ActiveMatchInfo | null {
-  try {
-    const data = localStorage.getItem(ACTIVE_MATCH_KEY);
-    if (data) {
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error("Failed to load active match:", e);
-  }
-  return null;
-}
-
-// Helper to clear active match from localStorage
-function clearActiveMatch() {
-  try {
-    localStorage.removeItem(ACTIVE_MATCH_KEY);
-  } catch (e) {
-    console.error("Failed to clear active match:", e);
-  }
-}
-
 export function useMatchSocket() {
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
+  const getDisplayName = useDisplayName();
   const matchStore = useMatchStore();
   const { matchId, status } = matchStore;
-
-  // Get display name for player (username or email prefix for registered users)
-  const getDisplayName = useCallback(() => {
-    if (user?.username) return user.username;
-    if (user?.email) return user.email.split("@")[0];
-    // For anonymous users, socket service will use stored guest name
-    return undefined;
-  }, [user]);
 
   useEffect(() => {
     if (!token) return;
@@ -70,6 +26,9 @@ export function useMatchSocket() {
     // Ensure socket is connected with player name
     const playerName = getDisplayName();
     const socket = socketService.connect(token, playerName);
+
+    // Early return if socket connection failed
+    if (!socket) return;
 
     // === Match Created ===
     socket.on(

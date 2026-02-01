@@ -10,31 +10,12 @@ import { useUIStore, Difficulty } from "@/store/ui";
 import { useMatchStore } from "@/store/match";
 import { useGameStore, GameStatus } from "@/store/game";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
-
-// Key for storing active match info in localStorage
-const ACTIVE_MATCH_KEY = "sudoku_active_match";
-
-interface ActiveMatchInfo {
-  matchId: string;
-  myState: number[][];
-  savedAt?: number; // Timestamp when saved
-}
-
-// Helper to clear active match from localStorage
-function clearActiveMatch() {
-  try {
-    localStorage.removeItem(ACTIVE_MATCH_KEY);
-  } catch (e) {
-    console.error("Failed to clear active match:", e);
-  }
-}
-
-// Check if saved match is still valid (less than 30 minutes old)
-function isMatchValid(savedAt?: number): boolean {
-  if (!savedAt) return false;
-  const MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
-  return Date.now() - savedAt < MAX_AGE_MS;
-}
+import {
+  loadActiveMatch,
+  clearActiveMatch,
+  isMatchValid,
+  ActiveMatchInfo,
+} from "@/lib/match-storage";
 
 export default function HomePage() {
   const t = useTranslations();
@@ -70,20 +51,11 @@ export default function HomePage() {
     setMounted(true);
 
     // Check for active competitive match in localStorage
-    try {
-      const savedMatch = localStorage.getItem(ACTIVE_MATCH_KEY);
-      if (savedMatch) {
-        const parsed = JSON.parse(savedMatch) as ActiveMatchInfo;
-        // Only show if matchId exists and match is still valid (less than 30 min old)
-        if (parsed.matchId && isMatchValid(parsed.savedAt)) {
-          setActiveMatch(parsed);
-        } else {
-          // Clear expired/invalid match data
-          clearActiveMatch();
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load active match:", e);
+    const savedMatch = loadActiveMatch();
+    if (savedMatch?.matchId && isMatchValid(savedMatch.savedAt)) {
+      setActiveMatch(savedMatch);
+    } else if (savedMatch) {
+      // Clear expired/invalid match data
       clearActiveMatch();
     }
   }, []);
