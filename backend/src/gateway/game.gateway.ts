@@ -519,10 +519,10 @@ export class GameGateway
     if (!userId) return;
 
     // Check if user has other active sockets connected
-    // Note: The disconnecting socket may still be in the room at this point,
-    // so we need to check if size > 1 (more than just this socket)
+    // Note: On 'disconnect' event, the socket has already left all rooms,
+    // so userRoom.size represents only the remaining connections (not including this one)
     const userRoom = this.server.sockets.adapter.rooms.get(`user:${userId}`);
-    const hasOtherConnections = userRoom && userRoom.size > 1;
+    const hasOtherConnections = userRoom && userRoom.size > 0;
 
     // Remove from matchmaking queue if queued
     if (this.matchmakingService.isInQueue(userId)) {
