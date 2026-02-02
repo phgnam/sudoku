@@ -268,11 +268,10 @@ export default function TripodGamePage() {
           <div
             style={{
               padding: "16px 24px",
-              backgroundColor: "white",
               borderRadius: "12px",
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
             }}
-            className="dark:bg-slate-800"
+            className="bg-white dark:bg-slate-800"
           >
             <SubModeSelector
               currentMode={tripod.subMode}
@@ -607,11 +606,7 @@ function TopInfoBar({
       )}
 
       {/* Timer */}
-      <Timer
-        mode="tripod"
-        elapsedTime={tripod.elapsedTime}
-        isPaused={tripod.isTimerPaused}
-      />
+      <Timer mode="tripod" elapsedTime={tripod.elapsedTime} />
 
       {/* Divider */}
       <div

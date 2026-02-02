@@ -44,7 +44,7 @@ const PUZZLE_DIAMOND: TripodPuzzleData = {
     [4, 0, 0, 0, 0, 0, 3],
     [0, 0, 5, 0, 3, 0, 0],
     [0, 6, 0, 0, 0, 2, 0],
-    [7, 0, 0, 3, 0, 0, 1],
+    [7, 0, 0, 5, 0, 0, 6], // Row 7: Fixed 3->5 and 1->6 to match solution
   ],
   solution: [
     [1, 5, 6, 4, 2, 3, 7],
@@ -103,7 +103,7 @@ const PUZZLE_SPIRAL: TripodPuzzleData = {
   cells: [
     [0, 2, 0, 0, 0, 6, 0],
     [4, 0, 0, 0, 0, 0, 3],
-    [0, 0, 5, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0], // Row 3: Removed given at col 3 (5) to avoid reported contradiction
     [0, 0, 0, 4, 0, 0, 0],
     [0, 0, 0, 0, 3, 0, 0],
     [5, 0, 0, 0, 0, 0, 2],
@@ -144,7 +144,7 @@ const PUZZLE_SCATTERED: TripodPuzzleData = {
     [0, 0, 0, 0, 0, 0, 0],
     [5, 0, 0, 0, 0, 0, 2],
     [0, 0, 0, 4, 0, 0, 0],
-    [3, 0, 0, 0, 0, 0, 6],
+    [3, 0, 0, 0, 0, 0, 0], // Row 5: Removed given at col 7 (6) to avoid reported contradiction
     [0, 0, 0, 0, 0, 0, 0],
     [0, 0, 6, 0, 2, 0, 0],
   ],
