@@ -298,6 +298,8 @@ export const useGameStore = create<GameStore>()(
           startTime: null,
           elapsedTime: 0,
           isTimerPaused: false,
+          pausedAt: null,
+          totalPausedDuration: 0,
           // Statistics
           stats: {
             bordersPlaced: 0,
@@ -466,6 +468,8 @@ export const useGameStore = create<GameStore>()(
           startTime: Date.now(),
           elapsedTime: 0,
           isTimerPaused: false,
+          pausedAt: null,
+          totalPausedDuration: 0,
         } : null,
       })),
 
@@ -473,15 +477,25 @@ export const useGameStore = create<GameStore>()(
         tripod: state.tripod ? {
           ...state.tripod,
           isTimerPaused: true,
+          pausedAt: Date.now(), // Record when paused
         } : null,
       })),
 
-      resumeTripodTimer: () => set((state) => ({
-        tripod: state.tripod ? {
-          ...state.tripod,
-          isTimerPaused: false,
-        } : null,
-      })),
+      resumeTripodTimer: () => set((state) => {
+        if (!state.tripod || !state.tripod.pausedAt) return state;
+
+        // Calculate duration of this pause and add to total
+        const pauseDuration = Date.now() - state.tripod.pausedAt;
+
+        return {
+          tripod: {
+            ...state.tripod,
+            isTimerPaused: false,
+            pausedAt: null,
+            totalPausedDuration: state.tripod.totalPausedDuration + pauseDuration,
+          },
+        };
+      }),
 
       updateTripodElapsedTime: (seconds: number) => set((state) => ({
         tripod: state.tripod ? {

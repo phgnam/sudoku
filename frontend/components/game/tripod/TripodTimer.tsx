@@ -19,6 +19,7 @@ export function TripodTimer({ isPaused = false }: TripodTimerProps) {
   const elapsedTime = tripod?.elapsedTime ?? 0;
   const startTime = tripod?.startTime ?? null;
   const isTimerPaused = tripod?.isTimerPaused ?? false;
+  const totalPausedDuration = tripod?.totalPausedDuration ?? 0;
 
   // Update elapsed time every second
   useEffect(() => {
@@ -32,7 +33,8 @@ export function TripodTimer({ isPaused = false }: TripodTimerProps) {
 
     intervalRef.current = setInterval(() => {
       const now = Date.now();
-      const elapsed = Math.floor((now - startTime) / 1000);
+      // Subtract total paused duration from elapsed time
+      const elapsed = Math.floor((now - startTime - totalPausedDuration) / 1000);
       updateTripodElapsedTime(elapsed);
     }, 1000);
 
@@ -42,7 +44,7 @@ export function TripodTimer({ isPaused = false }: TripodTimerProps) {
         intervalRef.current = null;
       }
     };
-  }, [isPaused, isTimerPaused, startTime, updateTripodElapsedTime]);
+  }, [isPaused, isTimerPaused, startTime, totalPausedDuration, updateTripodElapsedTime]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {

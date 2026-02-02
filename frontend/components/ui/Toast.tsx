@@ -44,8 +44,14 @@ export function showToast(props: ToastProps): number {
  * Dismiss a specific toast
  */
 export function dismissToast(id: number) {
+  const toast = currentToasts.find(t => t.id === id);
   currentToasts = currentToasts.filter(t => t.id !== id);
   notifyListeners();
+
+  // Trigger onClose callback if present
+  if (toast?.onClose) {
+    toast.onClose();
+  }
 }
 
 // Individual Toast Component
@@ -55,10 +61,9 @@ function ToastNotification({ toastItem, onDismiss }: { toastItem: ToastItem; onD
   const handleDismiss = useCallback(() => {
     setIsExiting(true);
     setTimeout(() => {
-      onDismiss();
-      toastItem.onClose?.();
+      onDismiss(); // dismissToast will handle onClose callback
     }, 200);
-  }, [onDismiss, toastItem]);
+  }, [onDismiss]);
 
   const typeStyles: Record<string, { bg: string; border: string; icon: string }> = {
     error: {

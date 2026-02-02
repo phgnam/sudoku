@@ -20,15 +20,6 @@ interface BorderEdgeProps {
   isTouchDevice?: boolean;
 }
 
-// CSS keyframes for border pulse animation
-const borderPulseKeyframes = `
-@keyframes borderPulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.85; }
-  100% { transform: scale(1); opacity: 1; }
-}
-`;
-
 // Hit area sizes for different device types
 const HIT_AREA_DESKTOP = 16;
 const HIT_AREA_TOUCH = 28; // Larger for fat-finger friendly touch targets
@@ -165,14 +156,12 @@ export function BorderEdge({
   }, []);
 
   return (
-    <>
-      <style>{borderPulseKeyframes}</style>
-      <div
-        className={`${clickable && toggleState !== 'blocked' ? 'hover:opacity-90' : ''} touch-none`}
-        style={{
-          ...style,
-          // Apply scale feedback on touch
-          transform: isTouching ? 'scale(1.1)' : undefined,
+    <div
+      className={`${clickable && toggleState !== 'blocked' ? 'hover:opacity-90' : ''} touch-none`}
+      style={{
+        ...style,
+        // Apply scale feedback on touch
+        transform: isTouching ? 'scale(1.1)' : undefined,
           transition: 'transform 100ms ease-out',
         }}
         onClick={handleClick}
@@ -187,7 +176,6 @@ export function BorderEdge({
           style={innerStyle}
         />
       </div>
-    </>
   );
 }
 

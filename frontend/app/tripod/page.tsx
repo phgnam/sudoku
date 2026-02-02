@@ -65,11 +65,14 @@ export default function TripodGamePage() {
   const canRedoBorder = useGameStore((state) => state.canRedoBorder);
   const startTripodTimer = useGameStore((state) => state.startTripodTimer);
   const pauseTripodTimer = useGameStore((state) => state.pauseTripodTimer);
-  const incrementTripodStat = useGameStore((state) => state.incrementTripodStat);
+  const incrementTripodStat = useGameStore(
+    (state) => state.incrementTripodStat,
+  );
 
   const [isInitialized, setIsInitialized] = useState(false);
+  // Use lazy initialization to avoid setting state in useEffect
   const [currentPuzzle, setCurrentPuzzle] = useState<TripodPuzzleData | null>(
-    null,
+    () => getRandomTripodPuzzle(),
   );
   const [validationResult, setValidationResult] = useState<{
     errors: TripodError[];
@@ -114,32 +117,36 @@ export default function TripodGamePage() {
 
   // Initialize game - use a ref to track initialization
   useEffect(() => {
-    if (!authHydrated || isInitialized) return;
-
-    // Get a random puzzle from the puzzle library
-    const puzzle = getRandomTripodPuzzle();
-    setCurrentPuzzle(puzzle);
+    if (!authHydrated || isInitialized || !currentPuzzle) return;
 
     // Initialize tripod state with puzzle data (default to 'full' mode)
-    initTripodState(puzzle.gridSize, puzzle.tripodDots, "full");
+    initTripodState(currentPuzzle.gridSize, currentPuzzle.tripodDots, "full");
 
     // Start the timer
     startTripodTimer();
 
     // Initialize cells from puzzle
-    setCells(puzzle.cells.map((row) => [...row]));
+    setCells(currentPuzzle.cells.map((row) => [...row]));
 
     // Extract givens from cells
-    const givens = extractGivens(puzzle.cells);
+    const givens = extractGivens(currentPuzzle.cells);
 
     initializeGame({
-      cells: puzzle.cells,
+      cells: currentPuzzle.cells,
       givens,
     });
 
     // Mark as initialized on next tick to avoid sync setState warning
     requestAnimationFrame(() => setIsInitialized(true));
-  }, [authHydrated, isInitialized, initTripodState, initializeGame, setCells, startTripodTimer]);
+  }, [
+    authHydrated,
+    isInitialized,
+    currentPuzzle,
+    initTripodState,
+    initializeGame,
+    setCells,
+    startTripodTimer,
+  ]);
 
   // Validation hook
   const { regions, validateAll, isVertexSatisfied } = useTripodValidation({
@@ -150,12 +157,17 @@ export default function TripodGamePage() {
     tripodDots: tripod?.tripodDots ?? [],
   });
 
-  // Update regions in store when they change
+  // Update regions in store when they change - use ref to prevent infinite loop
+  const prevRegionsRef = React.useRef<Region[]>([]);
   useEffect(() => {
-    if (tripod) {
+    if (
+      tripod &&
+      JSON.stringify(prevRegionsRef.current) !== JSON.stringify(regions)
+    ) {
+      prevRegionsRef.current = regions;
       setTripodRegions(regions);
     }
-  }, [regions, tripod, setTripodRegions]);
+  }, [regions, setTripodRegions]);
 
   const handleValidate = useCallback(() => {
     const result = validateAll();
@@ -166,7 +178,7 @@ export default function TripodGamePage() {
     setTripodErrors(result.errors);
 
     // Track validation stat
-    incrementTripodStat('validationCount');
+    incrementTripodStat("validationCount");
 
     // Pause timer on completion
     if (result.isComplete) {
@@ -249,9 +261,7 @@ export default function TripodGamePage() {
 
         {/* Sub-Mode Selector - hidden on very small screens */}
         <div className="hidden sm:flex justify-center mb-4 sm:mb-5">
-          <div
-            className="px-4 sm:px-6 py-3 sm:py-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm"
-          >
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
             <SubModeSelector
               currentMode={tripod.subMode}
               onModeSelect={handleSubModeChange}
@@ -285,9 +295,7 @@ export default function TripodGamePage() {
           </div>
 
           {/* Controls Panel - Full width on mobile, fixed width on desktop */}
-          <div
-            className="w-full lg:w-auto flex flex-col gap-3 sm:gap-5 p-3 sm:p-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm lg:min-w-[220px]"
-          >
+          <div className="w-full lg:w-auto flex flex-col gap-3 sm:gap-5 p-3 sm:p-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm lg:min-w-[220px]">
             {/* Input Mode Toggle - hide in borders_only mode since no number input */}
             {tripod.subMode !== "sudoku_only" && (
               <InputModeToggle
@@ -430,11 +438,23 @@ function TopInfoBar({
           <button
             onClick={onNewPuzzle}
             className="flex items-center gap-1 px-2 py-1.5 bg-teal-500 text-white text-xs font-semibold rounded-lg min-h-[32px] active:scale-95 transition-transform"
+            title={t('game.newGame') || 'New Puzzle'}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
-            New
+            {isMobile ? t('game.newGame') || 'New' : t('game.newGame') || 'New Puzzle'}
           </button>
         )}
 
@@ -445,9 +465,7 @@ function TopInfoBar({
   }
 
   return (
-    <div
-      className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 px-3 sm:px-5 py-2 sm:py-3 mb-4 sm:mb-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm"
-    >
+    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 px-3 sm:px-5 py-2 sm:py-3 mb-4 sm:mb-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
       {/* Game Mode Badge */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span

@@ -42,10 +42,12 @@ export function ValidationFeedback({ errors, isComplete, onValidate }: Validatio
   // Detect when errors appear or disappear
   useEffect(() => {
     if (errors.length > 0 && prevErrorCountRef.current === 0) {
+      prevErrorCountRef.current = errors.length;
       setIsNewErrors(true);
       const timer = setTimeout(() => setIsNewErrors(false), 500);
       return () => clearTimeout(timer);
     } else if (errors.length === 0 && prevErrorCountRef.current > 0) {
+      prevErrorCountRef.current = errors.length;
       setIsSuccess(true);
       const timer = setTimeout(() => setIsSuccess(false), 500);
       return () => clearTimeout(timer);

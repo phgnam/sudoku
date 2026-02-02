@@ -62,8 +62,10 @@ export interface TripodState {
   borderFuture: BorderHistoryEntry[]; // for redo
   // Timer fields
   startTime: number | null;  // timestamp when game started
-  elapsedTime: number;       // seconds elapsed
+  elapsedTime: number;       // seconds elapsed (excluding paused time)
   isTimerPaused: boolean;
+  pausedAt: number | null;   // timestamp when timer was paused
+  totalPausedDuration: number; // total milliseconds spent paused
   // Statistics
   stats: TripodGameStats;
 }

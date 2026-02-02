@@ -786,11 +786,19 @@ export class GameService {
       if (!game.tripodData.horizontalBorders[row]) {
         throw new BadRequestException('Invalid border position');
       }
+      // Check column bounds
+      if (col < 0 || col >= game.tripodData.horizontalBorders[row].length) {
+        throw new BadRequestException('Invalid border column position');
+      }
       game.tripodData.horizontalBorders[row][col] =
         !game.tripodData.horizontalBorders[row][col];
     } else {
       if (!game.tripodData.verticalBorders[row]) {
         throw new BadRequestException('Invalid border position');
+      }
+      // Check column bounds
+      if (col < 0 || col >= game.tripodData.verticalBorders[row].length) {
+        throw new BadRequestException('Invalid border column position');
       }
       game.tripodData.verticalBorders[row][col] =
         !game.tripodData.verticalBorders[row][col];

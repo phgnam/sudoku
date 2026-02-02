@@ -38,8 +38,8 @@ export interface HintedCell {
 
 export interface TripodData {
   tripodDots: boolean[][]; // (gridSize+1)×(gridSize+1) vertex grid
-  horizontalBorders: boolean[][]; // gridSize × (gridSize+1)
-  verticalBorders: boolean[][]; // (gridSize+1) × gridSize
+  horizontalBorders: boolean[][]; // (gridSize+1) × gridSize
+  verticalBorders: boolean[][]; // gridSize × (gridSize+1)
   solutionBorders?: {
     horizontal: boolean[][];
     vertical: boolean[][];
