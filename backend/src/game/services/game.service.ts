@@ -14,14 +14,17 @@ import {
   User,
   Puzzle,
   GameHistory,
+  Difficulty,
 } from '../../database/entities';
 import { SudokuValidatorService } from './sudoku-validator.service';
 import { HintService } from './hint.service';
+import { TripodPuzzleService } from '../../puzzle/services/tripod-puzzle.service';
 import {
   DashboardStatsResponse,
   DifficultyStats,
   RecentGame,
 } from '../dto/game.dto';
+import { CreateTripodGameDto } from '../dto/tripod.dto';
 
 @Injectable()
 export class GameService {
@@ -36,6 +39,7 @@ export class GameService {
     private gameHistoryRepository: Repository<GameHistory>,
     private validator: SudokuValidatorService,
     private hintService: HintService,
+    private tripodPuzzleService: TripodPuzzleService,
   ) {}
 
   // Create a new game
@@ -632,5 +636,166 @@ export class GameService {
         status: GameStatus.ACTIVE,
       },
     });
+  }
+
+  // ===================== TRIPOD GAME METHODS =====================
+
+  /**
+   * Create a new tripod game
+   */
+  async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> {
+    const gridSize = dto.gridSize || 7;
+
+    // Initialize empty puzzle state
+    const initialState = Array(gridSize)
+      .fill(null)
+      .map(() => Array(gridSize).fill(0));
+
+    // Generate sample tripod dots for the puzzle
+    const tripodDots = this.generateSampleTripodDots(gridSize);
+
+    // Initialize borders
+    const horizontalBorders = Array(gridSize + 1)
+      .fill(null)
+      .map(() => Array(gridSize).fill(false));
+    const verticalBorders = Array(gridSize)
+      .fill(null)
+      .map(() => Array(gridSize + 1).fill(false));
+
+    const game = this.gameRepository.create({
+      userId,
+      gameMode: GameMode.TRIPOD,
+      difficulty: Difficulty.NORMAL,
+      gridSize,
+      currentState: initialState,
+      moveHistory: [],
+      hintedCells: [],
+      hintsUsed: 0,
+      mistakes: 0,
+      timeElapsed: 0,
+      tripodData: {
+        tripodDots,
+        horizontalBorders,
+        verticalBorders,
+      },
+      status: GameStatus.ACTIVE,
+    });
+
+    return this.gameRepository.save(game);
+  }
+
+  /**
+   * Generate sample tripod dots grid
+   */
+  private generateSampleTripodDots(gridSize: number): boolean[][] {
+    // Generate empty tripod dots grid - will be populated by sample puzzles
+    return Array(gridSize + 1)
+      .fill(null)
+      .map(() => Array(gridSize + 1).fill(false));
+  }
+
+  /**
+   * Update tripod game borders
+   */
+  async updateTripodBorders(
+    gameId: string,
+    borders: { horizontal: boolean[][]; vertical: boolean[][] },
+  ): Promise<Game> {
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+    if (game.gameMode !== GameMode.TRIPOD) {
+      throw new BadRequestException('Not a tripod game');
+    }
+    if (game.status !== GameStatus.ACTIVE) {
+      throw new BadRequestException('Game is not active');
+    }
+
+    game.tripodData = {
+      ...game.tripodData,
+      tripodDots: game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
+      horizontalBorders: borders.horizontal,
+      verticalBorders: borders.vertical,
+    };
+
+    return this.gameRepository.save(game);
+  }
+
+  /**
+   * Validate tripod game state
+   */
+  async validateTripodGame(
+    gameId: string,
+  ): Promise<{ isValid: boolean; errors: any[] }> {
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+    if (game.gameMode !== GameMode.TRIPOD) {
+      throw new BadRequestException('Not a tripod game');
+    }
+
+    const cells = game.currentState;
+    const tripodData = game.tripodData;
+
+    if (!tripodData) {
+      throw new BadRequestException('Game has no tripod data');
+    }
+
+    const { tripodDots, horizontalBorders, verticalBorders } = tripodData;
+
+    const result = this.tripodPuzzleService.validateTripodRules(
+      { horizontal: horizontalBorders, vertical: verticalBorders },
+      tripodDots,
+      cells,
+      game.gridSize,
+    );
+
+    return {
+      isValid: result.isValid,
+      errors: result.errors,
+    };
+  }
+
+  /**
+   * Toggle a single border in tripod game
+   */
+  async toggleTripodBorder(
+    gameId: string,
+    type: 'horizontal' | 'vertical',
+    row: number,
+    col: number,
+  ): Promise<Game> {
+    const game = await this.gameRepository.findOne({ where: { id: gameId } });
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+    if (game.gameMode !== GameMode.TRIPOD) {
+      throw new BadRequestException('Not a tripod game');
+    }
+    if (game.status !== GameStatus.ACTIVE) {
+      throw new BadRequestException('Game is not active');
+    }
+
+    if (!game.tripodData) {
+      throw new BadRequestException('Game has no tripod data');
+    }
+
+    if (type === 'horizontal') {
+      if (!game.tripodData.horizontalBorders[row]) {
+        throw new BadRequestException('Invalid border position');
+      }
+      game.tripodData.horizontalBorders[row][col] =
+        !game.tripodData.horizontalBorders[row][col];
+    } else {
+      if (!game.tripodData.verticalBorders[row]) {
+        throw new BadRequestException('Invalid border position');
+      }
+      game.tripodData.verticalBorders[row][col] =
+        !game.tripodData.verticalBorders[row][col];
+    }
+
+    return this.gameRepository.save(game);
   }
 }

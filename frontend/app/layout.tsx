@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -11,6 +11,15 @@ export const metadata: Metadata = {
   title: "Sudoku Premium - Challenge Yourself",
   description:
     "Premium Sudoku game with real-time sync, progressive difficulty, and advanced hints",
+};
+
+// Viewport configuration for mobile optimization
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({

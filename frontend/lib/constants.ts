@@ -130,6 +130,13 @@ export const MUTATION_CONFIG = {
 export const GAME_MODES = {
   CLASSIC: 'classic',
   MUTATING: 'mutating',
+  TRIPOD: 'tripod',
 } as const;
 
 export type GameMode = typeof GAME_MODES[keyof typeof GAME_MODES];
+
+export const TRIPOD_CONFIG = {
+  DEFAULT_GRID_SIZE: 7,
+  MIN_GRID_SIZE: 7,
+  MAX_GRID_SIZE: 9,
+} as const;

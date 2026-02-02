@@ -27,7 +27,9 @@
       "classic": "Classic",
       "classicDesc": "Traditional Sudoku experience",
       "mutating": "Mutating",
-      "mutatingDesc": "Cells disappear every 30 seconds!"
+      "mutatingDesc": "Cells disappear every 30 seconds!",
+      "tripod": "Tripod Sudoku",
+      "tripodDesc": "7×7 grid, draw regions"
     },
     "activeMatch": {
       "title": "Match in progress!",
@@ -348,5 +350,23 @@
     "surrenderWarning": "You will lose this match and your ELO rating will decrease. Are you sure you want to surrender?",
     "confirmSurrender": "Yes, Surrender",
     "cancel": "Cancel"
+  },
+  "tripod": {
+    "title": "Tripod Sudoku",
+    "regions": "Regions",
+    "newPuzzle": "New Puzzle",
+    "instructions": {
+      "title": "How to Play Tripod Sudoku:",
+      "rule1": "Fill each row, column, and region with numbers 1-{gridSize}",
+      "rule2": "Draw region borders by switching to Border mode (press B or Space)",
+      "rule3": "Each region must contain exactly {gridSize} cells",
+      "rule4": "🔺 Tripod dots mark where exactly 3 borders must meet",
+      "rule5": "No 4-way intersections allowed!"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    }
   }
 }

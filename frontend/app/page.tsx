@@ -32,7 +32,9 @@ export default function HomePage() {
   const { isAuthenticated, _hasHydrated: authHydrated } = useAuthStore();
   const { colorMode, selectedDifficulty, setSelectedDifficulty } = useUIStore();
   const [mounted, setMounted] = useState(false);
-  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>(GAME_MODES.CLASSIC);
+  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>(
+    GAME_MODES.CLASSIC,
+  );
   const [activeMatch, setActiveMatch] = useState<ActiveMatchInfo | null>(null);
   const { status: matchStatus } = useMatchStore();
 
@@ -56,9 +58,13 @@ export default function HomePage() {
 
     if (shouldClearGame) {
       // #27: Stop mutation timer if leaving a mutating game
-      if (currentGameMode === 'mutating' && currentGameId && currentStatus === GameStatus.ACTIVE) {
+      if (
+        currentGameMode === "mutating" &&
+        currentGameId &&
+        currentStatus === GameStatus.ACTIVE
+      ) {
         if (socketService.getSocket()?.connected) {
-          socketService.emit('game:leave', { gameId: currentGameId });
+          socketService.emit("game:leave", { gameId: currentGameId });
         }
       }
       useGameStore.getState().clearGame();
@@ -67,7 +73,12 @@ export default function HomePage() {
     // Set the game mode in store before navigating
     useGameStore.getState().setGameMode(selectedGameMode);
 
-    router.push("/game");
+    // Navigate based on game mode
+    if (selectedGameMode === GAME_MODES.TRIPOD) {
+      router.push("/tripod");
+    } else {
+      router.push("/game");
+    }
   };
 
   useEffect(() => {
@@ -501,10 +512,10 @@ export default function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
+            gridTemplateColumns: "repeat(3, 1fr)",
             gap: "16px",
             marginBottom: "32px",
-            maxWidth: "600px",
+            maxWidth: "800px",
             margin: "0 auto 32px",
           }}
         >
@@ -568,8 +579,55 @@ export default function HomePage() {
             <p style={{ fontSize: "12px", color: colors.text }}>
               {t("home.gameMode.mutatingDesc")}
             </p>
-            <span className="mutation-mode-badge" style={{ marginTop: "8px", display: "inline-block" }}>
+            <span
+              className="mutation-mode-badge"
+              style={{ marginTop: "8px", display: "inline-block" }}
+            >
               ⚡ 30s
+            </span>
+          </button>
+
+          {/* Tripod Mode */}
+          <button
+            onClick={() => setSelectedGameMode(GAME_MODES.TRIPOD)}
+            style={{
+              ...cardStyle,
+              padding: "20px",
+              textAlign: "center",
+              ...(selectedGameMode === GAME_MODES.TRIPOD
+                ? {
+                    backgroundColor: isDark ? "#1e3a4a" : "#e0f7f4",
+                    borderColor: "#14b8a6",
+                  }
+                : {}),
+            }}
+          >
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>🔺</div>
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: colors.title,
+                marginBottom: "4px",
+              }}
+            >
+              {t("home.gameMode.tripod")}
+            </h3>
+            <p style={{ fontSize: "12px", color: colors.text }}>
+              {t("home.gameMode.tripodDesc")}
+            </p>
+            <span
+              style={{
+                marginTop: "8px",
+                display: "inline-block",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                backgroundColor: isDark ? "#14b8a620" : "#14b8a615",
+                color: "#14b8a6",
+              }}
+            >
+              🔺 7×7
             </span>
           </button>
         </div>
@@ -592,7 +650,9 @@ export default function HomePage() {
               cursor: "pointer",
             }}
           >
-            {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)}{selectedGameMode === GAME_MODES.MUTATING ? " • 🧬" : ""})
+            {t("home.startGame")} ({t(`home.difficulty.${selectedDifficulty}`)}
+            {selectedGameMode === GAME_MODES.MUTATING ? " • 🧬" : ""}
+            {selectedGameMode === GAME_MODES.TRIPOD ? " • 🔺" : ""})
           </button>
         </div>
 
