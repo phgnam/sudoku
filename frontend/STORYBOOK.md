@@ -1,6 +1,6 @@
 # Storybook Usage Guide
 
-This project includes Storybook 8 for component development and documentation.
+This project includes Storybook 10 for component development and documentation.
 
 ## Getting Started
 
@@ -24,7 +24,7 @@ The output will be in the `storybook-static` directory.
 
 ## Directory Structure
 
-- `.storybook/`: Configuration files (`main.ts`, `preview.ts`)
+- `.storybook/`: Configuration files (`main.ts`, `preview.tsx`)
 - `components/`: Components and their stories are co-located
   - `MyComponent.tsx`
   - `MyComponent.stories.tsx`
@@ -72,7 +72,7 @@ Storybook is configured with full Tailwind CSS v4 support using the same configu
 
 ### Themes
 
-You can toggle between different themes (Blue, Green, Orange) and Dark/Light mode using the toolbar.
+You can toggle between Dark/Light mode using the toolbar. Theme color switching (Blue/Green/Orange) is currently configured via `globals.css` but not exposed in the Storybook toolbar.
 
 ### Viewports
 

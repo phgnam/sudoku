@@ -14,7 +14,6 @@ const meta = {
       options: ["classic", "tripod"],
     },
     elapsedTime: { control: "number" },
-    isPaused: { control: "boolean" },
     gameId: { control: "text" },
   },
 } satisfies Meta<typeof Timer>;
@@ -28,14 +27,5 @@ export const TripodMode: Story = {
   args: {
     mode: "tripod",
     elapsedTime: 125, // 02:05
-    isPaused: false,
-  },
-};
-
-export const TripodPaused: Story = {
-  args: {
-    mode: "tripod",
-    elapsedTime: 300, // 05:00
-    isPaused: true,
   },
 };

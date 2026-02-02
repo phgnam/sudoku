@@ -5,23 +5,16 @@ import { useGameStore, GameStatus } from "@/store/game";
 import { socketService } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/lib/constants";
 
-interface TimerProps {
+export interface TimerProps {
   /** Mode determines behavior: classic auto-syncs with backend, tripod uses local state */
   mode: "classic" | "tripod";
   /** Game ID for classic mode socket sync */
   gameId?: string;
   /** Elapsed time in seconds (for tripod mode - controlled component) */
   elapsedTime?: number;
-  /** Whether timer is paused (for tripod mode) */
-  isPaused?: boolean;
 }
 
-export function Timer({
-  mode,
-  gameId,
-  elapsedTime = 0,
-  isPaused = false,
-}: TimerProps) {
+export function Timer({ mode, gameId, elapsedTime = 0 }: TimerProps) {
   // Classic mode: use game store and auto-increment
   const classicGameStore = useGameStore();
   const classicTimeElapsed = classicGameStore.timeElapsed;
