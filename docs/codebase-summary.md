@@ -103,36 +103,36 @@ sudoku/
 
 ## Backend Modules
 
-| Module | Purpose | Key Services |
-|--------|---------|-------------|
-| Auth | JWT + anonymous sessions | AuthService (register, login, migrate, refresh) |
-| Game | Single-player logic | GameService, HintService, MutationService, SudokuValidatorService |
-| Puzzle | Generation + seeding | SudokuGeneratorService (backtracking), TripodPuzzleService |
-| Match | Competitive 1v1 | MatchManagerService, EloService, MatchmakingService |
-| Leaderboard | Rankings | LeaderboardService (solo times, ELO) |
-| Gateway | WebSocket hub | GameGateway (48+ events, rate limiting, JWT validation) |
-| Database | TypeORM + SQLite | 5 entities with optimistic locking |
-| i18n | Multi-language | I18nHelperService (en, vi) |
+| Module      | Purpose                  | Key Services                                                      |
+| ----------- | ------------------------ | ----------------------------------------------------------------- |
+| Auth        | JWT + anonymous sessions | AuthService (register, login, migrate, refresh)                   |
+| Game        | Single-player logic      | GameService, HintService, MutationService, SudokuValidatorService |
+| Puzzle      | Generation + seeding     | SudokuGeneratorService (backtracking), TripodPuzzleService        |
+| Match       | Competitive 1v1          | MatchManagerService, EloService, MatchmakingService               |
+| Leaderboard | Rankings                 | LeaderboardService (solo times, ELO)                              |
+| Gateway     | WebSocket hub            | GameGateway (48+ events, rate limiting, JWT validation)           |
+| Database    | TypeORM + SQLite         | 5 entities with optimistic locking (version column)               |
+| i18n        | Multi-language           | I18nHelperService (en, vi)                                        |
 
 ## Database Entities
 
-| Entity | Key Fields | Notes |
-|--------|-----------|-------|
-| User | id (UUID), email, username, rating (ELO:1000), stats | Nullable email/password for anonymous |
-| Puzzle | difficulty, puzzle/solution (9x9 JSON), rating | 1200 pre-seeded (400/difficulty) |
-| Game | currentState, moveHistory, version, gameMode, tripodData | Optimistic locking via version column |
-| GameHistory | timeElapsed (server-calculated), difficulty, stats | Leaderboard source data |
-| Match | roomCode (6-char), host/guestId, status, state, result | ELO updated on completion |
+| Entity      | Key Fields                                               | Notes                                 |
+| ----------- | -------------------------------------------------------- | ------------------------------------- |
+| User        | id (UUID), email, username, rating (ELO:1000), stats     | Nullable email/password for anonymous |
+| Puzzle      | difficulty, puzzle/solution (9x9 JSON), rating           | 1200 pre-seeded (400/difficulty)      |
+| Game        | currentState, moveHistory, version, gameMode, tripodData | Optimistic locking via version column |
+| GameHistory | timeElapsed (server-calculated), difficulty, stats       | Leaderboard source data               |
+| Match       | roomCode (6-char), host/guestId, status, state, result   | ELO updated on completion             |
 
 ## Frontend Stores
 
-| Store | Key State | Persistence |
-|-------|----------|-------------|
-| game | currentState, solution, moveHistory, notes, tripod state | localStorage |
-| auth | user, token, sessionId | localStorage + BroadcastChannel |
-| match | matchId, status, opponent, progress, ELO delta | None |
-| spectator | hostState, guestState, result | None |
-| ui | theme, colorMode, soundEnabled, selectedDifficulty | localStorage |
+| Store     | Key State                                                | Persistence                     |
+| --------- | -------------------------------------------------------- | ------------------------------- |
+| game      | currentState, solution, moveHistory, notes, tripod state | localStorage                    |
+| auth      | user, token, sessionId                                   | localStorage + BroadcastChannel |
+| match     | matchId, status, opponent, progress, ELO delta           | None                            |
+| spectator | hostState, guestState, result                            | None                            |
+| ui        | theme, colorMode, soundEnabled, selectedDifficulty       | localStorage                    |
 
 ## Game Modes
 
@@ -144,18 +144,18 @@ sudoku/
 
 ## API Endpoints
 
-| Module | Method | Route | Auth |
-|--------|--------|-------|------|
-| Auth | POST | /auth/anonymous | No |
-| Auth | POST | /auth/register, /auth/login | No |
-| Auth | POST | /auth/migrate, /auth/refresh | Yes |
-| Auth | GET | /auth/me | Yes |
-| Game | POST | /games | Yes |
-| Game | GET | /games/:id, /games/active | Yes |
-| Game | PATCH | /games/:id/move, /games/:id/time | Yes |
-| Game | POST | /games/:id/undo, /games/:id/hint | Yes |
-| Leaderboard | GET | /leaderboard, /leaderboard/me | Optional |
-| Leaderboard | GET | /leaderboard/competitive, /leaderboard/competitive/me | Optional |
+| Module      | Method | Route                                                 | Auth     |
+| ----------- | ------ | ----------------------------------------------------- | -------- |
+| Auth        | POST   | /auth/anonymous                                       | No       |
+| Auth        | POST   | /auth/register, /auth/login                           | No       |
+| Auth        | POST   | /auth/migrate, /auth/refresh                          | Yes      |
+| Auth        | GET    | /auth/me                                              | Yes      |
+| Game        | POST   | /games                                                | Yes      |
+| Game        | GET    | /games/:id, /games/active                             | Yes      |
+| Game        | PATCH  | /games/:id/move, /games/:id/time                      | Yes      |
+| Game        | POST   | /games/:id/undo, /games/:id/hint                      | Yes      |
+| Leaderboard | GET    | /leaderboard, /leaderboard/me                         | Optional |
+| Leaderboard | GET    | /leaderboard/competitive, /leaderboard/competitive/me | Optional |
 
 See [API Specification](./api-specification.md) for full request/response details.
 
@@ -171,16 +171,16 @@ See [API Specification](./api-specification.md) for full request/response detail
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Backend | NestJS | 11 |
-| Frontend | Next.js (App Router) | 16 |
-| Language | TypeScript | 5.x |
-| Database | SQLite + TypeORM | - |
-| Real-time | Socket.io | 4.x |
-| State | Zustand | 5.x |
-| Styling | Tailwind CSS | 4 |
-| Auth | JWT + bcrypt + Passport | - |
-| i18n | next-intl / nestjs-i18n | - |
-| Testing | Jest, Vitest, Playwright | - |
-| Package Manager | pnpm | - |
+| Layer           | Technology               | Version |
+| --------------- | ------------------------ | ------- |
+| Backend         | NestJS                   | 11      |
+| Frontend        | Next.js (App Router)     | 16      |
+| Language        | TypeScript               | 5.x     |
+| Database        | SQLite + TypeORM         | -       |
+| Real-time       | Socket.io                | 4.x     |
+| State           | Zustand                  | 5.x     |
+| Styling         | Tailwind CSS             | 4       |
+| Auth            | JWT + bcrypt + Passport  | -       |
+| i18n            | next-intl / nestjs-i18n  | -       |
+| Testing         | Jest, Vitest, Playwright | -       |
+| Package Manager | pnpm                     | -       |

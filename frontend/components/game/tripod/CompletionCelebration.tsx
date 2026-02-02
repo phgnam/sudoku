@@ -127,16 +127,10 @@ export function CompletionCelebration({
 
         {/* Modal */}
         <div
+          className="bg-white dark:bg-slate-800 rounded-3xl p-10 sm:p-12 text-center shadow-2xl z-50 animate-[fadeInScale_500ms_ease-out_forwards]"
           style={{
-            backgroundColor: "white",
-            borderRadius: "24px",
-            padding: "40px 48px",
-            textAlign: "center",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             animation: "fadeInScale 500ms ease-out forwards",
-            zIndex: 51,
           }}
-          className="dark:bg-slate-800"
         >
           {/* Trophy Emoji */}
           <div
@@ -165,41 +159,16 @@ export function CompletionCelebration({
             Puzzle Complete!
           </h2>
 
-          <p
-            style={{ fontSize: "16px", color: "#64748b", marginBottom: "24px" }}
-            className="dark:text-slate-400"
-          >
+          <p className="text-base text-slate-500 dark:text-slate-400 mb-6">
             Congratulations! You solved the Tripod puzzle.
           </p>
 
           {/* Time Display */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "12px 24px",
-              backgroundColor: "#f0fdf4",
-              borderRadius: "12px",
-              marginBottom: "32px",
-            }}
-            className="dark:bg-slate-700"
-          >
-            <span
-              style={{ fontSize: "14px", color: "#64748b" }}
-              className="dark:text-slate-400"
-            >
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-50 dark:bg-slate-700/50 rounded-xl mb-8">
+            <span className="text-sm text-slate-500 dark:text-slate-400">
               Time:
             </span>
-            <span
-              style={{
-                fontSize: "24px",
-                fontWeight: 700,
-                color: "#16a34a",
-                fontVariantNumeric: "tabular-nums",
-              }}
-              className="dark:text-green-400"
-            >
+            <span className="text-2xl font-bold text-green-600 dark:text-green-400 tabular-nums">
               {formatTime(timeTaken)}
             </span>
           </div>

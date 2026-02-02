@@ -40,16 +40,17 @@ export function TripodCell({
   const [isTouching, setIsTouching] = useState(false);
   const prevValueRef = useRef(value);
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect when a new number is entered
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
     let animFrame: number | null = null;
 
     if (value !== 0 && prevValueRef.current !== value && !isGiven) {
       animFrame = requestAnimationFrame(() => {
         setIsAnimating(true);
-        timer = setTimeout(() => setIsAnimating(false), 250);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setIsAnimating(false), 250);
       });
     }
 
@@ -58,8 +59,8 @@ export function TripodCell({
       if (animFrame !== null) {
         cancelAnimationFrame(animFrame);
       }
-      if (timer !== null) {
-        clearTimeout(timer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
       }
     };
   }, [value, isGiven]);

@@ -38,7 +38,8 @@ export interface TripodValidationResult {
 export class TripodPuzzleService {
   private readonly MIN_GRID_SIZE = 7;
   private readonly MAX_GRID_SIZE = 9;
-  private readonly MAX_BFS_ITERATIONS = 81; // 9x9 grid max
+  // Safety cap for BFS to prevent infinite loops (gridSize^2 * 2 is plenty safe)
+  private readonly MAX_BFS_ITERATIONS = 200;
 
   /**
    * Validate grid size is within acceptable range

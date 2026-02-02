@@ -143,7 +143,7 @@ First Visit
                                     │ + User (reg)     │
                                     └──────────────────┘
 
-Token Refresh: Auto on 401 via fetchApi interceptor
+Token Refresh: Auto on 401 via fetchApi interceptor, and proactive refresh 5 minutes before expiry
 Cross-tab: BroadcastChannel API syncs auth state
 ```
 
@@ -269,6 +269,7 @@ Actual: Win=1.0, Draw=0.5, Loss=0.0
 **Connection:** JWT validated on handshake, token refresh on auth:expiringSoon
 
 **Room Strategy:**
+
 - Game: `game:{userId}` (single-player sync)
 - Match: `match:{roomCode}` (competitive)
 - Spectator: `spectator:{matchId}` (viewers)
@@ -278,6 +279,7 @@ Actual: Win=1.0, Draw=0.5, Loss=0.0
 **Reconnection:** Exponential backoff (1s → 2s → 4s → 8s, max 5 attempts)
 
 **Event Flow:**
+
 ```
 Client emit → Gateway handler → Service logic → Room broadcast
                      │
@@ -288,23 +290,24 @@ Client emit → Gateway handler → Service logic → Room broadcast
 
 ## Security Measures
 
-| Layer | Mechanism |
-|-------|-----------|
-| Passwords | bcrypt (cost 10) |
-| Auth tokens | JWT (7d registered, 30d anonymous) |
-| API validation | class-validator on all DTOs |
-| SQL injection | TypeORM parameterized queries |
-| Time cheating | Server-calculated elapsed time |
+| Layer          | Mechanism                                 |
+| -------------- | ----------------------------------------- |
+| Passwords      | bcrypt (cost 10)                          |
+| Auth tokens    | JWT (7d registered, 30d anonymous)        |
+| API validation | class-validator on all DTOs               |
+| SQL injection  | TypeORM parameterized queries             |
+| Time cheating  | Server-calculated elapsed time            |
 | Cell tampering | Initial cells protected from modification |
-| Socket auth | JWT validated on connection |
-| Rate limiting | Per-event per-socket |
-| CORS | Configured for allowed origins |
+| Socket auth    | JWT validated on connection               |
+| Rate limiting  | Per-event per-socket                      |
+| CORS           | Configured for allowed origins            |
 
 ## Concurrency Handling
 
 **Problem:** Multiple tabs/devices modifying same game simultaneously
 
 **Solution:** Optimistic locking on Game entity
+
 ```
 UPDATE games SET ... WHERE id = ? AND version = ?
 -- If version mismatch → retry (max 3)
@@ -316,6 +319,7 @@ UPDATE games SET ... WHERE id = ? AND version = ?
 **Current:** Single-server SQLite (development)
 
 **Production path:**
+
 - Database: SQLite → PostgreSQL
 - WebSocket: Add Redis adapter for multi-instance Socket.io
 - Match state: Currently in-memory → needs shared state (Redis)

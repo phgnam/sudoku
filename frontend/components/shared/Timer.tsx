@@ -110,7 +110,7 @@ export function Timer({ mode, gameId, elapsedTime = 0 }: TimerProps) {
           lastSyncedTimeRef.current = currentTime;
         }
       });
-    }, 5000); // Sync every 5 seconds
+    }, 1000); // Sync every 1 second
 
     return () => clearInterval(syncInterval);
   }, [classicStatus, updateTime, classicTimeElapsed, gameId, mode]);
