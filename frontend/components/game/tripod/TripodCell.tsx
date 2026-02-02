@@ -45,11 +45,16 @@ export function TripodCell({
   useEffect(() => {
     if (value !== 0 && prevValueRef.current !== value && !isGiven) {
       // Use requestAnimationFrame to avoid synchronous setState in useEffect
-      requestAnimationFrame(() => {
+      const animFrame = requestAnimationFrame(() => {
         setIsAnimating(true);
         const timer = setTimeout(() => setIsAnimating(false), 250);
+
+        // Cleanup timeout if effect re-runs or unmounts
         return () => clearTimeout(timer);
       });
+
+      // Cleanup animation frame
+      return () => cancelAnimationFrame(animFrame);
     }
     prevValueRef.current = value;
   }, [value, isGiven]);
