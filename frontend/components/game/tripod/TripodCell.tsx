@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // CSS keyframes for number entry animation
 const numberEntryKeyframes = `
@@ -21,7 +21,7 @@ interface TripodCellProps {
   hasError: boolean;
   regionColor?: string;
   onClick: () => void;
-  inputMode: 'number' | 'border';
+  inputMode: "number" | "border";
   hideNumber?: boolean;
 }
 
@@ -44,9 +44,12 @@ export function TripodCell({
   // Detect when a new number is entered
   useEffect(() => {
     if (value !== 0 && prevValueRef.current !== value && !isGiven) {
-      setIsAnimating(true);
-      const timer = setTimeout(() => setIsAnimating(false), 250);
-      return () => clearTimeout(timer);
+      // Use requestAnimationFrame to avoid synchronous setState in useEffect
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+        const timer = setTimeout(() => setIsAnimating(false), 250);
+        return () => clearTimeout(timer);
+      });
     }
     prevValueRef.current = value;
   }, [value, isGiven]);
@@ -71,14 +74,17 @@ export function TripodCell({
     }
   }, []);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    // Delay removing touch state for visual feedback
-    touchTimeoutRef.current = setTimeout(() => {
-      setIsTouching(false);
-    }, 100);
-    onClick();
-  }, [onClick]);
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault();
+      // Delay removing touch state for visual feedback
+      touchTimeoutRef.current = setTimeout(() => {
+        setIsTouching(false);
+      }, 100);
+      onClick();
+    },
+    [onClick],
+  );
 
   const handleTouchCancel = useCallback(() => {
     setIsTouching(false);
@@ -88,22 +94,23 @@ export function TripodCell({
     <>
       <style>{numberEntryKeyframes}</style>
       <div
-        className={`
-          relative flex items-center justify-center
-          w-full h-full
-          border border-gray-300
-          select-none touch-none
-          ${isSelected ? 'ring-2 ring-indigo-500 z-10' : ''}
-          ${isHighlighted ? 'bg-indigo-50' : ''}
-          ${hasError ? 'bg-red-100' : ''}
-          ${inputMode === 'border' ? 'cursor-crosshair' : 'cursor-pointer'}
-          ${isTouching ? 'scale-95' : ''}
-          active:scale-95
-          transition-transform duration-100
-        `}
+        className="relative flex items-center justify-center w-full h-full select-none touch-none"
         style={{
-          backgroundColor: regionColor && !hasError && !isHighlighted ? regionColor : undefined,
-          transition: 'background-color 300ms ease-in-out, transform 100ms ease-out',
+          backgroundColor: (() => {
+            if (hasError) return "#fecaca"; // Red for errors
+            if (isSelected) return "#ffedd5"; // Orange for selected
+            if (isHighlighted && !isSelected) return "#eef2ff"; // Light indigo for highlighted
+            if (isGiven) return "#e0e7ff"; // Light indigo for given cells
+            if (regionColor) return regionColor; // Region color
+            return "white"; // Default white
+          })(),
+          border: "1px solid #c7d2fe",
+          cursor: inputMode === "border" ? "crosshair" : "pointer",
+          outline: isSelected ? "2px solid #f97316" : "none",
+          outlineOffset: "-2px",
+          transition:
+            "background-color 0.15s ease, outline 0.15s ease, transform 0.1s ease-out",
+          transform: isTouching ? "scale(0.95)" : "scale(1)",
         }}
         onClick={onClick}
         onTouchStart={handleTouchStart}
@@ -112,12 +119,11 @@ export function TripodCell({
       >
         {value !== 0 && !hideNumber && (
           <span
-            className={`
-              text-xl sm:text-2xl font-semibold
-              ${isGiven ? 'text-gray-800' : 'text-indigo-600'}
-            `}
             style={{
-              animation: isAnimating ? 'numberEntry 250ms ease-out' : undefined,
+              fontSize: "20px",
+              fontWeight: 700,
+              color: isGiven ? "#1e1b4b" : "#4338ca",
+              animation: isAnimating ? "numberEntry 250ms ease-out" : undefined,
             }}
           >
             {value}
@@ -127,4 +133,3 @@ export function TripodCell({
     </>
   );
 }
-

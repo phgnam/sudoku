@@ -7,14 +7,13 @@ import { useGameStore } from "@/store/game";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
 import { ThemeSwitcher, ToastContainer } from "@/components/ui";
+import { NumberPad, Timer } from "@/components/shared";
 import {
   TripodGrid,
   InputModeToggle,
-  TripodNumberPad,
   ValidationFeedback,
   SubModeSelector,
   UndoRedoControls,
-  TripodTimer,
   TripodStats,
   CompletionCelebration,
 } from "@/components/game/tripod";
@@ -246,7 +245,7 @@ export default function TripodGamePage() {
 
   return (
     <main className="min-h-screen bg-clean-light dark:bg-clean-dark">
-      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+      <div className="max-w-5xl mx-auto px-4 py-4">
         {/* Top Info Bar - simplified on mobile */}
         <TopInfoBar
           tripod={tripod}
@@ -256,12 +255,25 @@ export default function TripodGamePage() {
           puzzleDifficulty={currentPuzzle?.difficulty}
           onNewPuzzle={handleNewPuzzle}
           t={t}
-          isMobile={isMobile}
         />
 
-        {/* Sub-Mode Selector - hidden on very small screens */}
-        <div className="hidden sm:flex justify-center mb-4 sm:mb-5">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+        {/* Sub-Mode Selector */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              padding: "16px 24px",
+              backgroundColor: "white",
+              borderRadius: "12px",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            }}
+            className="dark:bg-slate-800"
+          >
             <SubModeSelector
               currentMode={tripod.subMode}
               onModeSelect={handleSubModeChange}
@@ -269,10 +281,18 @@ export default function TripodGamePage() {
           </div>
         </div>
 
-        {/* Main Game Area - Stacked on mobile, side-by-side on desktop */}
-        <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start gap-4 lg:gap-10">
-          {/* Grid Container - Centered */}
-          <div className="flex justify-center">
+        {/* Main Game Area - Desktop Horizontal Layout */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            gap: "40px",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Grid Container */}
+          <div style={{ position: "relative" }}>
             <TripodGrid
               gridSize={tripod.gridSize}
               cells={cells}
@@ -294,8 +314,20 @@ export default function TripodGamePage() {
             />
           </div>
 
-          {/* Controls Panel - Full width on mobile, fixed width on desktop */}
-          <div className="w-full lg:w-auto flex flex-col gap-3 sm:gap-5 p-3 sm:p-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm lg:min-w-[220px]">
+          {/* Controls Panel */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "24px",
+              padding: "20px",
+              backgroundColor: "white",
+              borderRadius: "16px",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+              minWidth: "200px",
+            }}
+            className="dark:bg-slate-800"
+          >
             {/* Input Mode Toggle - hide in borders_only mode since no number input */}
             {tripod.subMode !== "sudoku_only" && (
               <InputModeToggle
@@ -316,8 +348,9 @@ export default function TripodGamePage() {
             )}
 
             {/* Number Pad - disabled in borders_only mode */}
-            <TripodNumberPad
+            <NumberPad
               maxNumber={tripod.gridSize}
+              showCounts={false}
               onNumberSelect={handleNumberInput}
               disabled={
                 tripod.subMode === "borders_only" ||
@@ -334,20 +367,25 @@ export default function TripodGamePage() {
               onValidate={handleValidate}
             />
 
-            {/* Statistics Panel - Hidden on very small screens to save space */}
-            <div className="hidden sm:block">
+            {/* Statistics Panel */}
+            <div>
               <TripodStats />
             </div>
           </div>
         </div>
 
-        {/* Instructions - Collapsed on mobile */}
-        <div className="hidden sm:block">
+        {/* Instructions Panel */}
+        <div>
           <InstructionsPanel tripod={tripod} isDark={isDark} t={t} />
         </div>
 
         {/* Back to Home Link */}
-        <div className="text-center mt-4 sm:mt-6">
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "24px",
+          }}
+        >
           <Link
             href="/"
             className="text-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
@@ -379,7 +417,6 @@ interface TopInfoBarProps {
   puzzleDifficulty?: "easy" | "medium" | "hard";
   onNewPuzzle?: () => void;
   t: ReturnType<typeof useTranslations>;
-  isMobile?: boolean;
 }
 
 const difficultyColors = {
@@ -396,76 +433,27 @@ function TopInfoBar({
   puzzleDifficulty,
   onNewPuzzle,
   t,
-  isMobile = false,
 }: TopInfoBarProps) {
   const diffColor = puzzleDifficulty
     ? difficultyColors[puzzleDifficulty]
     : difficultyColors.easy;
 
-  // Simplified mobile layout
-  if (isMobile) {
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-2 px-3 py-2 mb-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-        {/* Game Mode Badge */}
-        <span className="px-2 py-1 text-xs font-semibold bg-teal-50 text-teal-600 border border-teal-200 rounded">
-          🔺 {tripod.gridSize}×{tripod.gridSize}
-        </span>
-
-        {/* Difficulty Badge */}
-        {puzzleDifficulty && (
-          <span
-            className="px-2 py-0.5 text-xs font-semibold rounded capitalize"
-            style={{
-              backgroundColor: diffColor.bg,
-              color: diffColor.text,
-              border: `1px solid ${diffColor.border}`,
-            }}
-          >
-            {t(`tripod.difficulty.${puzzleDifficulty}`)}
-          </span>
-        )}
-
-        {/* Region Count */}
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          {regions.length}/{tripod.gridSize}
-        </span>
-
-        {/* Timer */}
-        <TripodTimer isPaused={tripod.isTimerPaused} />
-
-        {/* New Puzzle Button */}
-        {onNewPuzzle && (
-          <button
-            onClick={onNewPuzzle}
-            className="flex items-center gap-1 px-2 py-1.5 bg-teal-500 text-white text-xs font-semibold rounded-lg min-h-[32px] active:scale-95 transition-transform"
-            title={t('game.newGame') || 'New Puzzle'}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            {isMobile ? t('game.newGame') || 'New' : t('game.newGame') || 'New Puzzle'}
-          </button>
-        )}
-
-        {/* Theme Switcher */}
-        <ThemeSwitcher />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 px-3 sm:px-5 py-2 sm:py-3 mb-4 sm:mb-5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "24px",
+        padding: "12px 20px",
+        marginBottom: "20px",
+        backgroundColor: "white",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+        flexWrap: "wrap",
+      }}
+      className="dark:bg-slate-800"
+    >
       {/* Game Mode Badge */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span
@@ -579,19 +567,19 @@ function TopInfoBar({
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "6px 14px",
+              padding: "8px 16px",
               borderRadius: "8px",
               backgroundColor: "#14b8a6",
               color: "white",
-              fontSize: "13px",
+              fontSize: "14px",
               fontWeight: 600,
               border: "none",
               cursor: "pointer",
             }}
           >
             <svg
-              width="14"
-              height="14"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -619,7 +607,11 @@ function TopInfoBar({
       )}
 
       {/* Timer */}
-      <TripodTimer isPaused={tripod.isTimerPaused} />
+      <Timer
+        mode="tripod"
+        elapsedTime={tripod.elapsedTime}
+        isPaused={tripod.isTimerPaused}
+      />
 
       {/* Divider */}
       <div
@@ -649,21 +641,32 @@ function InstructionsPanel({
 }) {
   return (
     <div
-      className="mt-4 sm:mt-6 p-3 sm:p-4 rounded-xl text-sm"
       style={{
+        marginTop: "24px",
+        padding: "16px",
+        borderRadius: "12px",
+        fontSize: "14px",
         backgroundColor: isDark ? "#1e293b" : "#f8fafc",
         color: isDark ? "#94a3b8" : "#64748b",
       }}
     >
       <h4
-        className="font-semibold mb-2 text-sm sm:text-base"
         style={{
+          fontWeight: 600,
+          marginBottom: "8px",
+          fontSize: "16px",
           color: isDark ? "#e2e8f0" : "#334155",
         }}
       >
         {t("tripod.instructions.title")}
       </h4>
-      <ul className="list-disc pl-4 sm:pl-5 leading-relaxed text-xs sm:text-sm">
+      <ul
+        style={{
+          listStyleType: "disc",
+          paddingLeft: "20px",
+          lineHeight: 1.6,
+        }}
+      >
         <li>{t("tripod.instructions.rule1", { gridSize: tripod.gridSize })}</li>
         <li>{t("tripod.instructions.rule2")}</li>
         <li>{t("tripod.instructions.rule3", { gridSize: tripod.gridSize })}</li>

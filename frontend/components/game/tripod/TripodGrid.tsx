@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { TripodCell } from './TripodCell';
-import { BorderEdge, BorderToggleState } from './BorderEdge';
-import { TripodDot } from './TripodDot';
-import type { Region, TripodError, TripodSubMode } from '@/types/tripod';
+import { TripodCell } from "./TripodCell";
+import { BorderEdge, BorderToggleState } from "./BorderEdge";
+import { TripodDot } from "./TripodDot";
+import type { Region, TripodError, TripodSubMode } from "@/types/tripod";
 
 interface TripodGridProps {
   gridSize: number;
@@ -13,16 +13,20 @@ interface TripodGridProps {
   horizontalBorders: boolean[][];
   verticalBorders: boolean[][];
   regions: Region[];
-  inputMode: 'number' | 'border';
+  inputMode: "number" | "border";
   selectedCell: { row: number; col: number } | null;
   errors: TripodError[];
   onCellSelect: (row: number, col: number) => void;
-  onBorderToggle: (type: 'h' | 'v', row: number, col: number) => void;
+  onBorderToggle: (type: "h" | "v", row: number, col: number) => void;
   isVertexSatisfied?: (row: number, col: number) => boolean;
   getVertexErrors?: (row: number, col: number) => TripodError[];
   subMode?: TripodSubMode;
   /** Function to get border toggleability state */
-  getBorderToggleability?: (type: 'h' | 'v', row: number, col: number) => BorderToggleState;
+  getBorderToggleability?: (
+    type: "h" | "v",
+    row: number,
+    col: number,
+  ) => BorderToggleState;
   /** Cell size in pixels (responsive) */
   cellSize?: number;
   /** Whether device supports touch input */
@@ -47,7 +51,7 @@ export function TripodGrid({
   onBorderToggle,
   isVertexSatisfied,
   getVertexErrors,
-  subMode = 'full',
+  subMode = "full",
   getBorderToggleability,
   cellSize = DEFAULT_CELL_SIZE,
   isTouchDevice = false,
@@ -55,19 +59,20 @@ export function TripodGrid({
   const CELL_SIZE = cellSize;
 
   // SubMode restrictions
-  const hideNumbers = subMode === 'borders_only';
-  const bordersFixed = subMode === 'sudoku_only';
+  const hideNumbers = subMode === "borders_only";
+  const bordersFixed = subMode === "sudoku_only";
 
   const getCellRegionColor = (row: number, col: number): string | undefined => {
     const region = regions.find((r) =>
-      r.cells.some((c) => c.row === row && c.col === col)
+      r.cells.some((c) => c.row === row && c.col === col),
     );
     return region?.color;
   };
 
   const hasCellError = (row: number, col: number): boolean => {
     return errors.some(
-      (e) => 'row' in e.location && e.location.row === row && e.location.col === col
+      (e) =>
+        "row" in e.location && e.location.row === row && e.location.col === col,
     );
   };
 
@@ -78,10 +83,15 @@ export function TripodGrid({
 
   return (
     <div
-      className="relative bg-white rounded-lg shadow-lg p-2"
       style={{
-        width: gridSize * CELL_SIZE + 4,
-        height: gridSize * CELL_SIZE + 4,
+        position: "relative",
+        backgroundColor: "white",
+        borderRadius: "16px",
+        boxShadow: "0 10px 25px rgba(79, 70, 229, 0.15)",
+        border: "2px solid #c7d2fe",
+        padding: "12px",
+        width: gridSize * CELL_SIZE + 28, // 24px padding + 4px border
+        height: gridSize * CELL_SIZE + 28,
       }}
     >
       {/* Layer 1: Cell grid */}
@@ -90,8 +100,8 @@ export function TripodGrid({
         style={{
           gridTemplateColumns: `repeat(${gridSize}, ${CELL_SIZE}px)`,
           gridTemplateRows: `repeat(${gridSize}, ${CELL_SIZE}px)`,
-          left: 2,
-          top: 2,
+          left: 14,
+          top: 14,
         }}
       >
         {cells.map((row, r) =>
@@ -110,7 +120,7 @@ export function TripodGrid({
               inputMode={inputMode}
               hideNumber={hideNumbers}
             />
-          ))
+          )),
         )}
       </div>
 
@@ -124,13 +134,13 @@ export function TripodGrid({
             col={c}
             active={active}
             cellSize={CELL_SIZE}
-            onClick={() => onBorderToggle('h', r, c)}
-            clickable={inputMode === 'border' && !bordersFixed}
+            onClick={() => onBorderToggle("h", r, c)}
+            clickable={inputMode === "border" && !bordersFixed}
             isFixed={bordersFixed && active}
-            toggleState={getBorderToggleability?.('h', r, c)}
+            toggleState={getBorderToggleability?.("h", r, c)}
             isTouchDevice={isTouchDevice}
           />
-        ))
+        )),
       )}
 
       {/* Layer 3: Vertical borders */}
@@ -143,13 +153,13 @@ export function TripodGrid({
             col={c}
             active={active}
             cellSize={CELL_SIZE}
-            onClick={() => onBorderToggle('v', r, c)}
-            clickable={inputMode === 'border' && !bordersFixed}
+            onClick={() => onBorderToggle("v", r, c)}
+            clickable={inputMode === "border" && !bordersFixed}
             isFixed={bordersFixed && active}
-            toggleState={getBorderToggleability?.('v', r, c)}
+            toggleState={getBorderToggleability?.("v", r, c)}
             isTouchDevice={isTouchDevice}
           />
-        ))
+        )),
       )}
 
       {/* Layer 4: Tripod dots */}
@@ -165,10 +175,9 @@ export function TripodGrid({
                 isSatisfied={isVertexSatisfied?.(r, c) ?? false}
                 isError={(getVertexErrors?.(r, c)?.length ?? 0) > 0}
               />
-            )
-        )
+            ),
+        ),
       )}
     </div>
   );
 }
-

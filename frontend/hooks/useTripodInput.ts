@@ -1,99 +1,141 @@
-'use client';
+"use client";
 
-import { useEffect, useCallback } from 'react';
-import { useGameStore } from '@/store/game';
-import type { TripodInputMode } from '@/types/tripod';
+import { useEffect, useCallback } from "react";
+import { useGameStore } from "@/store/game";
+import type { TripodInputMode } from "@/types/tripod";
 
 interface UseTripodInputOptions {
   gridSize: number;
   onNumberInput: (num: number) => void;
-  onCellMove: (direction: 'up' | 'down' | 'left' | 'right') => void;
+  onCellMove: (direction: "up" | "down" | "left" | "right") => void;
 }
 
-export function useTripodInput({ gridSize, onNumberInput, onCellMove }: UseTripodInputOptions) {
+export function useTripodInput({
+  gridSize,
+  onNumberInput,
+  onCellMove,
+}: UseTripodInputOptions) {
   const tripod = useGameStore((state) => state.tripod);
   const setTripodInputMode = useGameStore((state) => state.setTripodInputMode);
-  
-  const inputMode = tripod?.inputMode ?? 'number';
-  
+
+  const inputMode = tripod?.inputMode ?? "number";
+
   const toggleMode = useCallback(() => {
-    const newMode: TripodInputMode = inputMode === 'number' ? 'border' : 'number';
+    const newMode: TripodInputMode =
+      inputMode === "number" ? "border" : "number";
     setTripodInputMode(newMode);
   }, [inputMode, setTripodInputMode]);
-  
-  const setMode = useCallback((mode: TripodInputMode) => {
-    setTripodInputMode(mode);
-  }, [setTripodInputMode]);
+
+  const setMode = useCallback(
+    (mode: TripodInputMode) => {
+      setTripodInputMode(mode);
+    },
+    [setTripodInputMode],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in an input field
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
-      
-      // Space to toggle mode
-      if (e.key === ' ' || e.code === 'Space') {
-        e.preventDefault();
+
+      // Space to toggle mode (prevent page scroll)
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault(); // Critical: prevents page scroll
+        e.stopPropagation();
         toggleMode();
         return;
       }
-      
+
       // B for border mode
-      if (e.key === 'b' || e.key === 'B') {
+      if (e.key === "b" || e.key === "B") {
         e.preventDefault();
-        setMode('border');
+        setMode("border");
         return;
       }
-      
+
       // N for number mode
-      if (e.key === 'n' || e.key === 'N') {
+      if (e.key === "n" || e.key === "N") {
         e.preventDefault();
-        setMode('number');
+        setMode("number");
         return;
       }
-      
+
       // Arrow keys for cell navigation
-      if (e.key === 'ArrowUp') {
+      if (e.key === "ArrowUp") {
         e.preventDefault();
-        onCellMove('up');
+        onCellMove("up");
         return;
       }
-      if (e.key === 'ArrowDown') {
+      if (e.key === "ArrowDown") {
         e.preventDefault();
-        onCellMove('down');
+        onCellMove("down");
         return;
       }
-      if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
-        onCellMove('left');
+        onCellMove("left");
         return;
       }
-      if (e.key === 'ArrowRight') {
+      if (e.key === "ArrowRight") {
         e.preventDefault();
-        onCellMove('right');
+        onCellMove("right");
         return;
       }
-      
-      // Number input (1-7 for 7x7 grid, 1-9 for 9x9)
+
+      // Block number input in borders_only mode
+      if (tripod?.subMode === "borders_only") {
+        // Don't process number keys in borders_only mode
+        const num = parseInt(e.key, 10);
+        if (
+          !isNaN(num) ||
+          e.key === "0" ||
+          e.key === "Delete" ||
+          e.key === "Backspace"
+        ) {
+          return; // Silently ignore, mode toggle handles feedback
+        }
+      }
+
+      // Number input (1-gridSize, e.g., 1-7 for 7x7 grid, 1-9 for 9x9)
+      // Validation also happens in handleNumberInput
       const num = parseInt(e.key, 10);
       if (!isNaN(num) && num >= 1 && num <= gridSize) {
         e.preventDefault();
         onNumberInput(num);
         return;
       }
-      
+
+      // 0 key to clear cell
+      if (e.key === "0") {
+        e.preventDefault();
+        onNumberInput(0);
+        return;
+      }
+
       // Delete/Backspace to clear cell
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         onNumberInput(0);
         return;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gridSize, inputMode, onNumberInput, onCellMove, toggleMode, setMode]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    gridSize,
+    inputMode,
+    tripod?.subMode,
+    onNumberInput,
+    onCellMove,
+    toggleMode,
+    setMode,
+  ]);
 
   return {
     inputMode,
@@ -101,4 +143,3 @@ export function useTripodInput({ gridSize, onNumberInput, onCellMove }: UseTripo
     setMode,
   };
 }
-

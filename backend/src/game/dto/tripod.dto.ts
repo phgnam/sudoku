@@ -3,8 +3,11 @@ import {
   IsString,
   IsObject,
   IsEnum,
-  IsNumber,
   IsArray,
+  IsNotEmpty,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -18,12 +21,16 @@ export class CreateTripodGameDto {
   puzzleId?: string;
 
   @ApiPropertyOptional({
-    description: 'Grid size for the tripod puzzle (default: 7)',
+    description: 'Grid size for the tripod puzzle (7-9, default: 7)',
     example: 7,
     default: 7,
+    minimum: 7,
+    maximum: 9,
   })
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(7)
+  @Max(9)
   gridSize?: number;
 }
 
@@ -31,10 +38,17 @@ export class UpdateBordersDto {
   @ApiProperty({
     description: 'Border state for horizontal and vertical borders',
     example: {
-      horizontal: [[false, true], [true, false]],
-      vertical: [[false, true], [true, false]],
+      horizontal: [
+        [false, true],
+        [true, false],
+      ],
+      vertical: [
+        [false, true],
+        [true, false],
+      ],
     },
   })
+  @IsNotEmpty()
   @IsObject()
   borders: {
     horizontal: boolean[][];
@@ -54,23 +68,32 @@ export class ToggleBorderDto {
   @ApiProperty({
     description: 'Row index of the border',
     example: 0,
+    minimum: 0,
   })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   row: number;
 
   @ApiProperty({
     description: 'Column index of the border',
     example: 0,
+    minimum: 0,
   })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   col: number;
 }
 
 export class ValidateTripodDto {
   @ApiProperty({
     description: 'Cell values grid for validation',
-    example: [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+    example: [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+    ],
   })
+  @IsNotEmpty()
   @IsArray()
   cells: number[][];
 }
@@ -93,8 +116,9 @@ export class TripodValidationResponseDto {
   })
   errors: Array<{
     type: string;
-    location: { row: number; col: number } | { vertexRow: number; vertexCol: number };
+    location:
+      | { row: number; col: number }
+      | { vertexRow: number; vertexCol: number };
     message: string;
   }>;
 }
-

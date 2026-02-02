@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 
 export interface TripodBorders {
   horizontal: boolean[][];
@@ -15,14 +15,20 @@ export interface VertexValidation {
   isValid: boolean;
   borderCount: number;
   hasDot: boolean;
-  error: 'four_way_intersection' | 'tripod_mismatch' | 'missing_tripod_dot' | null;
+  error:
+    | 'four_way_intersection'
+    | 'tripod_mismatch'
+    | 'missing_tripod_dot'
+    | null;
 }
 
 export interface TripodValidationResult {
   isValid: boolean;
   errors: Array<{
     type: string;
-    location: { row: number; col: number } | { vertexRow: number; vertexCol: number };
+    location:
+      | { row: number; col: number }
+      | { vertexRow: number; vertexCol: number };
     message: string;
   }>;
   regions: Region[];
@@ -30,19 +36,40 @@ export interface TripodValidationResult {
 
 @Injectable()
 export class TripodPuzzleService {
+  private readonly MIN_GRID_SIZE = 7;
+  private readonly MAX_GRID_SIZE = 9;
+  private readonly MAX_BFS_ITERATIONS = 81; // 9x9 grid max
+
+  /**
+   * Validate grid size is within acceptable range
+   */
+  private validateGridSize(gridSize: number): void {
+    if (
+      !Number.isInteger(gridSize) ||
+      gridSize < this.MIN_GRID_SIZE ||
+      gridSize > this.MAX_GRID_SIZE
+    ) {
+      throw new BadRequestException(
+        `Invalid grid size: ${gridSize}. Must be an integer between ${this.MIN_GRID_SIZE} and ${this.MAX_GRID_SIZE}`,
+      );
+    }
+  }
+
   /**
    * Initialize empty borders for a given grid size
    */
   initializeBorders(gridSize: number): TripodBorders {
+    this.validateGridSize(gridSize);
+
     // horizontal: gridSize+1 rows, gridSize columns (borders between rows)
-    const horizontal = Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize).fill(false));
+    const horizontal = Array.from({ length: gridSize + 1 }, () =>
+      Array.from({ length: gridSize }, () => false),
+    );
 
     // vertical: gridSize rows, gridSize+1 columns (borders between columns)
-    const vertical = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    const vertical = Array.from({ length: gridSize }, () =>
+      Array.from({ length: gridSize + 1 }, () => false),
+    );
 
     return { horizontal, vertical };
   }
@@ -51,18 +78,20 @@ export class TripodPuzzleService {
    * Initialize tripod dots grid (all false initially)
    */
   initializeTripodDots(gridSize: number): boolean[][] {
-    return Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    this.validateGridSize(gridSize);
+
+    return Array.from({ length: gridSize + 1 }, () =>
+      Array.from({ length: gridSize + 1 }, () => false),
+    );
   }
 
   /**
    * Detect connected regions using BFS
    */
   detectRegions(borders: TripodBorders, gridSize: number): Region[] {
-    const visited: boolean[][] = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize).fill(false));
+    const visited: boolean[][] = Array.from({ length: gridSize }, () =>
+      Array.from({ length: gridSize }, () => false),
+    );
 
     const regions: Region[] = [];
     let regionId = 0;
@@ -90,30 +119,61 @@ export class TripodPuzzleService {
     visited: boolean[][],
     gridSize: number,
   ): Array<{ row: number; col: number }> {
-    const queue: Array<{ row: number; col: number }> = [{ row: startR, col: startC }];
+    const queue: Array<{ row: number; col: number }> = [
+      { row: startR, col: startC },
+    ];
     const cells: Array<{ row: number; col: number }> = [];
+    let iterations = 0;
 
     while (queue.length > 0) {
+      // Prevent infinite loops
+      if (++iterations > this.MAX_BFS_ITERATIONS) {
+        throw new Error(
+          `BFS exceeded maximum iterations (${this.MAX_BFS_ITERATIONS}). Possible infinite loop detected.`,
+        );
+      }
+
       const { row, col } = queue.shift()!;
 
-      if (visited[row][col]) continue;
+      // Bounds check
+      if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
+        continue;
+      }
+      if (visited[row]?.[col]) continue;
+
       visited[row][col] = true;
       cells.push({ row, col });
 
       // Up: check horizontal border at [row][col]
-      if (row > 0 && !borders.horizontal[row][col] && !visited[row - 1][col]) {
+      if (
+        row > 0 &&
+        !borders.horizontal[row]?.[col] &&
+        !visited[row - 1]?.[col]
+      ) {
         queue.push({ row: row - 1, col });
       }
       // Down: check horizontal border at [row + 1][col]
-      if (row < gridSize - 1 && !borders.horizontal[row + 1][col] && !visited[row + 1][col]) {
+      if (
+        row < gridSize - 1 &&
+        !borders.horizontal[row + 1]?.[col] &&
+        !visited[row + 1]?.[col]
+      ) {
         queue.push({ row: row + 1, col });
       }
       // Left: check vertical border at [row][col]
-      if (col > 0 && !borders.vertical[row][col] && !visited[row][col - 1]) {
+      if (
+        col > 0 &&
+        !borders.vertical[row]?.[col] &&
+        !visited[row]?.[col - 1]
+      ) {
         queue.push({ row, col: col - 1 });
       }
       // Right: check vertical border at [row][col + 1]
-      if (col < gridSize - 1 && !borders.vertical[row][col + 1] && !visited[row][col + 1]) {
+      if (
+        col < gridSize - 1 &&
+        !borders.vertical[row]?.[col + 1] &&
+        !visited[row]?.[col + 1]
+      ) {
         queue.push({ row, col: col + 1 });
       }
     }
@@ -130,6 +190,16 @@ export class TripodPuzzleService {
     borders: TripodBorders,
     gridSize: number,
   ): number {
+    // Validate vertex is within bounds (0 to gridSize inclusive)
+    if (
+      vertexRow < 0 ||
+      vertexRow > gridSize ||
+      vertexCol < 0 ||
+      vertexCol > gridSize
+    ) {
+      return 0; // Out of bounds vertex has no borders
+    }
+
     let count = 0;
 
     // Horizontal border to the right of vertex
@@ -162,7 +232,12 @@ export class TripodPuzzleService {
     tripodDots: boolean[][],
     gridSize: number,
   ): VertexValidation {
-    const borderCount = this.countBordersAtVertex(vertexRow, vertexCol, borders, gridSize);
+    const borderCount = this.countBordersAtVertex(
+      vertexRow,
+      vertexCol,
+      borders,
+      gridSize,
+    );
     const hasDot = tripodDots[vertexRow]?.[vertexCol] ?? false;
 
     let error: VertexValidation['error'] = null;
@@ -191,6 +266,15 @@ export class TripodPuzzleService {
     cells: number[][],
     gridSize: number,
   ): TripodValidationResult {
+    this.validateGridSize(gridSize);
+
+    // Validate inputs are not null/undefined
+    if (!borders || !tripodDots || !cells) {
+      throw new BadRequestException(
+        'Borders, tripodDots, and cells are required',
+      );
+    }
+
     const errors: TripodValidationResult['errors'] = [];
 
     // 1. Detect regions
@@ -210,7 +294,13 @@ export class TripodPuzzleService {
     // 3. Validate all vertices
     for (let r = 0; r <= gridSize; r++) {
       for (let c = 0; c <= gridSize; c++) {
-        const validation = this.validateVertex(r, c, borders, tripodDots, gridSize);
+        const validation = this.validateVertex(
+          r,
+          c,
+          borders,
+          tripodDots,
+          gridSize,
+        );
         if (!validation.isValid && validation.error) {
           errors.push({
             type: validation.error,
@@ -265,7 +355,9 @@ export class TripodPuzzleService {
 
     // 6. Validate columns
     for (let c = 0; c < gridSize; c++) {
-      const colValues = cells.map((row) => row?.[c] ?? 0).filter((v) => v !== 0);
+      const colValues = cells
+        .map((row) => row?.[c] ?? 0)
+        .filter((v) => v !== 0);
       const seen = new Set<number>();
 
       colValues.forEach((v) => {
@@ -306,7 +398,12 @@ export class TripodPuzzleService {
     }
 
     // Validate rules
-    const validation = this.validateTripodRules(borders, tripodDots, cells, gridSize);
+    const validation = this.validateTripodRules(
+      borders,
+      tripodDots,
+      cells,
+      gridSize,
+    );
     return validation.isValid;
   }
 }
