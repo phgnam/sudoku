@@ -338,6 +338,13 @@
   letter-spacing: 0.05em;
 }
 
+/* Tripod Sudoku Animations */
+@keyframes borderPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

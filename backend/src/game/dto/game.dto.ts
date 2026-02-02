@@ -21,14 +21,14 @@ export class CreateGameDto {
 
   @ApiPropertyOptional({
     description: 'Game mode',
-    enum: ['classic', 'mutating'],
+    enum: ['classic', 'mutating', 'tripod'],
     example: 'classic',
     default: 'classic',
   })
   @IsOptional()
   @IsString()
-  @IsIn(['classic', 'mutating'])
-  gameMode?: 'classic' | 'mutating';
+  @IsIn(['classic', 'mutating', 'tripod'])
+  gameMode?: 'classic' | 'mutating' | 'tripod';
 }
 
 export class MakeMoveDto {

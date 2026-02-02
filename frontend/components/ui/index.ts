@@ -8,3 +8,4 @@ export { LanguageSwitcher } from "./LanguageSwitcher";
 export { ThemeProvider } from "./ThemeProvider";
 export { Modal } from "./Modal";
 export { EnhancedModal } from "./EnhancedModal";
+export { ToastContainer, showToast, dismissToast, toast } from "./Toast";

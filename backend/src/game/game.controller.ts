@@ -26,6 +26,12 @@ import {
   MoveResponseDto,
   HintResponseDto,
 } from './dto/game.dto';
+import {
+  CreateTripodGameDto,
+  UpdateBordersDto,
+  ToggleBorderDto,
+  TripodValidationResponseDto,
+} from './dto/tripod.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -243,5 +249,112 @@ export class GameController {
     @Body() updateTimeDto: UpdateTimeDto,
   ) {
     return this.gameService.updateTime(id, updateTimeDto.timeElapsed);
+  }
+
+  // ===================== TRIPOD GAME ENDPOINTS =====================
+
+  @Post('tripod')
+  @ApiOperation({
+    summary: 'Create tripod game',
+    description: 'Create a new Tripod Sudoku game',
+  })
+  @ApiBody({ type: CreateTripodGameDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Tripod game created successfully',
+    type: GameResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  async createTripodGame(
+    @Body() dto: CreateTripodGameDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.gameService.createTripodGame(user?.userId || 'anonymous', dto);
+  }
+
+  @Patch(':id/borders')
+  @ApiOperation({
+    summary: 'Update borders',
+    description: 'Update all borders in a tripod game',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Game ID',
+    example: 'game-uuid-12345',
+  })
+  @ApiBody({ type: UpdateBordersDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Borders updated successfully',
+    type: GameResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not a tripod game or game not active',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Game not found',
+  })
+  async updateBorders(@Param('id') id: string, @Body() dto: UpdateBordersDto) {
+    return this.gameService.updateTripodBorders(id, dto.borders);
+  }
+
+  @Patch(':id/border')
+  @ApiOperation({
+    summary: 'Toggle single border',
+    description: 'Toggle a single border in a tripod game',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Game ID',
+    example: 'game-uuid-12345',
+  })
+  @ApiBody({ type: ToggleBorderDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Border toggled successfully',
+    type: GameResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not a tripod game or invalid border position',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Game not found',
+  })
+  async toggleBorder(@Param('id') id: string, @Body() dto: ToggleBorderDto) {
+    return this.gameService.toggleTripodBorder(id, dto.type, dto.row, dto.col);
+  }
+
+  @Post(':id/validate-tripod')
+  @ApiOperation({
+    summary: 'Validate tripod game',
+    description: 'Validate the current state of a tripod game',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Game ID',
+    example: 'game-uuid-12345',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Validation result returned',
+    type: TripodValidationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not a tripod game',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Game not found',
+  })
+  async validateTripod(@Param('id') id: string) {
+    return this.gameService.validateTripodGame(id);
   }
 }

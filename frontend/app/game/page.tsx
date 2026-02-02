@@ -9,9 +9,8 @@ import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
 import { useGameSocket } from "@/hooks/useGameSocket";
 import { SudokuGrid } from "@/components/game/SudokuGrid";
-import { NumberPad } from "@/components/game/NumberPad";
+import { NumberPad, Timer } from "@/components/shared";
 import { GameControls } from "@/components/game/GameControls";
-import { GameTimer } from "@/components/game/GameTimer";
 import { MutationTimer } from "@/components/game/MutationTimer";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
 import { EnhancedModal } from "@/components/ui/EnhancedModal";
@@ -36,7 +35,9 @@ interface GameApiResponse {
 }
 
 // Helper to convert API response to game state
-const mapGameResponseToState = (game: GameApiResponse & { gameMode?: string }) => ({
+const mapGameResponseToState = (
+  game: GameApiResponse & { gameMode?: string },
+) => ({
   id: game.id,
   difficulty: game.difficulty,
   currentState: game.currentState,
@@ -49,12 +50,17 @@ const mapGameResponseToState = (game: GameApiResponse & { gameMode?: string }) =
   status: game.status || GameStatus.ACTIVE,
   wrongCells: [] as Array<{ row: number; col: number }>,
   hintedCells: [] as Array<{ row: number; col: number }>,
-  gameMode: (game.gameMode as 'classic' | 'mutating') || 'classic',
+  gameMode: (game.gameMode as "classic" | "mutating") || "classic",
 });
 
 // Check if placing a number causes a conflict (same logic as backend isValidMove)
 // Returns true if there's a conflict (number is wrong), false if valid
-const checkConflict = (grid: number[][], row: number, col: number, num: number): boolean => {
+const checkConflict = (
+  grid: number[][],
+  row: number,
+  col: number,
+  num: number,
+): boolean => {
   if (num === 0) return false;
 
   // Check row for duplicates
@@ -117,7 +123,8 @@ export default function GamePage() {
     setGameMode,
   } = useGameStore();
 
-  const { makeMove, undoMove, requestHint, applyHintToBackend } = useGameSocket();
+  const { makeMove, undoMove, requestHint, applyHintToBackend } =
+    useGameSocket();
 
   // Initialize mutation socket events
   useMutationSocket();
@@ -215,7 +222,7 @@ export default function GamePage() {
             },
             body: JSON.stringify({
               difficulty: selectedDifficulty,
-              gameMode: useGameStore.getState().gameMode || 'classic',
+              gameMode: useGameStore.getState().gameMode || "classic",
             }),
           });
 
@@ -277,8 +284,11 @@ export default function GamePage() {
     const currentWrongCells = useGameStore.getState().wrongCells;
     const isDifferent =
       newWrongCells.length !== currentWrongCells.length ||
-      newWrongCells.some((c, i) =>
-        !currentWrongCells[i] || c.row !== currentWrongCells[i].row || c.col !== currentWrongCells[i].col
+      newWrongCells.some(
+        (c, i) =>
+          !currentWrongCells[i] ||
+          c.row !== currentWrongCells[i].row ||
+          c.col !== currentWrongCells[i].col,
       );
 
     if (isDifferent) {
@@ -289,8 +299,10 @@ export default function GamePage() {
   // #19: Clear selected cell if it was mutated
   useEffect(() => {
     if (lastMutatedCell && selectedCell) {
-      if (lastMutatedCell.row === selectedCell.row &&
-          lastMutatedCell.col === selectedCell.col) {
+      if (
+        lastMutatedCell.row === selectedCell.row &&
+        lastMutatedCell.col === selectedCell.col
+      ) {
         setSelectedCell(null);
       }
     }
@@ -328,7 +340,7 @@ export default function GamePage() {
     for (let i = moveHistory.length - 1; i >= 0; i--) {
       const move = moveHistory[i];
       const isHinted = hintedCells.some(
-        (c) => c.row === move.row && c.col === move.col
+        (c) => c.row === move.row && c.col === move.col,
       );
       if (!isHinted) {
         return true;
@@ -361,7 +373,15 @@ export default function GamePage() {
 
     // Can erase if cell has a value
     return currentState[row][col] !== 0;
-  }, [selectedCell, currentState, initialState, hintedCells, notes, notesMode, status]);
+  }, [
+    selectedCell,
+    currentState,
+    initialState,
+    hintedCells,
+    notes,
+    notesMode,
+    status,
+  ]);
 
   // Keyboard input handler
   useEffect(() => {
@@ -370,7 +390,10 @@ export default function GamePage() {
       if (status !== GameStatus.ACTIVE) return;
 
       // Ignore if typing in an input field
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -391,7 +414,10 @@ export default function GamePage() {
       }
 
       // Arrow keys to navigate cells
-      if (selectedCell && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      if (
+        selectedCell &&
+        ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
+      ) {
         e.preventDefault();
         let newRow = selectedCell.row;
         let newCol = selectedCell.col;
@@ -558,7 +584,12 @@ export default function GamePage() {
         }
       } else if (hint.type === "highlight_suggestion") {
         const { row, col, possibleValue, steps } = hint.data;
-        if (row !== undefined && col !== undefined && possibleValue !== undefined && steps) {
+        if (
+          row !== undefined &&
+          col !== undefined &&
+          possibleValue !== undefined &&
+          steps
+        ) {
           // Build step-by-step explanation
           const hintSteps: Array<{
             type: "row" | "col" | "box" | "result";
@@ -573,7 +604,10 @@ export default function GamePage() {
               type: "row",
               values: steps.row.values,
               cells: steps.row.cells,
-              message: t('game.hint.rowHas', { row: row + 1, values: steps.row.values.join(", ") }),
+              message: t("game.hint.rowHas", {
+                row: row + 1,
+                values: steps.row.values.join(", "),
+              }),
             });
           }
 
@@ -583,7 +617,10 @@ export default function GamePage() {
               type: "col",
               values: steps.col.values,
               cells: steps.col.cells,
-              message: t('game.hint.colHas', { col: col + 1, values: steps.col.values.join(", ") }),
+              message: t("game.hint.colHas", {
+                col: col + 1,
+                values: steps.col.values.join(", "),
+              }),
             });
           }
 
@@ -595,7 +632,11 @@ export default function GamePage() {
               type: "box",
               values: steps.box.values,
               cells: steps.box.cells,
-              message: t('game.hint.boxHas', { boxRow, boxCol, values: steps.box.values.join(", ") }),
+              message: t("game.hint.boxHas", {
+                boxRow,
+                boxCol,
+                values: steps.box.values.join(", "),
+              }),
             });
           }
 
@@ -612,7 +653,10 @@ export default function GamePage() {
             type: "result",
             values: [possibleValue],
             cells: [{ row, col }],
-            message: t('game.hint.eliminate', { values: allUsedNumbers.join(", "), value: possibleValue }),
+            message: t("game.hint.eliminate", {
+              values: allUsedNumbers.join(", "),
+              value: possibleValue,
+            }),
           });
 
           setHintData({
@@ -701,7 +745,7 @@ export default function GamePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-clean-light dark:bg-clean-dark">
         <div className="text-2xl font-semibold text-slate-800 dark:text-white">
-          {t('game.loadingGame')}
+          {t("game.loadingGame")}
         </div>
       </div>
     );
@@ -709,14 +753,14 @@ export default function GamePage() {
 
   // Difficulty options
   const difficultyOptions = [
-    { value: "easy", label: t('home.difficulty.easy'), color: "#10b981" },
-    { value: "normal", label: t('home.difficulty.normal'), color: "#f59e0b" },
-    { value: "hard", label: t('home.difficulty.hard'), color: "#ef4444" },
+    { value: "easy", label: t("home.difficulty.easy"), color: "#10b981" },
+    { value: "normal", label: t("home.difficulty.normal"), color: "#f59e0b" },
+    { value: "hard", label: t("home.difficulty.hard"), color: "#ef4444" },
   ];
 
-  const currentDifficulty = difficultyOptions.find(
-    (d) => d.value === difficulty
-  ) || difficultyOptions[0];
+  const currentDifficulty =
+    difficultyOptions.find((d) => d.value === difficulty) ||
+    difficultyOptions[0];
 
   return (
     <main className="min-h-screen bg-clean-light dark:bg-clean-dark">
@@ -770,11 +814,26 @@ export default function GamePage() {
               <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>🎮</div>
             </div>
 
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#111827", textAlign: "center", marginBottom: "0.75rem" }}>
-              {t('game.newGameConfirm.title')}
+            <h3
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "#111827",
+                textAlign: "center",
+                marginBottom: "0.75rem",
+              }}
+            >
+              {t("game.newGameConfirm.title")}
             </h3>
-            <p style={{ color: "#6b7280", textAlign: "center", marginBottom: "1.5rem", lineHeight: 1.6 }}>
-              {t('game.newGameConfirm.message')}
+            <p
+              style={{
+                color: "#6b7280",
+                textAlign: "center",
+                marginBottom: "1.5rem",
+                lineHeight: 1.6,
+              }}
+            >
+              {t("game.newGameConfirm.message")}
             </p>
 
             <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -791,7 +850,7 @@ export default function GamePage() {
                   cursor: "pointer",
                 }}
               >
-                {t('common.cancel')}
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleConfirmNewGame}
@@ -807,7 +866,7 @@ export default function GamePage() {
                   boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                 }}
               >
-                {t('common.start')}
+                {t("common.start")}
               </button>
             </div>
           </div>
@@ -841,7 +900,7 @@ export default function GamePage() {
               }}
               className="dark:text-slate-400"
             >
-              {t('game.difficulty')}
+              {t("game.difficulty")}
             </span>
             <span
               style={{
@@ -856,7 +915,7 @@ export default function GamePage() {
             >
               {currentDifficulty.label}
             </span>
-            {gameMode === 'mutating' && (
+            {gameMode === "mutating" && (
               <span
                 className="mutation-mode-badge ml-2"
                 style={{
@@ -894,13 +953,14 @@ export default function GamePage() {
               }}
               className="dark:text-slate-400"
             >
-              {t('game.mistakes')}
+              {t("game.mistakes")}
             </span>
             <span
               style={{
                 fontSize: "14px",
                 fontWeight: 600,
-                color: mistakes >= GAME_CONFIG.MAX_MISTAKES ? "#ef4444" : "#1e293b",
+                color:
+                  mistakes >= GAME_CONFIG.MAX_MISTAKES ? "#ef4444" : "#1e293b",
               }}
               className="dark:text-white"
             >
@@ -919,10 +979,10 @@ export default function GamePage() {
           />
 
           {/* Timer */}
-          <GameTimer />
+          <Timer mode="classic" gameId={gameId || undefined} />
 
           {/* Mutation Timer - only show in mutating mode */}
-          {gameMode === 'mutating' && status === GameStatus.ACTIVE && (
+          {gameMode === "mutating" && status === GameStatus.ACTIVE && (
             <>
               {/* Divider before mutation timer */}
               <div
@@ -982,7 +1042,7 @@ export default function GamePage() {
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            {t('game.newGame')}
+            {t("game.newGame")}
           </button>
 
           {/* Theme Switcher */}
@@ -1009,7 +1069,8 @@ export default function GamePage() {
                   top: "-50px",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  backgroundColor: hintCell.phase === "reveal" ? "#d1fae5" : "#fef3c7",
+                  backgroundColor:
+                    hintCell.phase === "reveal" ? "#d1fae5" : "#fef3c7",
                   color: hintCell.phase === "reveal" ? "#059669" : "#92400e",
                   padding: "8px 16px",
                   borderRadius: "8px",
@@ -1021,8 +1082,10 @@ export default function GamePage() {
                   zIndex: 10,
                 }}
               >
-                {hintCell.phase === "highlight" && t('game.hint.onlyNumber', { value: hintCell.value ?? '' })}
-                {hintCell.phase === "reveal" && t('game.hint.filled', { value: hintCell.value ?? '' })}
+                {hintCell.phase === "highlight" &&
+                  t("game.hint.onlyNumber", { value: hintCell.value ?? "" })}
+                {hintCell.phase === "reveal" &&
+                  t("game.hint.filled", { value: hintCell.value ?? "" })}
               </div>
             )}
 
@@ -1034,12 +1097,14 @@ export default function GamePage() {
                   top: "-80px",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  backgroundColor: hintData.steps[hintData.currentStep].type === "result"
-                    ? "#d1fae5"
-                    : "#fef3c7",
-                  color: hintData.steps[hintData.currentStep].type === "result"
-                    ? "#065f46"
-                    : "#92400e",
+                  backgroundColor:
+                    hintData.steps[hintData.currentStep].type === "result"
+                      ? "#d1fae5"
+                      : "#fef3c7",
+                  color:
+                    hintData.steps[hintData.currentStep].type === "result"
+                      ? "#065f46"
+                      : "#92400e",
                   padding: "12px 20px",
                   borderRadius: "12px",
                   fontSize: "14px",
@@ -1053,18 +1118,33 @@ export default function GamePage() {
                   minWidth: "280px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <span style={{ fontSize: "16px" }}>
-                    {hintData.steps[hintData.currentStep].type === "row" && "↔️"}
-                    {hintData.steps[hintData.currentStep].type === "col" && "↕️"}
-                    {hintData.steps[hintData.currentStep].type === "box" && "⬛"}
-                    {hintData.steps[hintData.currentStep].type === "result" && "✅"}
+                    {hintData.steps[hintData.currentStep].type === "row" &&
+                      "↔️"}
+                    {hintData.steps[hintData.currentStep].type === "col" &&
+                      "↕️"}
+                    {hintData.steps[hintData.currentStep].type === "box" &&
+                      "⬛"}
+                    {hintData.steps[hintData.currentStep].type === "result" &&
+                      "✅"}
                   </span>
                   <span>{hintData.steps[hintData.currentStep].message}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <span style={{ fontSize: "12px", opacity: 0.7 }}>
-                    {t('game.hint.step', { current: hintData.currentStep + 1, total: hintData.steps.length })}
+                    {t("game.hint.step", {
+                      current: hintData.currentStep + 1,
+                      total: hintData.steps.length,
+                    })}
                   </span>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
@@ -1080,7 +1160,7 @@ export default function GamePage() {
                         cursor: "pointer",
                       }}
                     >
-                      {t('common.cancel')}
+                      {t("common.cancel")}
                     </button>
                     <button
                       onClick={handleHintNextStep}
@@ -1088,16 +1168,19 @@ export default function GamePage() {
                         padding: "6px 16px",
                         borderRadius: "6px",
                         border: "none",
-                        backgroundColor: hintData.steps[hintData.currentStep].type === "result"
-                          ? "#10b981"
-                          : "#f59e0b",
+                        backgroundColor:
+                          hintData.steps[hintData.currentStep].type === "result"
+                            ? "#10b981"
+                            : "#f59e0b",
                         color: "white",
                         fontSize: "12px",
                         fontWeight: 600,
                         cursor: "pointer",
                       }}
                     >
-                      {hintData.currentStep === hintData.steps.length - 1 ? t('game.hint.fillNumber') : t('game.hint.next')}
+                      {hintData.currentStep === hintData.steps.length - 1
+                        ? t("game.hint.fillNumber")
+                        : t("game.hint.next")}
                     </button>
                   </div>
                 </div>
@@ -1114,7 +1197,8 @@ export default function GamePage() {
                 hintData
                   ? {
                       targetCell: { row: hintData.row, col: hintData.col },
-                      highlightCells: hintData.steps[hintData.currentStep].cells,
+                      highlightCells:
+                        hintData.steps[hintData.currentStep].cells,
                       stepType: hintData.steps[hintData.currentStep].type,
                     }
                   : null
@@ -1139,8 +1223,9 @@ export default function GamePage() {
           >
             {/* Number Pad 3x3 */}
             <NumberPad
+              maxNumber={9}
+              showCounts={true}
               onNumberSelect={handleNumberSelect}
-              onErase={handleErase}
               disabled={!selectedCell || status !== GameStatus.ACTIVE}
               disabledNumbers={disabledNumbers}
               numberCounts={numberCounts}
@@ -1175,7 +1260,7 @@ export default function GamePage() {
             href="/"
             className="text-sm text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
           >
-            {t('common.backToHome')}
+            {t("common.backToHome")}
           </Link>
         </div>
 

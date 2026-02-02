@@ -5,16 +5,41 @@ import { useGameStore, GameStatus } from "@/store/game";
 import { socketService } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/lib/constants";
 
-export function GameTimer() {
-  const { id: gameId, timeElapsed, status, updateTime } = useGameStore();
-  const [displayTime, setDisplayTime] = useState(timeElapsed);
-  const displayTimeRef = useRef(timeElapsed);
-  const lastSyncedTimeRef = useRef(timeElapsed);
+interface TimerProps {
+  /** Mode determines behavior: classic auto-syncs with backend, tripod uses local state */
+  mode: "classic" | "tripod";
+  /** Game ID for classic mode socket sync */
+  gameId?: string;
+  /** Elapsed time in seconds (for tripod mode - controlled component) */
+  elapsedTime?: number;
+  /** Whether timer is paused (for tripod mode) */
+  isPaused?: boolean;
+}
+
+export function Timer({
+  mode,
+  gameId,
+  elapsedTime = 0,
+  isPaused = false,
+}: TimerProps) {
+  // Classic mode: use game store and auto-increment
+  const classicGameStore = useGameStore();
+  const classicTimeElapsed = classicGameStore.timeElapsed;
+  const classicStatus = classicGameStore.status;
+  const updateTime = classicGameStore.updateTime;
+
+  const [displayTime, setDisplayTime] = useState(
+    mode === "classic" ? classicTimeElapsed : elapsedTime,
+  );
+  const displayTimeRef = useRef(displayTime);
+  const lastSyncedTimeRef = useRef(displayTime);
   const prevGameIdRef = useRef(gameId);
   const justResetRef = useRef(false);
 
-  // Reset timer when gameId changes (new game created)
+  // Reset timer when gameId changes (new game created) - classic mode only
   useEffect(() => {
+    if (mode !== "classic") return;
+
     if (gameId !== prevGameIdRef.current) {
       // New game detected, reset everything
       setDisplayTime(0);
@@ -30,46 +55,56 @@ export function GameTimer() {
         justResetRef.current = false;
       }, 100);
     }
-  }, [gameId, updateTime]);
+  }, [gameId, updateTime, mode]);
 
-  // Sync displayTime with timeElapsed when it changes (e.g., after hydration)
+  // Sync displayTime with timeElapsed when it changes (classic mode - after hydration)
   useEffect(() => {
+    if (mode !== "classic") return;
+
     // Skip sync if we just reset for a new game (to prevent old time from overriding)
     if (justResetRef.current) {
       return;
     }
-    setDisplayTime(timeElapsed);
-    displayTimeRef.current = timeElapsed;
-  }, [timeElapsed]);
+    setDisplayTime(classicTimeElapsed);
+    displayTimeRef.current = classicTimeElapsed;
+  }, [classicTimeElapsed, mode]);
+
+  // For tripod mode: sync with controlled elapsedTime prop
+  useEffect(() => {
+    if (mode === "tripod") {
+      setDisplayTime(elapsedTime);
+      displayTimeRef.current = elapsedTime;
+    }
+  }, [elapsedTime, mode]);
 
   // Update ref whenever displayTime changes
   useEffect(() => {
     displayTimeRef.current = displayTime;
   }, [displayTime]);
 
-  // Timer interval - restart when gameId changes (new game)
+  // Timer interval - classic mode only
   useEffect(() => {
-    if (status !== GameStatus.ACTIVE) return;
+    if (mode !== "classic") return;
+    if (classicStatus !== GameStatus.ACTIVE) return;
 
-    // Reset displayTime to 0 at the start of a new game interval
-    // This ensures the timer starts fresh when gameId changes
     const interval = setInterval(() => {
       setDisplayTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [status, gameId]); // Add gameId to restart interval on new game
+  }, [classicStatus, gameId, mode]);
 
-  // Periodic sync to store AND backend (every 5 seconds)
+  // Periodic sync to store AND backend (every 5 seconds) - classic mode only
   useEffect(() => {
-    if (status !== GameStatus.ACTIVE) return;
+    if (mode !== "classic") return;
+    if (classicStatus !== GameStatus.ACTIVE) return;
 
     const syncInterval = setInterval(() => {
       queueMicrotask(() => {
         const currentTime = displayTimeRef.current;
 
         // Sync to local store
-        if (currentTime !== timeElapsed) {
+        if (currentTime !== classicTimeElapsed) {
           updateTime(currentTime);
         }
 
@@ -85,10 +120,12 @@ export function GameTimer() {
     }, 5000); // Sync every 5 seconds
 
     return () => clearInterval(syncInterval);
-  }, [status, updateTime, timeElapsed, gameId]);
+  }, [classicStatus, updateTime, classicTimeElapsed, gameId, mode]);
 
-  // Sync to store and backend before page unload (F5, close tab, navigation)
+  // Sync to store and backend before page unload - classic mode only
   useEffect(() => {
+    if (mode !== "classic") return;
+
     const handleBeforeUnload = () => {
       const currentTime = displayTimeRef.current;
 
@@ -111,7 +148,7 @@ export function GameTimer() {
       handleBeforeUnload();
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [updateTime, gameId]);
+  }, [updateTime, gameId, mode]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

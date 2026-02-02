@@ -27,7 +27,9 @@
       "classic": "Cổ điển",
       "classicDesc": "Trải nghiệm Sudoku truyền thống",
       "mutating": "Đột biến",
-      "mutatingDesc": "Ô sẽ biến mất mỗi 30 giây!"
+      "mutatingDesc": "Ô sẽ biến mất mỗi 30 giây!",
+      "tripod": "Tripod Sudoku",
+      "tripodDesc": "Lưới 7×7, vẽ vùng"
     },
     "activeMatch": {
       "title": "Trận đấu đang diễn ra!",
@@ -348,5 +350,23 @@
     "surrenderWarning": "Bạn sẽ thua trận đấu này và mất điểm ELO. Bạn có chắc chắn muốn đầu hàng không?",
     "confirmSurrender": "Có, đầu hàng",
     "cancel": "Hủy"
+  },
+  "tripod": {
+    "title": "Tripod Sudoku",
+    "regions": "Vùng",
+    "newPuzzle": "Câu đố mới",
+    "instructions": {
+      "title": "Cách chơi Tripod Sudoku:",
+      "rule1": "Điền mỗi hàng, cột và vùng với các số từ 1-{gridSize}",
+      "rule2": "Vẽ đường viền vùng bằng cách chuyển sang chế độ Đường viền (nhấn B hoặc Space)",
+      "rule3": "Mỗi vùng phải chứa chính xác {gridSize} ô",
+      "rule4": "🔺 Các chấm Tripod đánh dấu vị trí đúng 3 đường viền phải gặp nhau",
+      "rule5": "Không cho phép giao điểm 4 đường!"
+    },
+    "difficulty": {
+      "easy": "Dễ",
+      "medium": "Trung bình",
+      "hard": "Khó"
+    }
   }
 }

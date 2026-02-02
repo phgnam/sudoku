@@ -6,9 +6,13 @@ import { SudokuValidatorService } from './services/sudoku-validator.service';
 import { HintService } from './services/hint.service';
 import { MutationService } from './services/mutation.service';
 import { GameController } from './game.controller';
+import { PuzzleModule } from '../puzzle/puzzle.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Game, User, Puzzle, GameHistory])],
+  imports: [
+    TypeOrmModule.forFeature([Game, User, Puzzle, GameHistory]),
+    PuzzleModule,
+  ],
   controllers: [GameController],
   providers: [GameService, SudokuValidatorService, HintService, MutationService],
   exports: [GameService, MutationService],

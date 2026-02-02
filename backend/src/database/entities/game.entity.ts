@@ -20,6 +20,7 @@ export enum GameStatus {
 export enum GameMode {
   CLASSIC = 'classic',
   MUTATING = 'mutating',
+  TRIPOD = 'tripod',
 }
 
 export interface Move {
@@ -33,6 +34,16 @@ export interface Move {
 export interface HintedCell {
   row: number;
   col: number;
+}
+
+export interface TripodData {
+  tripodDots: boolean[][]; // (gridSize+1)×(gridSize+1) vertex grid
+  horizontalBorders: boolean[][]; // (gridSize+1) × gridSize
+  verticalBorders: boolean[][]; // gridSize × (gridSize+1)
+  solutionBorders?: {
+    horizontal: boolean[][];
+    vertical: boolean[][];
+  };
 }
 
 @Entity('games')
@@ -102,4 +113,10 @@ export class Game {
 
   @Column({ type: 'datetime', nullable: true })
   lastMutationAt: Date | null;
+
+  @Column({ default: 9 })
+  gridSize: number; // 7 for tripod, 9 for classic
+
+  @Column({ type: 'simple-json', nullable: true })
+  tripodData: TripodData | null;
 }

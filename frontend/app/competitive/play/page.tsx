@@ -21,7 +21,7 @@ function clearActiveMatch() {
   }
 }
 import { SudokuGrid } from "@/components/game/SudokuGrid";
-import { NumberPad } from "@/components/game/NumberPad";
+import { NumberPad } from "@/components/shared";
 import {
   CompetitiveTimer,
   OpponentProgressBar,
@@ -543,7 +543,9 @@ export default function CompetitivePlayPage() {
                   color: isDark ? "#fcd34d" : "#92400e",
                 }}
               >
-                {t("game.opponentDisconnected", { seconds: disconnectCountdown })}
+                {t("game.opponentDisconnected", {
+                  seconds: disconnectCountdown,
+                })}
               </span>
             </div>
           </div>
@@ -614,8 +616,9 @@ export default function CompetitivePlayPage() {
             }}
           >
             <NumberPad
+              maxNumber={9}
+              showCounts={true}
               onNumberSelect={handleNumberSelect}
-              onErase={handleErase}
               disabled={!selectedCell || status !== "playing"}
               disabledNumbers={disabledNumbers}
               numberCounts={numberCounts}
@@ -724,7 +727,9 @@ export default function CompetitivePlayPage() {
               {t("surrenderWarning") ||
                 "You will lose this match and your ELO rating will decrease. Are you sure?"}
             </p>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <div
+              style={{ display: "flex", gap: "12px", justifyContent: "center" }}
+            >
               <button
                 onClick={() => setShowSurrenderConfirm(false)}
                 style={{
