@@ -1,4 +1,5 @@
 # Code Review Report: Timer & Statistics + Backend API
+
 **Date:** 2025-01-17  
 **Reviewer:** Code Review Agent  
 **Category:** Timer & Statistics + Backend API
@@ -6,7 +7,9 @@
 ## Code Review Summary
 
 ### Scope
+
 **Files reviewed:**
+
 - `frontend/components/game/tripod/TripodTimer.tsx` (117 lines)
 - `frontend/store/game.ts` (551 lines, focus lines 465-501)
 - `frontend/types/tripod.ts` (95 lines)
@@ -24,12 +27,14 @@
 **Code quality:** Good foundation with proper TypeScript typing and transaction support. However, critical issues identified in timer logic, stats persistence, DTO validation, and null safety.
 
 **Architecture strengths:**
+
 - Proper use of Zustand persist middleware
 - Transaction-based operations for race condition prevention
 - Optimistic locking with version fields
 - Clean separation between frontend state and backend entities
 
 **Critical gaps:**
+
 - Timer not stopped on completion (#32)
 - No race condition guards on pause/resume (#33)
 - Stats excluded from persistence (#37)
@@ -48,6 +53,7 @@
 **Problem:** Timer interval continues running even after game completes. No check for completion status.
 
 **Current code:**
+
 ```tsx
 useEffect(() => {
   if (isPaused || isTimerPaused || !startTime) {
@@ -65,6 +71,7 @@ useEffect(() => {
 **Issue:** Missing `status` dependency and completion check.
 
 **Fix:**
+
 ```tsx
 const status = useGameStore((state) => state.status);
 
@@ -77,7 +84,7 @@ useEffect(() => {
     }
     return;
   }
-  
+
   if (isPaused || isTimerPaused || !startTime) {
     // ...existing code...
   }
@@ -95,12 +102,14 @@ useEffect(() => {
 **Problem:** Multiple rapid pause/resume clicks can cause negative time or incorrect `totalPausedDuration`.
 
 **Race scenario:**
+
 1. User clicks pause → `pausedAt = 1000`
 2. User clicks resume quickly → calculates `pauseDuration = now - 1000`
 3. User clicks pause again before state updates → `pausedAt` still `1000` (stale)
 4. Resume again → adds same pause duration twice
 
 **Current code (vulnerable):**
+
 ```typescript
 pauseTripodTimer: () => set((state) => ({
   tripod: state.tripod ? {
@@ -125,6 +134,7 @@ resumeTripodTimer: () => set((state) => {
 ```
 
 **Fix:** Add guard to prevent duplicate pauses:
+
 ```typescript
 pauseTripodTimer: () => set((state) => {
   if (!state.tripod || state.tripod.isTimerPaused) return state; // Already paused
@@ -166,6 +176,7 @@ resumeTripodTimer: () => set((state) => {
 **Scenario:** If user resumes before calling `startTripodTimer`, timer will be in invalid state.
 
 **Fix:** Add validation:
+
 ```typescript
 resumeTripodTimer: () => set((state) => {
   if (!state.tripod || !state.tripod.isTimerPaused) return state;
@@ -185,14 +196,15 @@ resumeTripodTimer: () => set((state) => {
 **Current:** No bounds checking on pause duration.
 
 **Fix:** Add overflow protection:
+
 ```typescript
 const pauseDuration = Math.min(
   Date.now() - state.tripod.pausedAt,
-  Number.MAX_SAFE_INTEGER - state.tripod.totalPausedDuration
+  Number.MAX_SAFE_INTEGER - state.tripod.totalPausedDuration,
 );
 ```
 
-**Note:** Low priority - edge case requires >292 million years of paused time.
+**Note:** Low priority - edge case requires ~285,000 years of paused time.
 
 ---
 
@@ -203,14 +215,12 @@ const pauseDuration = Math.min(
 **Problem:** `bordersPlaced`, `bordersRemoved` can theoretically reach `Number.MAX_SAFE_INTEGER`.
 
 **Fix:** Add bounds check:
+
 ```typescript
-const statKey = currentValue ? 'bordersRemoved' : 'bordersPlaced';
+const statKey = currentValue ? "bordersRemoved" : "bordersPlaced";
 newTripod.stats = {
   ...state.tripod.stats,
-  [statKey]: Math.min(
-    state.tripod.stats[statKey] + 1,
-    Number.MAX_SAFE_INTEGER
-  ),
+  [statKey]: Math.min(state.tripod.stats[statKey] + 1, Number.MAX_SAFE_INTEGER),
 };
 ```
 
@@ -223,38 +233,38 @@ newTripod.stats = {
 **Location:** `frontend/store/game.ts` (line 528)
 
 **Problem:** Zustand persist config doesn't explicitly handle `tripod.stats` persistence. Stats reset on page refresh.
+**Observation:** Zustand persist without `partialize` persists the entire state, so `tripod.stats` should persist unless explicitly omitted. If stats reset, verify serialization/hydration or a custom `partialize` elsewhere.
 
 **Current persistence:**
+
 ```typescript
-persist(
-  (set) => ({ ...storeImplementation }),
-  {
-    name: "sudoku-game-storage",
-    // No explicit partialize - persists entire state
-  }
-)
+persist((set) => ({ ...storeImplementation }), {
+  name: "sudoku-game-storage",
+  // No explicit partialize - persists entire state
+});
 ```
 
 **Verification needed:** Check if `tripod.stats` survives:
+
 1. Toggle borders → increment `bordersPlaced`
 2. Refresh page
 3. Check if `bordersPlaced` reset to 0
 
 **Fix (if needed):** Explicitly configure persistence:
+
 ```typescript
-persist(
-  (set) => ({ ...storeImplementation }),
-  {
-    name: "sudoku-game-storage",
-    partialize: (state) => ({
-      ...state,
-      tripod: state.tripod ? {
-        ...state.tripod,
-        stats: state.tripod.stats, // Ensure stats included
-      } : null,
-    }),
-  }
-)
+persist((set) => ({ ...storeImplementation }), {
+  name: "sudoku-game-storage",
+  partialize: (state) => ({
+    ...state,
+    tripod: state.tripod
+      ? {
+          ...state.tripod,
+          stats: state.tripod.stats, // Ensure stats included
+        }
+      : null,
+  }),
+});
 ```
 
 **Impact:** User stats lost on refresh, poor UX
@@ -289,6 +299,7 @@ persist(
    - ❌ No cell value range checks (0-9)
 
 **Fix for CreateTripodGameDto:**
+
 ```typescript
 export class CreateTripodGameDto {
   @ApiPropertyOptional()
@@ -301,26 +312,27 @@ export class CreateTripodGameDto {
   @IsNumber()
   @Min(7)
   @Max(9)
-  @IsIn([7, 8, 9])  // Only 7x7, 8x8, 9x9 supported
+  @IsIn([7, 8, 9]) // Only 7x7, 8x8, 9x9 supported
   gridSize?: number;
 }
 ```
 
 **Fix for ToggleBorderDto:**
+
 ```typescript
 export class ToggleBorderDto {
   @ApiProperty()
-  @IsEnum(['horizontal', 'vertical'])
-  type: 'horizontal' | 'vertical';
+  @IsEnum(["horizontal", "vertical"])
+  type: "horizontal" | "vertical";
 
   @ApiProperty()
   @IsNumber()
-  @Min(0)  // ✅ Add bounds
+  @Min(0) // ✅ Add bounds
   row: number;
 
   @ApiProperty()
   @IsNumber()
-  @Min(0)  // ✅ Add bounds
+  @Min(0) // ✅ Add bounds
   col: number;
 }
 ```
@@ -336,31 +348,37 @@ export class ToggleBorderDto {
 **Problem:** `tripodData` marked `nullable: true` but service requires it for tripod games.
 
 **Current schema:**
+
 ```typescript
 @Column({ type: 'simple-json', nullable: true })
 tripodData: TripodData | null;
 ```
 
 **Issue in service (line 715-717):**
+
 ```typescript
 game.tripodData = {
-  ...game.tripodData,  // ⚠️ Spreading null causes runtime error
-  tripodDots: game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
+  ...game.tripodData, // ⚠️ Spreading null causes runtime error
+  tripodDots:
+    game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
   // ...
 };
 ```
 
 **Fix:** Add null check before spreading:
+
 ```typescript
 game.tripodData = {
-  ...(game.tripodData || {}),  // ✅ Safe spread
-  tripodDots: game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
+  ...(game.tripodData || {}), // ✅ Safe spread
+  tripodDots:
+    game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
   horizontalBorders: borders.horizontal,
   verticalBorders: borders.vertical,
 };
 ```
 
 **Alternative:** Make tripodData non-null for tripod games with validation:
+
 ```typescript
 async updateTripodBorders(gameId: string, borders: {...}): Promise<Game> {
   const game = await this.gameRepository.findOne({ where: { id: gameId } });
@@ -380,21 +398,24 @@ async updateTripodBorders(gameId: string, borders: {...}): Promise<Game> {
 **Problem:** Service exceptions not caught in some endpoints.
 
 **Example - toggleBorder (lines 330-332):**
+
 ```typescript
 async toggleBorder(@Param('id') id: string, @Body() dto: ToggleBorderDto) {
   return this.gameService.toggleTripodBorder(id, dto.type, dto.row, dto.col);
-  // ⚠️ If service throws, NestJS returns 500 instead of proper status code
+  // ⚠️ If service throws, NestJS will return the mapped exception (404/400). Explicit try-catch allows custom logging if needed.
 }
 ```
 
 **Service throws (lines 786-792):**
+
 ```typescript
 if (!game.tripodData.horizontalBorders[row]) {
-  throw new BadRequestException('Invalid border position');
+  throw new BadRequestException("Invalid border position");
 }
 ```
 
 **Fix:** Add try-catch for better error context:
+
 ```typescript
 async toggleBorder(@Param('id') id: string, @Body() dto: ToggleBorderDto) {
   try {
@@ -419,12 +440,14 @@ async toggleBorder(@Param('id') id: string, @Body() dto: ToggleBorderDto) {
 **Problem:** `updateTripodBorders` and `toggleTripodBorder` don't use optimistic locking.
 
 **Race condition scenario:**
+
 1. Client A fetches game (version: 1)
 2. Client B fetches game (version: 1)
 3. Client A updates borders → version: 2
 4. Client B updates borders → overwrites A's changes ❌
 
 **Current code (vulnerable):**
+
 ```typescript
 async updateTripodBorders(gameId: string, borders: {...}): Promise<Game> {
   const game = await this.gameRepository.findOne({ where: { id: gameId } });
@@ -435,6 +458,7 @@ async updateTripodBorders(gameId: string, borders: {...}): Promise<Game> {
 ```
 
 **Fix:** Use version column (already exists in entity):
+
 ```typescript
 async updateTripodBorders(
   gameId: string,
@@ -477,6 +501,7 @@ async updateTripodBorders(
 **Problem:** No validation that `gridSize` is within valid range (7-9).
 
 **Current code:**
+
 ```typescript
 async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> {
   const gridSize = dto.gridSize || 7;  // ⚠️ No validation
@@ -488,6 +513,7 @@ async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> 
 ```
 
 **Fix:** Add validation:
+
 ```typescript
 async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> {
   const gridSize = dto.gridSize || 7;
@@ -503,6 +529,7 @@ async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> 
 ```
 
 **Also add to DTO (see Issue #38):**
+
 ```typescript
 @IsIn([7, 8, 9])
 gridSize?: number;
@@ -519,6 +546,7 @@ gridSize?: number;
 **Problem:** `validateTripodGame` doesn't handle null cells/borders gracefully.
 
 **Current code:**
+
 ```typescript
 async validateTripodGame(gameId: string): Promise<{...}> {
   const game = await this.gameRepository.findOne({ where: { id: gameId } });
@@ -544,6 +572,7 @@ async validateTripodGame(gameId: string): Promise<{...}> {
 ```
 
 **Fix:** Add comprehensive null checks:
+
 ```typescript
 async validateTripodGame(gameId: string): Promise<{...}> {
   const game = await this.gameRepository.findOne({ where: { id: gameId } });
@@ -587,4 +616,3 @@ async validateTripodGame(gameId: string): Promise<{...}> {
 ## Medium Priority Improvements
 
 ### Timer Edge Cases
-

@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Reviewed 4 files for 5 critical edge cases in Tripod state initialization. Found **2 CRITICAL** unhandled cases, **1 HIGH** severity issue, and **2 MEDIUM** partial implementations.
+Reviewed 4 files for 5 critical edge cases in Tripod state initialization. Found **2 CRITICAL** unhandled cases, **1 HIGH** severity issue, and **1 MEDIUM** partial implementation.
 
 **Overall Risk:** 🔴 **HIGH** - App crashes possible in production from race conditions.
 
@@ -18,6 +18,7 @@ Reviewed 4 files for 5 critical edge cases in Tripod state initialization. Found
 ## Scope
 
 **Files Reviewed:**
+
 - `frontend/store/game.ts` (551 lines) - lines 147-148, 285-311
 - `frontend/app/tripod/page.tsx` (676 lines) - lines 119-149
 - `frontend/hooks/useTripodValidation.ts` (158 lines) - lines 94-156
@@ -38,6 +39,7 @@ Reviewed 4 files for 5 critical edge cases in Tripod state initialization. Found
 Tripod state accessed before Zustand persistence rehydration completes. Game store has `_hasHydrated` tracking, but auth hydration check doesn't prevent race with game store.
 
 **Evidence:**
+
 ```typescript
 // page.tsx:119-120 - Only checks authHydrated
 useEffect(() => {
@@ -45,16 +47,19 @@ useEffect(() => {
 ```
 
 **Missing Protection:**
+
 - No `gameStoreHydrated` check before accessing `tripod` state
 - `useGameStore.persist.hasHydrated()` not used
 - Lines 152-157 access `tripod?.tripodDots ?? []` before hydration guaranteed
 
-**Impact:**  
+**Impact:**
+
 - Empty arrays passed to validation causing false positives
 - Vertex validation runs with stale/default data
 - Users see "Loading..." flash then incorrect validation errors
 
 **Recommended Fix:**
+
 ```typescript
 const { _hasHydrated: gameHydrated } = useGameStore();
 useEffect(() => {
@@ -68,6 +73,7 @@ useEffect(() => {
 **Status:** ⚠️ **PARTIAL** | **Severity:** 🟡 **MEDIUM**
 
 **Handled:**
+
 ```typescript
 // page.tsx:237 - Guards render
 if (!isInitialized || !tripod) {
@@ -76,22 +82,25 @@ if (!isInitialized || !tripod) {
 ```
 
 **Unhandled:**
+
 ```typescript
 // page.tsx:152-158 - useTripodValidation called BEFORE guard
 const { regions, validateAll } = useTripodValidation({
-  tripodDots: tripod?.tripodDots ?? [],  // Empty array if null!
+  tripodDots: tripod?.tripodDots ?? [], // Empty array if null!
 });
 ```
 
 **Issue:**  
 Hook instantiated with empty fallbacks before tripod initialized. Validation runs with wrong grid dimensions during first render.
 
-**Impact:**  
+**Impact:**
+
 - Validation errors calculated incorrectly on mount
 - `regions` computed with gridSize=7 default vs actual puzzle size
 - Edge case: 9x9 puzzle with 7x7 validation
 
 **Fix Needed:**
+
 ```typescript
 // Defer validation hook until tripod exists
 if (!tripod) return <div>Loading...</div>;
@@ -110,6 +119,7 @@ const { regions, validateAll } = useTripodValidation({
 **Status:** ✅ **HANDLED** | **Severity:** 🟢 **LOW**
 
 **Evidence:**
+
 ```typescript
 // game.ts:289-290 - Correct dimensions
 horizontalBorders: Array(gridSize + 1).fill(null).map(() => Array(gridSize).fill(false)),
@@ -121,6 +131,7 @@ const vertical = Array(gridSize).fill(null).map(() => Array(gridSize + 1).fill(f
 ```
 
 **Validation:**
+
 - Frontend/backend alignment verified
 - tripodDots: `(gridSize+1) × (gridSize+1)` matches vertex grid
 - Horizontal: `(gridSize+1) rows × gridSize cols` ✅
@@ -136,6 +147,7 @@ Dimension logic consistent across codebase. Comments document intent clearly.
 **Status:** ⚠️ **PARTIAL** | **Severity:** 🟠 **HIGH**
 
 **Handled:**
+
 ```typescript
 // page.tsx:120 - isInitialized guard
 if (!authHydrated || isInitialized || !currentPuzzle) return;
@@ -145,6 +157,7 @@ requestAnimationFrame(() => setIsInitialized(true));
 ```
 
 **Unhandled:**
+
 ```typescript
 // page.tsx:141-148 - Dependency array includes store selectors
 }, [
@@ -162,17 +175,20 @@ requestAnimationFrame(() => setIsInitialized(true));
 Store selectors create new function refs each render. If Zustand doesn't stabilize refs, effect reruns despite `isInitialized` guard.
 
 **Potential Race:**
+
 1. Effect runs, sets `isInitialized=false` via `requestAnimationFrame`
 2. Before RAF callback, function ref changes
 3. Effect reruns, calls `initTripodState` again
 4. Timer started twice, cells duplicated
 
 **Impact:**
+
 - Stats counters reset mid-game
 - Border history cleared unexpectedly
 - Multiple timers running concurrently
 
 **Fix Needed:**
+
 ```typescript
 // Use refs for stable dependencies
 const initTripodStateRef = useRef(initTripodState);
@@ -197,6 +213,7 @@ useEffect(() => {
 Vertex validation crashes if `tripodDots` undefined/malformed.
 
 **Evidence:**
+
 ```typescript
 // useTripodValidation.ts:107 - No bounds check before access
 const validation = validateVertex(r, c, borders, tripodDots, gridSize);
@@ -206,11 +223,13 @@ const hasDot = tripodDots[vRow]?.[vCol] ?? false;
 ```
 
 **Missing Validation:**
+
 - No check `tripodDots.length === gridSize + 1`
 - No check each row `tripodDots[i].length === gridSize + 1`
 - Empty array `[]` passes through, causes out-of-bounds
 
 **Crash Scenario:**
+
 ```typescript
 // If tripodDots = []
 validateVertex(0, 0, borders, [], 7);
@@ -219,11 +238,13 @@ validateVertex(0, 0, borders, [], 7);
 ```
 
 **Impact:**
+
 - `TypeError: Cannot read property '0' of undefined` in production
 - Validation fails silently with empty arrays
 - Puzzle data corruption not detected
 
 **Recommended Fix:**
+
 ```typescript
 // useTripodValidation.ts - Add validation
 export function useTripodValidation({ gridSize, cells, tripodDots, ... }) {
@@ -279,7 +300,9 @@ export function useTripodValidation({ gridSize, cells, tripodDots, ... }) {
 ## Recommended Actions
 
 ### Immediate (P0)
+
 1. **Add game store hydration check** (5 min)
+
    ```diff
    + const { _hasHydrated: gameHydrated } = useGameStore();
      useEffect(() => {
@@ -292,6 +315,7 @@ export function useTripodValidation({ gridSize, cells, tripodDots, ... }) {
    - Return safe fallback if invalid
 
 ### High Priority (P1)
+
 3. **Stabilize useEffect dependencies** (10 min)
    - Remove function refs from dependency array
    - Use `useRef` pattern or empty deps with manual checks
@@ -300,6 +324,7 @@ export function useTripodValidation({ gridSize, cells, tripodDots, ... }) {
    - Early return before calling `useTripodValidation`
 
 ### Testing Recommendations
+
 - **E2E test:** Clear localStorage, reload page, verify no crashes
 - **Unit test:** Call `validateVertex` with `tripodDots: []`
 - **Integration test:** Simulate slow network, verify hydration order
@@ -337,4 +362,3 @@ export function useTripodValidation({ gridSize, cells, tripodDots, ... }) {
 **Report Generated:** 2025-01-17
 **Next Review:** After P0 fixes implemented
 **Reviewer:** Code Review Agent v4.5
-

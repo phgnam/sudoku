@@ -16,7 +16,7 @@ sudoku/
 │   │   │   ├── decorators/current-user.decorator.ts
 │   │   │   └── dto/auth.dto.ts
 │   │   ├── game/                # Single-player logic
-│   │   │   ├── game.controller.ts    # 8 endpoints
+│   │   │   ├── game.controller.ts    # 12 endpoints
 │   │   │   ├── services/
 │   │   │   │   ├── game.service.ts           # CRUD + moves + completion
 │   │   │   │   ├── sudoku-validator.service.ts # Row/col/box validation
@@ -91,7 +91,7 @@ sudoku/
 │   │   ├── constants.ts        # Game config, socket events, themes
 │   │   ├── sounds.ts           # Web Audio synthesis (5 effects)
 │   │   ├── match-storage.ts    # localStorage for reconnection
-│   │   └── __tests__/          # 42 Vitest tests
+│   │   └── __tests__/          # Vitest tests
 │   ├── types/                   # tripod.ts, leaderboard.ts
 │   ├── data/                    # tripod-puzzles.ts (3 sample puzzles)
 │   ├── i18n/                    # next-intl config
@@ -171,16 +171,16 @@ See [API Specification](./api-specification.md) for full request/response detail
 
 ## Tech Stack
 
-| Layer           | Technology               | Version |
-| --------------- | ------------------------ | ------- |
-| Backend         | NestJS                   | 11      |
-| Frontend        | Next.js (App Router)     | 16      |
-| Language        | TypeScript               | 5.x     |
-| Database        | SQLite + TypeORM         | -       |
-| Real-time       | Socket.io                | 4.x     |
-| State           | Zustand                  | 5.x     |
-| Styling         | Tailwind CSS             | 4       |
-| Auth            | JWT + bcrypt + Passport  | -       |
-| i18n            | next-intl / nestjs-i18n  | -       |
-| Testing         | Jest, Vitest, Playwright | -       |
-| Package Manager | pnpm                     | -       |
+| Layer           | Technology                     | Version |
+| --------------- | ------------------------------ | ------- |
+| Backend         | NestJS                         | 11      |
+| Frontend        | Next.js (App Router)           | 16      |
+| Language        | TypeScript                     | 5.x     |
+| Database        | SQLite + TypeORM               | -       |
+| Real-time       | Socket.io                      | 4.x     |
+| State           | Zustand                        | 5.x     |
+| Styling         | Tailwind CSS                   | 4       |
+| Auth            | JWT + bcrypt + Passport        | -       |
+| i18n            | next-intl / nestjs-i18n        | -       |
+| Testing         | Jest, Vitest, Playwright       | -       |
+| Package Manager | pnpm (Frontend), npm (Backend) | -       |
