@@ -122,11 +122,14 @@ export class TripodPuzzleService {
     const queue: Array<{ row: number; col: number }> = [
       { row: startR, col: startC },
     ];
+    // Mark start node as visited immediately
+    visited[startR][startC] = true;
+
     const cells: Array<{ row: number; col: number }> = [];
     let iterations = 0;
 
     while (queue.length > 0) {
-      // Prevent infinite loops
+      // Prevent infinite loops (should strictly be <= gridSize^2 with visited set)
       if (++iterations > this.MAX_BFS_ITERATIONS) {
         throw new Error(
           `BFS exceeded maximum iterations (${this.MAX_BFS_ITERATIONS}). Possible infinite loop detected.`,
@@ -134,47 +137,31 @@ export class TripodPuzzleService {
       }
 
       const { row, col } = queue.shift()!;
-
-      // Bounds check
-      if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
-        continue;
-      }
-      if (visited[row]?.[col]) continue;
-
-      visited[row][col] = true;
       cells.push({ row, col });
 
+      // Helper to enqueue if valid and not visited
+      const checkAndEnqueue = (r: number, c: number) => {
+        if (!visited[r]?.[c]) {
+          visited[r][c] = true; // Mark visited immediately
+          queue.push({ row: r, col: c });
+        }
+      };
+
       // Up: check horizontal border at [row][col]
-      if (
-        row > 0 &&
-        !borders.horizontal[row]?.[col] &&
-        !visited[row - 1]?.[col]
-      ) {
-        queue.push({ row: row - 1, col });
+      if (row > 0 && !borders.horizontal[row]?.[col]) {
+        checkAndEnqueue(row - 1, col);
       }
       // Down: check horizontal border at [row + 1][col]
-      if (
-        row < gridSize - 1 &&
-        !borders.horizontal[row + 1]?.[col] &&
-        !visited[row + 1]?.[col]
-      ) {
-        queue.push({ row: row + 1, col });
+      if (row < gridSize - 1 && !borders.horizontal[row + 1]?.[col]) {
+        checkAndEnqueue(row + 1, col);
       }
       // Left: check vertical border at [row][col]
-      if (
-        col > 0 &&
-        !borders.vertical[row]?.[col] &&
-        !visited[row]?.[col - 1]
-      ) {
-        queue.push({ row, col: col - 1 });
+      if (col > 0 && !borders.vertical[row]?.[col]) {
+        checkAndEnqueue(row, col - 1);
       }
       // Right: check vertical border at [row][col + 1]
-      if (
-        col < gridSize - 1 &&
-        !borders.vertical[row]?.[col + 1] &&
-        !visited[row]?.[col + 1]
-      ) {
-        queue.push({ row, col: col + 1 });
+      if (col < gridSize - 1 && !borders.vertical[row]?.[col + 1]) {
+        checkAndEnqueue(row, col + 1);
       }
     }
 

@@ -97,6 +97,7 @@ export function useTripodInput({
           e.key === "Delete" ||
           e.key === "Backspace"
         ) {
+          e.preventDefault();
           return; // Silently ignore, mode toggle handles feedback
         }
       }

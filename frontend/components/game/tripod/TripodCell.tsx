@@ -43,16 +43,31 @@ export function TripodCell({
 
   // Detect when a new number is entered
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let animFrame: number | null = null;
+
     if (value !== 0 && prevValueRef.current !== value && !isGiven) {
-      // Use requestAnimationFrame to avoid synchronous setState in useEffect
-      requestAnimationFrame(() => {
+      animFrame = requestAnimationFrame(() => {
         setIsAnimating(true);
-        const timer = setTimeout(() => setIsAnimating(false), 250);
-        return () => clearTimeout(timer);
+        timer = setTimeout(() => setIsAnimating(false), 250);
       });
     }
-    prevValueRef.current = value;
+
+    // Cleanup function
+    return () => {
+      if (animFrame !== null) {
+        cancelAnimationFrame(animFrame);
+      }
+      if (timer !== null) {
+        clearTimeout(timer);
+      }
+    };
   }, [value, isGiven]);
+
+  // Update prevValueRef after the effect has run and potentially used the old value
+  useEffect(() => {
+    prevValueRef.current = value;
+  }, [value]);
 
   // Clean up touch timeout on unmount
   useEffect(() => {
