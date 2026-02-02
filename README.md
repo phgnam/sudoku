@@ -1,304 +1,150 @@
 # Sudoku Game - Premium Real-time Multiplayer
 
-> **Status**: ✅ **MVP Complete & Playable** (Jan 20, 2026)
+A premium, mobile-first Sudoku game with real-time multiplayer, ELO ranking, and multiple game modes. Built with NestJS and Next.js.
 
-A premium, mobile-first Sudoku game with real-time synchronization across devices, built with NestJS and Next.js.
+**Status:** Phase 3 (Polish & Features) In Progress
 
-## 🎮 Current Features (Live)
+## Features
 
-### Core Gameplay ✅
+### 3 Game Modes
+- **Classic Sudoku** - 9x9 grid, 3 difficulties, hints, notes, undo/redo
+- **Mutating Mode** - Classic rules + cells randomly clear every 30 seconds
+- **Tripod Puzzle** - 7x7 grid with border-drawing mechanics and tripod constraints
 
-- **3 Difficulty Levels**: Easy, Normal, Hard with progressive unlocking
-- **1200 Pre-generated Puzzles**: 400 puzzles per difficulty level
-- **Smart Hint System**: 3 types of hints
-  - Reveal Cell: Show correct answer for a random cell
-  - Show Conflicts: Highlight duplicate numbers
-  - Highlight Suggestion: Point to cells with only one possibility
-- **Undo/Redo**: Full move history with unlimited undo
-- **Mistake Counter**: Game over after 3 mistakes
-- **Timer**: Track your solve time
+### Competitive Multiplayer
+- 1v1 real-time matches with shared puzzles
+- ELO rating system with matchmaking
+- Spectator mode for live matches
+- Rematch and reconnection support
 
-### User Features ✅
+### Platform
+- Mobile-first responsive design
+- Dark mode (light/dark/system)
+- Internationalization (English + Vietnamese)
+- Cross-tab synchronization
+- Anonymous play with optional registration
 
-- **Anonymous Play**: Start playing immediately without signup
-- **Account System**: Ready for user registration (UI pending)
-- **Seamless Migration**: Backend supports anonymous-to-registered migration
-- **Real-time Sync**: Changes sync instantly across browser tabs
+## Tech Stack
 
-### Premium UI/UX ✅
+| Layer | Technology |
+|-------|-----------|
+| Backend | NestJS 11 (TypeScript) |
+| Frontend | Next.js 16 (App Router) |
+| Database | SQLite + TypeORM |
+| Real-time | Socket.io |
+| State | Zustand 5 |
+| Styling | Tailwind CSS 4 |
+| Auth | JWT + bcrypt |
+| Testing | Jest, Vitest, Playwright |
 
-- **Mobile-First Design**: Optimized for touch interactions
-- **Dark Mode**: Built-in dark mode support
-- **Smooth Animations**: Shake on error, pulse on hints
-- **Responsive Grid**: Scales perfectly on mobile/tablet/desktop
-- **Gradient Backgrounds**: Modern visual design
-
-### Real-time Sync ✅
-
-- **Cross-Tab Sync**: Changes sync instantly across browser tabs
-- **Socket.io**: Bi-directional real-time communication
-- **Auto-reconnection**: Handles connection drops gracefully
-
-## 🚧 Coming Soon
-
-- [ ] Login/Signup pages
-- [ ] Theme System (Blue, Forest Green, Sunset Orange)
-- [ ] Sound Effects (Optional audio feedback)
-- [ ] Tutorial Mode (Interactive guide for new players)
-- [ ] Stats Dashboard (Win rate, average time, personal bests)
-- [ ] Progressive Difficulty Unlock (Complete games to unlock harder levels)
-
-## 🛠️ Tech Stack
-
-### Backend
-
-- **Framework**: NestJS (TypeScript)
-- **Database**: SQLite3 with TypeORM
-- **Authentication**: JWT + Anonymous Sessions
-- **Real-time**: Socket.io
-- **Validation**: class-validator, class-transformer
-
-### Frontend (Planned)
-
-- **Framework**: Next.js 14+ (App Router)
-- **Styling**: Tailwind CSS + Custom CSS
-- **State**: Zustand
-- **Real-time**: Socket.io Client
-- **Validation**: Zod
-
-## 📁 Project Structure
-
-```
-sudoku/
-├── backend/                 # NestJS API
-│   ├── src/
-│   │   ├── auth/           # JWT + Anonymous Auth
-│   │   ├── game/           # Game Logic & Services
-│   │   ├── puzzle/         # Puzzle Generation & Seeding
-│   │   ├── gateway/        # Socket.io Gateway
-│   │   └── database/       # TypeORM Entities
-│   └── sudoku.db          # SQLite Database
-└── frontend/              # Next.js App (Coming Soon)
-```
-
-## 🚀 Getting Started
+## Quick Start
 
 ### Prerequisites
-
 - Node.js 18+
-- npm or yarn
+- pnpm (frontend) / npm (backend)
 
-### Backend Setup
-
-1. **Install Dependencies**
-
-```bash
-cd backend
-npm install
-```
-
-2. **Configure Environment**
-
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-3. **Run Database Migration & Seed**
-
-```bash
-# Database will auto-create on first run
-# Puzzles will auto-seed (1200 puzzles)
-npm run start:dev
-```
-
-4. **Start Development Server**
-
-```bash
-npm run start:dev
-# Server runs on http://localhost:3000
-```
-
-### API Endpoints
-
-#### Authentication
-
-- `POST /auth/anonymous` - Generate anonymous token
-- `POST /auth/register` - Create account
-- `POST /auth/login` - Login
-- `POST /auth/migrate` - Migrate anonymous games to account
-- `GET /auth/me` - Get current user
-
-#### Game
-
-- `POST /games` - Create new game
-- `GET /games/:id` - Get game state
-- `PATCH /games/:id/move` - Make a move
-- `POST /games/:id/undo` - Undo last move
-- `POST /games/:id/hint` - Request hint
-- `PATCH /games/:id/time` - Update time elapsed
-
-#### Socket.io Events
-
-**Client → Server**
-
-- `game:join` - Join game room
-- `game:move` - Make a move
-- `game:undo` - Undo move
-- `game:hint` - Request hint
-- `game:sync` - Sync game state
-- `game:updateTime` - Update timer
-
-**Server → Client**
-
-- `game:state` - Updated game state
-- `game:timeUpdated` - Time update broadcast
-- `game:error` - Error message
-
-## 🎯 Game Logic
-
-### Sudoku Validation
-
-- Row validation: No duplicates in any row
-- Column validation: No duplicates in any column
-- 3x3 Box validation: No duplicates in any 3x3 grid
-
-### Hint Priority
-
-1. **Show Conflicts** - If errors exist, highlight them first
-2. **Highlight Suggestion** - If a cell has only one possibility, highlight it
-3. **Reveal Cell** - As last resort, reveal a random cell
-
-### Progressive Unlocking
-
-- **Easy**: Unlocked by default
-- **Normal**: Requires 3 completed Easy games
-- **Hard**: Requires 3 completed Normal games
-
-## 📊 Database Schema
-
-### Tables
-
-- **users**: User accounts and stats
-- **puzzles**: Pre-generated Sudoku puzzles
-- **games**: Active game states
-- **game_history**: Completed games archive
-
-## 🔒 Security
-
-- Passwords hashed with bcrypt (10 rounds)
-- JWT tokens with expiration (7 days for auth, 30 days for anonymous)
-- Input validation on all endpoints
-- CORS configured for frontend origin
-- Socket.io authentication middleware
-
-## 🚧 Roadmap
-
-### ✅ Phase 1: Backend & Core Game (COMPLETE)
-
-- [x] Backend API with authentication
-- [x] Game logic services (validator, hints, undo/redo)
-- [x] Socket.io real-time sync
-- [x] 1200 pre-generated puzzles
-- [x] SQLite database with TypeORM
-
-### ✅ Phase 2: Frontend Foundation (COMPLETE)
-
-- [x] Next.js 14 application setup
-- [x] UI components (grid, controls, timer)
-- [x] Game page with full integration
-- [x] Mobile responsiveness
-- [x] Dark mode support
-- [x] Basic animations
-
-### 🚧 Phase 3: Polish & Features (IN PROGRESS)
-
-- [x] Home page with difficulty selection
-- [x] Anonymous user support
-- [x] Socket.io client integration
-- [ ] Auth pages (login/signup)
-- [ ] Theme system implementation
-- [ ] Tutorial mode
-- [ ] Sound effects
-- [ ] Stats dashboard
-
-### 🔜 Phase 4: Testing & Deployment (UPCOMING)
-
-- [ ] Unit tests (backend)
-- [ ] E2E tests (Playwright)
-- [ ] Performance optimization
-- [ ] Production deployment (Railway + Vercel)
-- [ ] Monitoring setup
-
-## 📝 Development Notes
-
-### Completed Backend Features ✅
-
-✅ NestJS project with TypeORM + SQLite  
-✅ JWT authentication + anonymous tokens  
-✅ User migration (anonymous → registered)  
-✅ Sudoku puzzle generator (backtracking algorithm)  
-✅ Automatic database seeding (1200 puzzles)  
-✅ Game validator (move validation, conflict detection)  
-✅ Hint service (3 hint types)  
-✅ Undo/redo with move history  
-✅ Socket.io gateway with real-time sync  
-✅ CORS configuration  
-✅ Validation pipes
-
-### Completed Frontend Features ✅
-
-✅ Next.js 14 + TypeScript + Tailwind setup  
-✅ Home page (difficulty selection)  
-✅ Game page (fully playable Sudoku)  
-✅ SudokuGrid (9x9 responsive, selection, highlights)  
-✅ NumberPad (1-9 input + erase)  
-✅ GameControls (undo, hints, mistake counter)  
-✅ GameTimer (auto-increment)  
-✅ Socket.io client integration  
-✅ Zustand stores (auth, game, ui)  
-✅ API client with typed endpoints  
-✅ Dark mode support  
-✅ Mobile-first responsive design  
-✅ Basic animations (shake, pulse)
-
-### In Progress 🚧
-
-🚧 Auth pages (login, signup)  
-🚧 Theme switcher UI  
-🚧 Stats dashboard  
-🚧 Tutorial mode  
-🚧 Sound effects  
-🚧 Testing suite
-
-## 🚀 Quick Start
-
-### Running the Application
-
-**Backend** (Port 3001)
+### Backend (Port 3001)
 
 ```bash
 cd backend
 npm install
 npm run start:dev
+# API: http://localhost:3001
+# Swagger: http://localhost:3001/api/docs
+# Database auto-creates and seeds 1200 puzzles
 ```
 
-**Frontend** (Port 3000)
+### Frontend (Port 3000)
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
+# App: http://localhost:3000
 ```
 
-**Access**: http://localhost:3000
+## Project Structure
 
-See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
+```
+sudoku/
+├── backend/              # NestJS API
+│   └── src/
+│       ├── auth/         # JWT + anonymous auth
+│       ├── game/         # Game logic, hints, mutations, validator
+│       ├── puzzle/       # Puzzle generation (backtracking)
+│       ├── match/        # Competitive (ELO, matchmaking)
+│       ├── leaderboard/  # Rankings
+│       ├── gateway/      # Socket.io (48+ events)
+│       ├── database/     # TypeORM entities (5)
+│       └── i18n/         # Multi-language
+├── frontend/             # Next.js App
+│   ├── app/              # 10 pages
+│   ├── components/       # 50+ components
+│   ├── hooks/            # 13 custom hooks
+│   ├── store/            # 5 Zustand stores
+│   ├── lib/              # API, socket, utils
+│   └── e2e/              # Playwright tests
+└── docs/                 # Documentation
+```
 
-## 📄 License
+## API Endpoints
+
+### Authentication
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | /auth/anonymous | No |
+| POST | /auth/register | No |
+| POST | /auth/login | No |
+| POST | /auth/migrate | Yes |
+| GET | /auth/me | Yes |
+
+### Game
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | /games | Yes |
+| GET | /games/:id | Yes |
+| PATCH | /games/:id/move | Yes |
+| POST | /games/:id/undo | Yes |
+| POST | /games/:id/hint | Yes |
+
+### Leaderboard
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | /leaderboard | Optional |
+| GET | /leaderboard/competitive | Optional |
+
+See [API Specification](docs/api-specification.md) for full details.
+
+## Development
+
+```bash
+# Backend
+cd backend
+npm run start:dev     # Dev server
+npm run test          # Jest tests
+npm run build         # Production build
+
+# Frontend
+cd frontend
+pnpm dev              # Dev server
+pnpm test             # Vitest
+pnpm test:e2e         # Playwright E2E
+pnpm build            # Production build
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Project Overview](docs/project-overview-pdr.md) | Product requirements and feature matrix |
+| [System Architecture](docs/system-architecture.md) | Architecture diagrams and data flows |
+| [Codebase Summary](docs/codebase-summary.md) | Directory structure and module overview |
+| [Code Standards](docs/code-standards.md) | Development conventions and patterns |
+| [Project Roadmap](docs/project-roadmap.md) | Phase tracking and milestones |
+| [API Specification](docs/api-specification.md) | REST and Socket.io endpoints |
+| [Business Requirements](docs/business-requirements-document.md) | Detailed functional specifications |
+| [User Stories](docs/user-stories.md) | User stories with acceptance criteria |
+
+## License
 
 MIT
-
-## 👨‍💻 Author
-
-Built with ❤️ using NestJS and Next.js
