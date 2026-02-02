@@ -66,18 +66,23 @@ const sampleCurrent = [
 ];
 
 // Helper decorator
-const StoreDecorator = (state: any) => (Story: any) => {
-  useEffect(() => {
-    useGameStore.setState({
-      currentState: createEmptyGrid(),
-      initialState: createEmptyGrid(),
-      notes: createEmptyNotes(),
-      wrongCells: [],
-      ...state,
-    });
-  }, []);
-  return <Story />;
-};
+const StoreDecorator =
+  (state: Partial<typeof useGameStore.getState>) => (Story: React.FC) => {
+    useEffect(() => {
+      const originalState = useGameStore.getState();
+      useGameStore.setState({
+        currentState: createEmptyGrid(),
+        initialState: createEmptyGrid(),
+        notes: createEmptyNotes(),
+        wrongCells: [],
+        ...state,
+      });
+      return () => {
+        useGameStore.setState(originalState);
+      };
+    }, [state]);
+    return <Story />;
+  };
 
 export const Empty: Story = {
   decorators: [StoreDecorator({})],
@@ -101,7 +106,7 @@ export const WithNotes: Story = {
       initialState: sampleInitial,
       currentState: sampleCurrent,
       notes: (() => {
-        const n = createEmptyNotes();
+        const n = createEmptyNotes() as number[][][];
         n[0][2] = [1, 2, 4]; // Some notes in top-left empty cell
         n[0][3] = [2, 6];
         return n;

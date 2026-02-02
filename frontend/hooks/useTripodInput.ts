@@ -43,6 +43,11 @@ export function useTripodInput({
         return;
       }
 
+      // Allow default browser shortcuts (Cmd/Ctrl+N, Cmd/Ctrl+R, etc.)
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return;
+      }
+
       // Space to toggle mode (prevent page scroll)
       if (e.key === " " || e.code === "Space") {
         e.preventDefault(); // Critical: prevents page scroll
@@ -97,6 +102,7 @@ export function useTripodInput({
           e.key === "Delete" ||
           e.key === "Backspace"
         ) {
+          e.preventDefault();
           return; // Silently ignore, mode toggle handles feedback
         }
       }

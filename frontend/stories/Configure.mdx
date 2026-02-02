@@ -16,21 +16,23 @@ import Accessibility from "./assets/accessibility.png";
 import Theming from "./assets/theming.png";
 import AddonLibrary from "./assets/addon-library.png";
 
-export const RightArrow = () => <svg 
-    viewBox="0 0 14 14" 
-    width="8px" 
-    height="14px" 
-    style={{ 
-      marginLeft: '4px',
-      display: 'inline-block',
-      shapeRendering: 'inherit',
-      verticalAlign: 'middle',
-      fill: 'currentColor',
-      'path fill': 'currentColor'
+export const RightArrow = () => (
+  <svg
+    viewBox="0 0 14 14"
+    width="8px"
+    height="14px"
+    style={{
+      marginLeft: "4px",
+      display: "inline-block",
+      shapeRendering: "inherit",
+      verticalAlign: "middle",
+      fill: "currentColor",
+      "path fill": "currentColor",
     }}
->
-  <path d="m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z" />
-</svg>
+  >
+    <path d="m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z" />
+  </svg>
+);
 
 <Meta title="Configure your project" />
 
@@ -39,6 +41,7 @@ export const RightArrow = () => <svg
     # Configure your project
 
     Because Storybook works separately from your app, you'll need to configure it for your specific stack and setup. Below, explore guides for configuring Storybook with popular frameworks and tools. If you get stuck, learn how you can ask for help from our community.
+
   </div>
   <div className="sb-section">
     <div className="sb-section-item">
@@ -54,6 +57,7 @@ export const RightArrow = () => <svg
       <a
         href="https://storybook.js.org/docs/configure/styling-and-css/?renderer=react&ref=configure"
         target="_blank"
+        rel="noopener noreferrer"
       >Learn more<RightArrow /></a>
     </div>
     <div className="sb-section-item">
@@ -69,6 +73,7 @@ export const RightArrow = () => <svg
       <a
         href="https://storybook.js.org/docs/writing-stories/decorators/?renderer=react&ref=configure#context-for-mocking"
         target="_blank"
+        rel="noopener noreferrer"
       >Learn more<RightArrow /></a>
     </div>
     <div className="sb-section-item">
@@ -87,6 +92,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/configure/images-and-assets/?renderer=react&ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
     </div>
@@ -97,6 +103,7 @@ export const RightArrow = () => <svg
     # Do more with Storybook
 
     Now that you know the basics, let's explore other parts of Storybook that will improve your experience. This list is just to get you started. You can customise Storybook in many ways to fit your needs.
+
   </div>
 
   <div className="sb-section">
@@ -115,6 +122,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/writing-docs/autodocs/?renderer=react&ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
       <div className="sb-grid-item">
@@ -130,6 +138,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/sharing/publish-storybook/?renderer=react&ref=configure#publish-storybook-with-chromatic"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
       <div className="sb-grid-item">
@@ -146,6 +155,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/sharing/design-integrations/?renderer=react&ref=configure#embed-storybook-in-figma-with-the-plugin"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
       <div className="sb-grid-item">
@@ -162,6 +172,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/writing-tests/?renderer=react&ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
       <div className="sb-grid-item">
@@ -177,6 +188,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/writing-tests/accessibility-testing/?renderer=react&ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
       <div className="sb-grid-item">
@@ -192,6 +204,7 @@ export const RightArrow = () => <svg
         <a
           href="https://storybook.js.org/docs/configure/theming/?renderer=react&ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Learn more<RightArrow /></a>
       </div>
     </div>
@@ -204,6 +217,7 @@ export const RightArrow = () => <svg
     <a
         href="https://storybook.js.org/addons/?ref=configure"
         target="_blank"
+        rel="noopener noreferrer"
       >Discover all addons<RightArrow /></a>
   </div>
   <div className='sb-addon-img'>
@@ -231,15 +245,16 @@ export const RightArrow = () => <svg
       <a
         href="https://github.com/storybookjs/storybook"
         target="_blank"
+        rel="noopener noreferrer"
       >Star on GitHub<RightArrow /></a>
     </div>
     <div className="sb-section-item">
-      <Image 
+      <Image
         width={33}
         height={32}
         layout="fixed"
-        src={Discord} 
-        alt="Discord logo" 
+        src={Discord}
+        alt="Discord logo"
         className="sb-explore-image"
       />
       <div>
@@ -248,16 +263,17 @@ export const RightArrow = () => <svg
         <a
           href="https://discord.gg/storybook"
           target="_blank"
+          rel="noopener noreferrer"
         >Join Discord server<RightArrow /></a>
       </div>
     </div>
     <div className="sb-section-item">
-      <Image 
+      <Image
         width={32}
         height={32}
         layout="fixed"
-        src={Youtube} 
-        alt="Youtube logo" 
+        src={Youtube}
+        alt="Youtube logo"
         className="sb-explore-image"
       />
       <div>
@@ -266,16 +282,17 @@ export const RightArrow = () => <svg
         <a
           href="https://www.youtube.com/@chromaticui"
           target="_blank"
+          rel="noopener noreferrer"
         >Watch on YouTube<RightArrow /></a>
       </div>
     </div>
     <div className="sb-section-item">
-      <Image 
+      <Image
         width={33}
         height={32}
         layout="fixed"
-        src={Tutorials} 
-        alt="A book" 
+        src={Tutorials}
+        alt="A book"
         className="sb-explore-image"
       />
       <p>Follow guided walkthroughs on for key workflows.</p>
@@ -283,8 +300,10 @@ export const RightArrow = () => <svg
       <a
           href="https://storybook.js.org/tutorials/?ref=configure"
           target="_blank"
+          rel="noopener noreferrer"
         >Discover tutorials<RightArrow /></a>
     </div>
+
 </div>
 
 <style>
