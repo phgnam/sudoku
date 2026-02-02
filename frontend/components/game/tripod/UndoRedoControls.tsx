@@ -19,15 +19,16 @@ export function UndoRedoControls({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
+        // Allow default undo/redo in inputs
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          (e.target as HTMLElement).isContentEditable
+        ) {
+          return;
+        }
+
         if (e.key === "z" && !e.shiftKey) {
-          // Allow default undo in inputs
-          if (
-            e.target instanceof HTMLInputElement ||
-            e.target instanceof HTMLTextAreaElement ||
-            (e.target as HTMLElement).isContentEditable
-          ) {
-            return;
-          }
           e.preventDefault();
           if (canUndo) onUndo();
         } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
