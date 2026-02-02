@@ -1,6 +1,6 @@
 # Storybook Usage Guide
 
-This project includes Storybook 10 for component development and documentation.
+This project includes Storybook 10.2 for component development and documentation.
 
 ## Getting Started
 

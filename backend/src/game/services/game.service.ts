@@ -64,7 +64,7 @@ export class GameService {
 
     // Get random puzzle of specified difficulty
     const puzzles = await this.puzzleRepository.find({
-      where: { difficulty: difficulty as any },
+      where: { difficulty: difficulty as Difficulty },
     });
 
     if (puzzles.length === 0) {
@@ -543,9 +543,7 @@ export class GameService {
     const failedGames = games.filter(
       (g) => g.status === GameStatus.FAILED,
     ).length;
-    const abandonedGames = games.filter(
-      (g) => g.status === GameStatus.ABANDONED,
-    ).length;
+
     // Calculate win rate based on finished games (completed + failed), excluding active and abandoned
     const finishedGames = completedGames + failedGames;
     const winRate =
@@ -643,24 +641,34 @@ export class GameService {
   /**
    * Create a new tripod game
    */
-  async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> {
+  async createTripodGame(
+    userId: string,
+    dto: CreateTripodGameDto,
+  ): Promise<Game> {
     const gridSize = dto.gridSize || 7;
 
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(
+        `User not found with ID: ${userId}. Please ensure you are authenticated.`,
+      );
+    }
+
     // Initialize empty puzzle state
-    const initialState = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize).fill(0));
+    const initialState = Array.from({ length: gridSize }, () =>
+      Array(gridSize).fill(0),
+    );
 
     // Generate sample tripod dots for the puzzle
     const tripodDots = this.generateSampleTripodDots(gridSize);
 
     // Initialize borders
-    const horizontalBorders = Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize).fill(false));
-    const verticalBorders = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    const horizontalBorders = Array.from({ length: gridSize + 1 }, () =>
+      Array(gridSize).fill(false),
+    );
+    const verticalBorders = Array.from({ length: gridSize }, () =>
+      Array(gridSize + 1).fill(false),
+    );
 
     const game = this.gameRepository.create({
       userId,
@@ -689,9 +697,9 @@ export class GameService {
    */
   private generateSampleTripodDots(gridSize: number): boolean[][] {
     // Generate empty tripod dots grid - will be populated by sample puzzles
-    return Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    return Array.from({ length: gridSize + 1 }, () =>
+      Array(gridSize + 1).fill(false),
+    );
   }
 
   /**
@@ -714,7 +722,9 @@ export class GameService {
 
     game.tripodData = {
       ...game.tripodData,
-      tripodDots: game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
+      tripodDots:
+        game.tripodData?.tripodDots ||
+        this.generateSampleTripodDots(game.gridSize),
       horizontalBorders: borders.horizontal,
       verticalBorders: borders.vertical,
     };

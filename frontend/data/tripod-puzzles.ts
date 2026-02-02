@@ -39,12 +39,12 @@ const PUZZLE_DIAMOND: TripodPuzzleData = {
   difficulty: "easy",
   cells: [
     [1, 0, 0, 4, 0, 0, 7],
-    [0, 2, 0, 0, 0, 6, 0],
-    [0, 0, 3, 0, 5, 0, 0],
+    [0, 0, 5, 0, 0, 0, 0],
     [4, 0, 0, 0, 0, 0, 3],
     [0, 0, 5, 0, 3, 0, 0],
     [0, 6, 0, 0, 0, 2, 0],
-    [7, 0, 0, 5, 0, 0, 6], // Row 7: Fixed 3->5 and 1->6 to match solution
+    [7, 0, 0, 3, 0, 0, 1],
+    [5, 0, 0, 3, 0, 0, 4], // Row 7: Fixed 3->5 and 1->6 to match solution
   ],
   solution: [
     [1, 5, 6, 4, 2, 3, 7],
@@ -101,12 +101,12 @@ const PUZZLE_SPIRAL: TripodPuzzleData = {
   name: "Spiral Pattern",
   difficulty: "medium",
   cells: [
-    [0, 2, 0, 0, 0, 6, 0],
+    [3, 0, 0, 0, 0, 0, 6],
     [4, 0, 0, 0, 0, 0, 3],
-    [0, 0, 0, 0, 0, 0, 0], // Row 3: Removed given at col 3 (5) to avoid reported contradiction
+    [2, 0, 0, 0, 0, 0, 6], // Row 3: Removed given at col 3 (5) to avoid reported contradiction
     [0, 0, 0, 4, 0, 0, 0],
-    [0, 0, 0, 0, 3, 0, 0],
-    [5, 0, 0, 0, 0, 0, 2],
+    [0, 0, 0, 1, 0, 0, 0],
+    [0, 4, 0, 0, 0, 3, 0],
     [0, 3, 0, 0, 0, 7, 0],
   ],
   solution: [
@@ -140,12 +140,13 @@ const PUZZLE_SCATTERED: TripodPuzzleData = {
   name: "Scattered Pattern",
   difficulty: "hard",
   cells: [
-    [0, 0, 3, 0, 5, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 5, 0, 0, 0, 0],
+    [0, 0, 4, 0, 0, 0, 0],
     [5, 0, 0, 0, 0, 0, 2],
     [0, 0, 0, 4, 0, 0, 0],
-    [3, 0, 0, 0, 0, 0, 0], // Row 5: Removed given at col 7 (6) to avoid reported contradiction
-    [0, 0, 0, 0, 0, 0, 0],
+    [3, 0, 0, 0, 0, 0, 4], // Row 5: Removed given at col 7 (6) to avoid reported contradiction
+    [0, 0, 6, 0, 2, 0, 0],
+    [0, 0, 6, 0, 1, 0, 0],
     [0, 0, 6, 0, 2, 0, 0],
   ],
   solution: [

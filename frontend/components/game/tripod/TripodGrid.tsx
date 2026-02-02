@@ -94,90 +94,100 @@ export function TripodGrid({
         height: gridSize * CELL_SIZE + 28,
       }}
     >
-      {/* Layer 1: Cell grid */}
       <div
-        className="grid absolute"
         style={{
-          gridTemplateColumns: `repeat(${gridSize}, ${CELL_SIZE}px)`,
-          gridTemplateRows: `repeat(${gridSize}, ${CELL_SIZE}px)`,
+          position: "absolute",
           left: 14,
           top: 14,
+          width: gridSize * CELL_SIZE,
+          height: gridSize * CELL_SIZE,
         }}
       >
-        {cells.map((row, r) =>
-          row.map((value, c) => (
-            <TripodCell
-              key={`cell-${r}-${c}`}
+        {/* Layer 1: Cell grid */}
+        <div
+          className="grid absolute"
+          style={{
+            gridTemplateColumns: `repeat(${gridSize}, ${CELL_SIZE}px)`,
+            gridTemplateRows: `repeat(${gridSize}, ${CELL_SIZE}px)`,
+            left: 0,
+            top: 0,
+          }}
+        >
+          {cells.map((row, r) =>
+            row.map((value, c) => (
+              <TripodCell
+                key={`cell-${r}-${c}`}
+                row={r}
+                col={c}
+                value={hideNumbers ? 0 : value}
+                isGiven={givenCells[r]?.[c] ?? false}
+                isSelected={selectedCell?.row === r && selectedCell?.col === c}
+                isHighlighted={isHighlighted(r, c)}
+                hasError={hasCellError(r, c)}
+                regionColor={getCellRegionColor(r, c)}
+                onClick={() => onCellSelect(r, c)}
+                inputMode={inputMode}
+                hideNumber={hideNumbers}
+              />
+            )),
+          )}
+        </div>
+
+        {/* Layer 2: Horizontal borders */}
+        {horizontalBorders.map((row, r) =>
+          row.map((active, c) => (
+            <BorderEdge
+              key={`h-${r}-${c}`}
+              type="horizontal"
               row={r}
               col={c}
-              value={hideNumbers ? 0 : value}
-              isGiven={givenCells[r]?.[c] ?? false}
-              isSelected={selectedCell?.row === r && selectedCell?.col === c}
-              isHighlighted={isHighlighted(r, c)}
-              hasError={hasCellError(r, c)}
-              regionColor={getCellRegionColor(r, c)}
-              onClick={() => onCellSelect(r, c)}
-              inputMode={inputMode}
-              hideNumber={hideNumbers}
+              active={active}
+              cellSize={CELL_SIZE}
+              onClick={() => onBorderToggle("h", r, c)}
+              clickable={inputMode === "border" && !bordersFixed}
+              isFixed={bordersFixed && active}
+              toggleState={getBorderToggleability?.("h", r, c)}
+              isTouchDevice={isTouchDevice}
             />
           )),
         )}
+
+        {/* Layer 3: Vertical borders */}
+        {verticalBorders.map((row, r) =>
+          row.map((active, c) => (
+            <BorderEdge
+              key={`v-${r}-${c}`}
+              type="vertical"
+              row={r}
+              col={c}
+              active={active}
+              cellSize={CELL_SIZE}
+              onClick={() => onBorderToggle("v", r, c)}
+              clickable={inputMode === "border" && !bordersFixed}
+              isFixed={bordersFixed && active}
+              toggleState={getBorderToggleability?.("v", r, c)}
+              isTouchDevice={isTouchDevice}
+            />
+          )),
+        )}
+
+        {/* Layer 4: Tripod dots */}
+        {tripodDots.map((row, r) =>
+          row.map(
+            (hasDot, c) =>
+              hasDot && (
+                <TripodDot
+                  key={`dot-${r}-${c}`}
+                  row={r}
+                  col={c}
+                  cellSize={CELL_SIZE}
+                  isSatisfied={isVertexSatisfied?.(r, c) ?? false}
+                  isError={(getVertexErrors?.(r, c)?.length ?? 0) > 0}
+                />
+              ),
+          ),
+        )}
       </div>
-
-      {/* Layer 2: Horizontal borders */}
-      {horizontalBorders.map((row, r) =>
-        row.map((active, c) => (
-          <BorderEdge
-            key={`h-${r}-${c}`}
-            type="horizontal"
-            row={r}
-            col={c}
-            active={active}
-            cellSize={CELL_SIZE}
-            onClick={() => onBorderToggle("h", r, c)}
-            clickable={inputMode === "border" && !bordersFixed}
-            isFixed={bordersFixed && active}
-            toggleState={getBorderToggleability?.("h", r, c)}
-            isTouchDevice={isTouchDevice}
-          />
-        )),
-      )}
-
-      {/* Layer 3: Vertical borders */}
-      {verticalBorders.map((row, r) =>
-        row.map((active, c) => (
-          <BorderEdge
-            key={`v-${r}-${c}`}
-            type="vertical"
-            row={r}
-            col={c}
-            active={active}
-            cellSize={CELL_SIZE}
-            onClick={() => onBorderToggle("v", r, c)}
-            clickable={inputMode === "border" && !bordersFixed}
-            isFixed={bordersFixed && active}
-            toggleState={getBorderToggleability?.("v", r, c)}
-            isTouchDevice={isTouchDevice}
-          />
-        )),
-      )}
-
-      {/* Layer 4: Tripod dots */}
-      {tripodDots.map((row, r) =>
-        row.map(
-          (hasDot, c) =>
-            hasDot && (
-              <TripodDot
-                key={`dot-${r}-${c}`}
-                row={r}
-                col={c}
-                cellSize={CELL_SIZE}
-                isSatisfied={isVertexSatisfied?.(r, c) ?? false}
-                isError={(getVertexErrors?.(r, c)?.length ?? 0) > 0}
-              />
-            ),
-        ),
-      )}
     </div>
   );
 }

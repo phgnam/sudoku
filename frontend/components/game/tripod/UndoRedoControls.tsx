@@ -49,6 +49,7 @@ export function UndoRedoControls({
 
       {/* Undo Button */}
       <button
+        type="button"
         onClick={onUndo}
         disabled={!canUndo}
         className={`
@@ -82,6 +83,7 @@ export function UndoRedoControls({
 
       {/* Redo Button */}
       <button
+        type="button"
         onClick={onRedo}
         disabled={!canRedo}
         className={`

@@ -315,7 +315,11 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Validate tripodDots dimensions
-        if (!tripodDots || tripodDots.length !== gridSize + 1) {
+        if (
+          !tripodDots ||
+          tripodDots.length !== gridSize + 1 ||
+          tripodDots.some((row) => row.length !== gridSize + 1)
+        ) {
           console.error(
             `Invalid tripodDots dimensions. Expected ${gridSize + 1}x${gridSize + 1}`,
           );

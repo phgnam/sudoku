@@ -27,12 +27,14 @@ export function TripodDot({
 
   // Detect when dot becomes satisfied
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     if (isSatisfied && !prevSatisfiedRef.current) {
       requestAnimationFrame(() => setIsPopping(true));
       const timer = setTimeout(() => setIsPopping(false), 400);
-      return () => clearTimeout(timer);
+      cleanup = () => clearTimeout(timer);
     }
     prevSatisfiedRef.current = isSatisfied;
+    return cleanup;
   }, [isSatisfied]);
 
   let bgClass = "bg-gray-900";
