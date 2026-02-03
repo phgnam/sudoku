@@ -1,4 +1,4 @@
-import { Logger, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Logger, UseGuards, UsePipes, ValidationPipe, OnModuleDestroy } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -42,7 +42,7 @@ const MATCH_DURATION_MS = 20 * 60 * 1000;
 @UseGuards(JwtAuthGuard)
 @UsePipes(new ValidationPipe({ transform: true }))
 export class GameGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy
 {
   private readonly logger = new Logger(GameGateway.name);
 
@@ -92,6 +92,29 @@ export class GameGateway
 
     // Start matchmaking loop
     this.matchmakingHandlers.startMatchmakingLoop();
+  }
+
+  /**
+   * Cleanup on module destroy
+   */
+  onModuleDestroy() {
+    this.logger.log('GameGateway shutting down - cleaning up resources');
+
+    // Stop matchmaking loop
+    this.matchmakingHandlers.stopMatchmakingLoop();
+
+    // Clear all disconnect timers
+    this.disconnectTimers.forEach((timer) => clearTimeout(timer));
+    this.disconnectTimers.clear();
+
+    // Clear all token expiry timers
+    this.tokenExpiryTimers.forEach((timers) => {
+      if (timers.warningTimer) clearTimeout(timers.warningTimer);
+      if (timers.expiryTimer) clearTimeout(timers.expiryTimer);
+    });
+    this.tokenExpiryTimers.clear();
+
+    this.logger.log('GameGateway cleanup completed');
   }
 
   /**

@@ -457,9 +457,10 @@ export class MatchHandlers extends BaseHandler {
       this.matchManager.recordMove(matchId, userId, row, col, value);
 
       // Notify opponent about cell filled (position only, no value)
-      const opponentId = match.hostId === userId ? match.guestId : match.hostId;
-      if (opponentId) {
-        this.server.to(opponentId).emit('match:opponentMoved', { row, col });
+      const opponentSocketId =
+        match.hostId === userId ? match.guestSocketId : match.hostSocketId;
+      if (opponentSocketId) {
+        this.server.to(opponentSocketId).emit('match:opponentMoved', { row, col });
       }
 
       // Broadcast full move data to spectators

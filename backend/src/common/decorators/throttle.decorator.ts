@@ -40,6 +40,22 @@ export function Throttle(msOrOptions: number | ThrottleOptions) {
   ) {
     const originalMethod = descriptor.value;
     const throttleMap = new Map<string, number>();
+    const CLEANUP_INTERVAL = 5 * 60 * 1000; // Cleanup every 5 minutes
+    const EXPIRY_TIME = 10 * 60 * 1000; // Expire entries after 10 minutes of inactivity
+
+    // Periodic cleanup to prevent memory leak
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const expiredKeys: string[] = [];
+
+      throttleMap.forEach((lastCall, clientId) => {
+        if (now - lastCall > EXPIRY_TIME) {
+          expiredKeys.push(clientId);
+        }
+      });
+
+      expiredKeys.forEach(key => throttleMap.delete(key));
+    }, CLEANUP_INTERVAL);
 
     descriptor.value = async function (...args: any[]) {
       // Extract client ID

@@ -209,6 +209,14 @@ export class SpectatorHandlers extends BaseHandler {
 
     const match = this.matchManager.getMatch(data.matchId);
     if (match) {
+      // Authorization check: only participants can decline
+      if (userId !== match.hostId && userId !== match.guestId) {
+        return {
+          event: 'match:error',
+          data: { message: 'Not authorized: only participants can decline rematch' },
+        };
+      }
+
       this.matchManager.cancelRematchRequest(data.matchId);
       this.server.to(`match:${data.matchId}`).emit('match:rematchDeclined', {
         declinedBy: userId,
