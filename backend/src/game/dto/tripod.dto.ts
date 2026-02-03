@@ -32,6 +32,24 @@ export class CreateTripodGameDto {
   @Min(7)
   @Max(9)
   gridSize?: number;
+
+  @ApiPropertyOptional({
+    description: 'Difficulty level (easy, medium, hard)',
+    example: 'easy',
+  })
+  @IsOptional()
+  @IsString()
+  difficulty?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sub-mode for tripod game (full, borders_only, sudoku_only)',
+    enum: ['full', 'borders_only', 'sudoku_only'],
+    example: 'full',
+    default: 'full',
+  })
+  @IsOptional()
+  @IsEnum(['full', 'borders_only', 'sudoku_only'])
+  subMode?: 'full' | 'borders_only' | 'sudoku_only';
 }
 
 export class UpdateBordersDto {

@@ -44,6 +44,7 @@ export interface TripodData {
     horizontal: boolean[][];
     vertical: boolean[][];
   };
+  subMode?: 'full' | 'borders_only' | 'sudoku_only'; // Game sub-mode
 }
 
 @Entity('games')
