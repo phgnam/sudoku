@@ -118,7 +118,14 @@ export class TripodBorderService {
       const row = Math.floor(Math.random() * gridSize) + 1;
       const col = Math.floor(Math.random() * gridSize) + 1;
 
-      if (!dots[row][col]) {
+      // Skip corners - they can only have 2 borders so can never satisfy tripod rule
+      const isCorner =
+        (row === 0 && col === 0) ||
+        (row === 0 && col === gridSize) ||
+        (row === gridSize && col === 0) ||
+        (row === gridSize && col === gridSize);
+
+      if (!dots[row][col] && !isCorner) {
         dots[row][col] = true;
         added++;
       }

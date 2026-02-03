@@ -61,7 +61,7 @@ export class CacheService {
     this.cache.set(key, {
       value,
       timestamp: Date.now(),
-      ttl: ttl || this.DEFAULT_TTL,
+      ttl: ttl ?? this.DEFAULT_TTL,
     });
     this.stats.sets++;
   }

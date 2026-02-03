@@ -307,12 +307,13 @@ export function useTripodSocket(gameId: string | null) {
     [validate]
   );
 
-  // Cleanup throttle on unmount (Fix 4.1)
+  // Cleanup throttle and debounce on unmount (Fix 4.1)
   useEffect(() => {
     return () => {
       throttledEmit.cancel();
+      validateDebounced.cancel();
     };
-  }, [throttledEmit]);
+  }, [throttledEmit, validateDebounced]);
 
   return {
     toggleBorder: emitToggleBorder,

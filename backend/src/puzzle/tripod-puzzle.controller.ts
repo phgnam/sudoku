@@ -34,8 +34,9 @@ export class TripodPuzzleController {
     @Query('limit') limitParam?: number,
     @Query('offset') offsetParam?: number,
   ) {
-    const limit = Math.min(limitParam || 20, 100); // Max 100 per request
-    const offset = offsetParam || 0;
+    // Parse and validate limit/offset
+    const limit = Math.min(Math.max(1, parseInt(String(limitParam || 20), 10) || 20), 100);
+    const offset = Math.max(0, parseInt(String(offsetParam || 0), 10) || 0);
 
     const queryBuilder = this.tripodPuzzleRepo.createQueryBuilder('puzzle');
 

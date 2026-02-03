@@ -78,18 +78,32 @@ export default function TripodGamePage() {
     handleNumberInput,
     handleModeChange,
     setCells,
+    initializeGame,
     getBorderToggleability,
   } = useTripodGame({
     gridSize,
     onBorderToggle: socketToggleBorder,
   });
 
-  // Sync store currentState with local cells
+  // Sync store currentState with local cells and update givenCells
   useEffect(() => {
     if (currentState && currentState.length > 0) {
-      setCells(currentState.map((row) => [...row]));
+      // Initialize game with current state and extract givens
+      const givens: Array<{ row: number; col: number; value: number }> = [];
+      currentState.forEach((row, rowIndex) => {
+        row.forEach((value, colIndex) => {
+          if (value !== 0) {
+            givens.push({ row: rowIndex, col: colIndex, value });
+          }
+        });
+      });
+
+      initializeGame({
+        cells: currentState.map((row) => [...row]),
+        givens,
+      });
     }
-  }, [currentState, setCells]);
+  }, [currentState, initializeGame]);
 
   // Handle localStorage quota exceeded
   useEffect(() => {

@@ -39,7 +39,6 @@ interface ValidationFeedbackProps {
 export function ValidationFeedback({ errors, isComplete, onValidate }: ValidationFeedbackProps) {
   const [isNewErrors, setIsNewErrors] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [showAllErrors, setShowAllErrors] = useState(false);
   const prevErrorCountRef = useRef(errors.length);
 
   // Detect when errors appear or disappear
@@ -83,8 +82,6 @@ export function ValidationFeedback({ errors, isComplete, onValidate }: Validatio
     tripod: errors.filter((e) => e.type === 'four_way' || e.type === 'tripod_mismatch'),
     sudoku: errors.filter((e) => e.type === 'sudoku_duplicate'),
   };
-
-  const hiddenErrorCount = errors.length - MAX_DISPLAYED_ERRORS;
 
   return (
     <>
@@ -136,24 +133,6 @@ export function ValidationFeedback({ errors, isComplete, onValidate }: Validatio
                 </li>
               )}
             </ul>
-
-            {errors.length > MAX_DISPLAYED_ERRORS && !showAllErrors && (
-              <button
-                onClick={() => setShowAllErrors(true)}
-                className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-              >
-                Show {hiddenErrorCount} more error{hiddenErrorCount !== 1 ? 's' : ''}
-              </button>
-            )}
-
-            {showAllErrors && errors.length > MAX_DISPLAYED_ERRORS && (
-              <button
-                onClick={() => setShowAllErrors(false)}
-                className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-              >
-                Show less
-              </button>
-            )}
           </div>
         )}
 

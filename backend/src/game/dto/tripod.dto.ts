@@ -10,6 +10,7 @@ import {
   Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TripodDifficulty } from '../../database/entities/tripod-puzzle.entity';
 
 export class CreateTripodGameDto {
   @ApiPropertyOptional({
@@ -34,12 +35,13 @@ export class CreateTripodGameDto {
   gridSize?: number;
 
   @ApiPropertyOptional({
-    description: 'Difficulty level (easy, medium, hard)',
-    example: 'easy',
+    description: 'Difficulty level',
+    enum: TripodDifficulty,
+    example: TripodDifficulty.EASY,
   })
   @IsOptional()
-  @IsString()
-  difficulty?: string;
+  @IsEnum(TripodDifficulty)
+  difficulty?: TripodDifficulty;
 
   @ApiPropertyOptional({
     description: 'Sub-mode for tripod game (full, borders_only, sudoku_only)',

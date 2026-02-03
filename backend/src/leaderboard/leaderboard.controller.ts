@@ -177,7 +177,7 @@ export class LeaderboardController {
     @CurrentUser() user?: JwtUser,
   ) {
     const resolvedMode = mode || 'full';
-    const clampedLimit = Math.min(Math.max(1, limit || 50), 100);
+    const clampedLimit = Math.min(Math.max(1, limit ?? 50), 100);
 
     // Map string to LeaderboardPeriod enum
     const periodMap: Record<string, LeaderboardPeriod> = {

@@ -42,6 +42,17 @@ export class MatchmakingHandlers extends BaseHandler {
   }
 
   /**
+   * Stop the matchmaking loop.
+   */
+  stopMatchmakingLoop(): void {
+    if (this.context.matchmakingInterval) {
+      clearInterval(this.context.matchmakingInterval);
+      this.context.matchmakingInterval = null;
+      this.logger.log('Matchmaking loop stopped');
+    }
+  }
+
+  /**
    * Process matchmaking queue - find matches and send status updates.
    */
   async processMatchmaking(): Promise<void> {
@@ -219,7 +230,16 @@ export class MatchmakingHandlers extends BaseHandler {
       };
     }
 
+    // Validate difficulty against enum
+    const validDifficulties = Object.values(Difficulty);
     const difficulty = data.difficulty || 'normal';
+
+    if (!validDifficulties.includes(difficulty as Difficulty)) {
+      return {
+        event: 'matchmaking:error',
+        data: { message: `Invalid difficulty. Must be one of: ${validDifficulties.join(', ')}` },
+      };
+    }
 
     // Get player rating from database
     let rating = 1000;

@@ -171,8 +171,8 @@ export const TripodCell = memo<TripodCellProps>(
       prev.isGiven === next.isGiven &&
       prev.regionColor === next.regionColor &&
       prev.inputMode === next.inputMode &&
-      prev.hideNumber === next.hideNumber
-      // onClick is excluded - function reference changes don't matter
+      prev.hideNumber === next.hideNumber &&
+      prev.onClick === next.onClick
     );
   }
 );

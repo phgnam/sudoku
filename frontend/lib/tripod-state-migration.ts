@@ -86,10 +86,10 @@ export function safeLocalStorageSet(key: string, value: string): boolean {
     )) {
       console.error('LocalStorage quota exceeded');
 
-      // Try to clear old data
+      // Try to clear old data (but preserve the migration flag and new storage)
       try {
         const oldKeys = Object.keys(localStorage).filter(k =>
-          k.startsWith('tripod-') && k !== key
+          k.startsWith('tripod-') && k !== key && k !== MIGRATION_FLAG_KEY && k !== NEW_STORAGE_KEY
         );
         oldKeys.forEach(k => localStorage.removeItem(k));
 

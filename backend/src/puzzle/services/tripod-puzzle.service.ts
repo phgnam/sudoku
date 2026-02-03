@@ -32,7 +32,6 @@ export class TripodPuzzleService {
     private readonly validationService: TripodValidationService,
     private readonly regionService: TripodRegionService,
     private readonly borderService: TripodBorderService,
-    private readonly latinSquareGenerator: LatinSquareGeneratorService,
   ) {}
 
   /**

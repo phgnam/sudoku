@@ -65,12 +65,12 @@ export function useTripodGameInit(options: UseTripodGameInitOptions = {}) {
 
   // Initial load - create game if not exists
   useEffect(() => {
-    if (authHydrated && !gameId && !loading && !isInitialized) {
+    if (authHydrated && !gameId && !loading && !isInitialized && !error && token) {
       createGame();
     } else if (gameId) {
       setIsInitialized(true);
     }
-  }, [authHydrated, gameId, createGame, loading, isInitialized]);
+  }, [authHydrated, gameId, createGame, loading, isInitialized, error, token]);
 
   return {
     loading,
