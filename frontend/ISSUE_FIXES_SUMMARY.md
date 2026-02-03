@@ -126,9 +126,9 @@ All 24 reported violations have been validated and fixed.
 **Impact:** Robust pagination handling
 
 ### 20. frontend/hooks/useTripodGameInit.ts:67
-**Issue:** Auto-create retries on every render after failure  
-**Root Cause:** Missing error and token checks in useEffect condition  
-**Fix:** Added `\!error && token` to condition  
+**Issue:** Auto-create retries on every render after failure
+**Root Cause:** Missing error and token checks in useEffect condition
+**Fix:** Added `!error && token` to condition
 **Impact:** Prevents infinite retry loops
 
 ### 21. backend/src/puzzle/services/tripod-border.service.ts:118

@@ -11,8 +11,8 @@ export interface BorderHistoryEntry {
 }
 
 export interface TripodBorders {
-  horizontal: boolean[][]; // gridSize × (gridSize+1)
-  vertical: boolean[][]; // (gridSize+1) × gridSize
+  horizontal: boolean[][]; // (gridSize+1) × gridSize
+  vertical: boolean[][]; // gridSize × (gridSize+1)
 }
 
 export interface Region {

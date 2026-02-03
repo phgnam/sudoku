@@ -89,7 +89,7 @@ npx ts-node backend/test/verify-phase-2b.ts
 
 ## Files Modified
 
-### Backend (7 files)
+### Backend (6 files)
 1. `backend/src/gateway/handlers/match.handlers.ts` - Added input validation for moves and difficulty
 2. `backend/src/gateway/handlers/matchmaking.handlers.ts` - Fixed matchId scope for cleanup
 3. `backend/src/common/decorators/throttle.decorator.ts` - Fixed error rethrowing + cleanup interval

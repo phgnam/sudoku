@@ -221,17 +221,23 @@ Most critical edges handled well. Generation has timeout protection but needs re
 
 **Problem**: Recursive backtracking has no iteration cap
 
-```typescript
-// BEFORE (line 273)
-private fillLatinSquare(grid: number[][], gridSize: number): boolean {
-  for (let row = 0; row < gridSize; row++) {
-    // ... recursive calls without limit
-  }
-}
+**⚠️ NOTE**: The original `maxDepth` approach below is **ineffective** because:
+- `depth` only counts recursion depth (cells filled), NOT backtrack iterations
+- For a 7x7 grid, successful fill = depth 49, but pathological cases can have thousands of backtracks
+- `maxDepth = 1000` doesn't correlate with actual computational work
 
-// AFTER
-private fillLatinSquare(grid: number[][], gridSize: number, depth = 0, maxDepth = 1000): boolean {
-  if (depth > maxDepth) return false; // Prevent stack overflow
+**RECOMMENDED APPROACH**: Use a mutable iteration counter object instead:
+
+```typescript
+// CORRECT FIX - Use iteration counter
+private fillLatinSquare(
+  grid: number[][],
+  gridSize: number,
+  counter: { iterations: number } = { iterations: 0 },
+  maxIterations = 10000
+): boolean {
+  counter.iterations++;
+  if (counter.iterations > maxIterations) return false; // Prevent timeout
 
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
@@ -242,7 +248,7 @@ private fillLatinSquare(grid: number[][], gridSize: number, depth = 0, maxDepth 
           if (this.isLatinSquareValid(grid, row, col, num, gridSize)) {
             grid[row][col] = num;
 
-            if (this.fillLatinSquare(grid, gridSize, depth + 1, maxDepth)) {
+            if (this.fillLatinSquare(grid, gridSize, counter, maxIterations)) {
               return true;
             }
 
@@ -255,6 +261,27 @@ private fillLatinSquare(grid: number[][], gridSize: number, depth = 0, maxDepth 
     }
   }
   return true;
+}
+```
+
+**Alternative**: Time-based timeout using `Date.now()` check every N iterations.
+
+---
+
+~~**DEPRECATED APPROACH** (ineffective - kept for reference):~~
+
+```typescript
+// BEFORE (line 273)
+private fillLatinSquare(grid: number[][], gridSize: number): boolean {
+  for (let row = 0; row < gridSize; row++) {
+    // ... recursive calls without limit
+  }
+}
+
+// DEPRECATED - depth doesn't prevent timeout effectively
+private fillLatinSquare(grid: number[][], gridSize: number, depth = 0, maxDepth = 1000): boolean {
+  if (depth > maxDepth) return false; // Only limits recursion depth, not iterations
+  // ... rest of implementation
 }
 ```
 
