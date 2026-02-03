@@ -92,9 +92,16 @@ export abstract class BaseHandler {
       blocked: false,
     };
 
-    // Check if blocked
-    if (entry.blocked && now - entry.firstRequest < config.blockDurationMs) {
-      return false;
+    // Check if blocked - measure from blockedAt timestamp
+    if (entry.blocked && entry.blockedAt) {
+      if (now - entry.blockedAt < config.blockDurationMs) {
+        return false;
+      }
+      // Block period expired, reset
+      entry.blocked = false;
+      entry.blockedAt = undefined;
+      entry.count = 0;
+      entry.firstRequest = now;
     }
 
     // Reset window if expired
@@ -102,12 +109,14 @@ export abstract class BaseHandler {
       entry.count = 0;
       entry.firstRequest = now;
       entry.blocked = false;
+      entry.blockedAt = undefined;
     }
 
     entry.count++;
 
     if (entry.count > config.maxRequests) {
       entry.blocked = true;
+      entry.blockedAt = now; // Track when blocking began
       eventLimits.set(socketId, entry);
       this.logger.warn(
         `Rate limit exceeded for socket ${socketId} on event ${event}`,

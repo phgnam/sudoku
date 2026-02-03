@@ -205,6 +205,22 @@ export class MatchmakingHandlers extends BaseHandler {
     } catch (error) {
       this.logger.error('Failed to create match from queue:', error);
 
+      // Clean up match and player mappings
+      try {
+        // Remove players from matchmaking queue (if they somehow got re-added)
+        this.matchmakingQueue.removePlayer(player1.playerId);
+        this.matchmakingQueue.removePlayer(player2.playerId);
+
+        // If match was created, cancel it
+        const matchId = `${player1.playerId}-${Date.now()}`;
+        const match = this.matchManager.getMatch(matchId);
+        if (match) {
+          this.matchManager.cancelMatch(matchId);
+        }
+      } catch (cleanupError) {
+        this.logger.error('Error during matchmaking cleanup:', cleanupError);
+      }
+
       // Notify players of failure
       this.server.to(player1.socketId).emit('matchmaking:cancelled', {
         reason: 'Failed to create match. Please try again.',
@@ -220,7 +236,7 @@ export class MatchmakingHandlers extends BaseHandler {
    */
   async handleMatchmakingJoin(
     client: TypedSocket,
-    data: { difficulty: string },
+    data?: { difficulty?: string },
   ) {
     const userId = client.data.userId;
     if (!userId) {
@@ -228,6 +244,11 @@ export class MatchmakingHandlers extends BaseHandler {
         event: 'matchmaking:error',
         data: { message: 'Not authenticated' },
       };
+    }
+
+    // Guard against missing payload
+    if (!data) {
+      data = { difficulty: 'normal' };
     }
 
     // Validate difficulty against enum

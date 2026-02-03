@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 const numberEntryKeyframes = `
 @keyframes numberEntry {
   0% { transform: scale(0.5); opacity: 0; }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
 }
 `;
@@ -117,19 +117,22 @@ const TripodCellComponent = ({
         className="relative flex items-center justify-center w-full h-full select-none touch-none"
         style={{
           backgroundColor: (() => {
-            if (hasError) return "#fecaca"; // Red for errors
-            if (isSelected) return "#ffedd5"; // Orange for selected
-            if (isHighlighted && !isSelected) return "#eef2ff"; // Light indigo for highlighted
-            if (isGiven) return "#e0e7ff"; // Light indigo for given cells
+            if (hasError) return "rgba(244, 63, 94, 0.3)"; // Pink error
+            if (isSelected) return "rgba(244, 63, 94, 0.15)"; // Pink selected
+            if (isHighlighted && !isSelected) return "rgba(124, 58, 237, 0.1)"; // Purple highlight
+            if (isGiven) return "rgba(167, 139, 250, 0.15)"; // Light purple given
             if (regionColor) return regionColor; // Region color
-            return "white"; // Default white
+            return "rgba(255, 255, 255, 0.05)"; // Semi-transparent default
           })(),
-          border: "1px solid #c7d2fe",
+          border: "1px solid rgba(124, 58, 237, 0.2)",
+          borderRadius: "4px",
           cursor: inputMode === "border" ? "crosshair" : "pointer",
-          outline: isSelected ? "2px solid #f97316" : "none",
+          outline: isSelected ? "2px solid #F43F5E" : "none",
           outlineOffset: "-2px",
-          transition:
-            "background-color 0.15s ease, outline 0.15s ease, transform 0.1s ease-out",
+          boxShadow: isSelected
+            ? "0 0 20px rgba(244, 63, 94, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+            : "none",
+          transition: "all 200ms ease",
           transform: isTouching ? "scale(0.95)" : "scale(1)",
         }}
         onClick={onClick}
@@ -142,7 +145,8 @@ const TripodCellComponent = ({
             style={{
               fontSize: "20px",
               fontWeight: 700,
-              color: isGiven ? "#1e1b4b" : "#4338ca",
+              color: isGiven ? "#A78BFA" : "#E2E8F0", // Light purple for given, light slate for user
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)", // Depth
               animation: isAnimating ? "numberEntry 250ms ease-out" : undefined,
             }}
           >
@@ -174,7 +178,7 @@ export const TripodCell = memo<TripodCellProps>(
       prev.hideNumber === next.hideNumber &&
       prev.onClick === next.onClick
     );
-  }
+  },
 );
 
-TripodCell.displayName = 'TripodCell';
+TripodCell.displayName = "TripodCell";

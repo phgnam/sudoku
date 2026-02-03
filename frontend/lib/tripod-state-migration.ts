@@ -113,8 +113,9 @@ export function safeLocalStorageSet(key: string, value: string): boolean {
 
 /**
  * Migrate tripod state to new storage
+ * Returns true if successful, false on error
  */
-function migrateTripodState(tripodState: TripodState): void {
+function migrateTripodState(tripodState: TripodState): boolean {
   const newStorage: NewTripodStorage = {
     state: {
       tripod: tripodState,
@@ -129,6 +130,7 @@ function migrateTripodState(tripodState: TripodState): void {
   } else {
     console.error("❌ Failed to migrate tripod state due to storage error");
   }
+  return success;
 }
 
 /**
@@ -164,10 +166,16 @@ export function migrateTripodStorage(): boolean {
 
   // Perform migration
   console.log("🔄 Migrating tripod state...");
-  migrateTripodState(oldTripodState);
-  markMigrationCompleted();
-  
-  return true;
+  const success = migrateTripodState(oldTripodState);
+
+  // Only mark completed if migration succeeded
+  if (success) {
+    markMigrationCompleted();
+    return true;
+  } else {
+    console.error("❌ Migration failed - will retry on next load");
+    return false;
+  }
 }
 
 /**

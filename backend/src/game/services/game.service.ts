@@ -711,7 +711,10 @@ export class GameService {
       userId,
       gameMode: GameMode.TRIPOD,
       difficulty: selectedPuzzle
-        ? (selectedPuzzle.difficulty as any)
+        ? // Map TripodDifficulty.MEDIUM to Difficulty.NORMAL
+          selectedPuzzle.difficulty === 'medium'
+          ? Difficulty.NORMAL
+          : (selectedPuzzle.difficulty as any)
         : Difficulty.NORMAL,
       gridSize,
       currentState: initialState,

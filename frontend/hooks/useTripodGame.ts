@@ -166,13 +166,7 @@ export function useTripodGame({
       toggleBorder(type, row, col);
       onBorderToggle?.(type, row, col);
     },
-    [
-      inputMode,
-      tripod?.subMode,
-      toggleBorder,
-      canToggleBorder,
-      onBorderToggle,
-    ],
+    [inputMode, tripod?.subMode, toggleBorder, canToggleBorder, onBorderToggle],
   );
 
   const handleModeChange = useCallback(
@@ -188,19 +182,33 @@ export function useTripodGame({
       cells: number[][];
       givens: Array<{ row: number; col: number; value: number }>;
     }) => {
+      // Use actual puzzle grid size, not the hook's gridSize parameter
+      const actualGridSize = puzzleData.cells.length;
       const newCells = puzzleData.cells.map((row) => [...row]);
-      const newGivens = Array(gridSize)
+      const newGivens = Array(actualGridSize)
         .fill(null)
-        .map(() => Array(gridSize).fill(false));
+        .map(() => Array(actualGridSize).fill(false));
 
       puzzleData.givens.forEach(({ row, col }) => {
-        newGivens[row][col] = true;
+        // Validate bounds before setting
+        if (
+          row >= 0 &&
+          row < actualGridSize &&
+          col >= 0 &&
+          col < actualGridSize
+        ) {
+          newGivens[row][col] = true;
+        } else {
+          console.warn(
+            `Given cell (${row}, ${col}) is out of bounds for grid size ${actualGridSize}`,
+          );
+        }
       });
 
       setCells(newCells);
       setGivenCells(newGivens);
     },
-    [gridSize],
+    [], // Remove gridSize dependency - use puzzle data instead
   );
 
   return {

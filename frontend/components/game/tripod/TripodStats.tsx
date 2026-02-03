@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Clock, Plus, Minus, Hash, Undo, CheckCircle } from "lucide-react";
 import { useTripodStore } from "@/store/tripod";
 
 /**
@@ -23,12 +24,12 @@ export function TripodStats() {
   };
 
   const statItems = [
-    { label: "Time Elapsed", value: formatTime(elapsedTime), icon: "⏱️" },
-    { label: "Borders Placed", value: stats.bordersPlaced, icon: "➕" },
-    { label: "Borders Removed", value: stats.bordersRemoved, icon: "➖" },
-    { label: "Numbers Entered", value: stats.numbersEntered, icon: "🔢" },
-    { label: "Undo Count", value: stats.undoCount, icon: "↩️" },
-    { label: "Validations", value: stats.validationCount, icon: "✓" },
+    { label: "Time Elapsed", value: formatTime(elapsedTime), Icon: Clock },
+    { label: "Borders Placed", value: stats.bordersPlaced, Icon: Plus },
+    { label: "Borders Removed", value: stats.bordersRemoved, Icon: Minus },
+    { label: "Numbers Entered", value: stats.numbersEntered, Icon: Hash },
+    { label: "Undo Count", value: stats.undoCount, Icon: Undo },
+    { label: "Validations", value: stats.validationCount, Icon: CheckCircle },
   ];
 
   return (
@@ -86,42 +87,55 @@ export function TripodStats() {
             gap: "12px",
           }}
         >
-          {statItems.map((item) => (
-            <div
-              key={item.label}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-                padding: "10px",
-                backgroundColor: "#f8fafc",
-                borderRadius: "8px",
-              }}
-              className="dark:bg-slate-700"
-            >
-              <span
+          {statItems.map((item) => {
+            const IconComponent = item.Icon;
+            return (
+              <div
+                key={item.label}
                 style={{
-                  fontSize: "11px",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  padding: "10px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  transition: "all 0.2s ease",
+                  cursor: "default",
                 }}
-                className="dark:text-slate-400"
+                className="dark:bg-slate-700 hover:shadow-md hover:-translate-y-0.5"
               >
-                {item.icon} {item.label}
-              </span>
-              <span
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-                className="dark:text-white"
-              >
-                {item.value}
-              </span>
-            </div>
-          ))}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "11px",
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                  className="dark:text-slate-400"
+                >
+                  <IconComponent
+                    size={14}
+                    className="text-teal-600 dark:text-teal-400"
+                    style={{ color: "#14b8a6" }}
+                  />
+                  <span>{item.label}</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                  className="dark:text-white"
+                >
+                  {item.value}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ export interface RateLimitEntry {
   count: number;
   firstRequest: number;
   blocked: boolean;
+  blockedAt?: number; // Timestamp when blocking began
 }
 
 export interface RateLimitConfig {
