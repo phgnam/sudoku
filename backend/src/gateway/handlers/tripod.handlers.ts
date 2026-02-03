@@ -53,6 +53,19 @@ export class TripodHandlers extends BaseHandler {
     try {
       const game = await this.gameService.getGame(gameId);
       if (game.gameMode === 'tripod' && game.tripodData) {
+        // Extract givens from initial cells (non-zero cells from puzzle start)
+        const givens: Array<{ row: number; col: number; value: number }> = [];
+        const initialCells = game.tripodData.initialCells;
+        if (initialCells) {
+          initialCells.forEach((row, rowIndex) => {
+            row.forEach((value, colIndex) => {
+              if (value !== 0) {
+                givens.push({ row: rowIndex, col: colIndex, value });
+              }
+            });
+          });
+        }
+
         client.emit('tripod:state', {
           gameId,
           currentState: game.currentState,
@@ -63,6 +76,7 @@ export class TripodHandlers extends BaseHandler {
           dots: this.convertTripodDotsToArray(game.tripodData.tripodDots),
           status: game.status,
           timeElapsed: game.timeElapsed,
+          givens, // Include original puzzle givens
         });
       }
     } catch (error) {
@@ -103,6 +117,7 @@ export class TripodHandlers extends BaseHandler {
   ): Promise<{ event: string; data: unknown }> {
     try {
       const { gameId, type, row, col } = data;
+      const userId = client.data.userId;
 
       // Rate limit check
       if (!this.checkRateLimit(client.id, 'tripod:toggleBorder')) {
@@ -110,6 +125,12 @@ export class TripodHandlers extends BaseHandler {
           event: 'tripod:error',
           data: { message: 'Rate limit exceeded' },
         };
+      }
+
+      // Authorization check: verify user owns the game
+      const game = await this.gameService.getGame(gameId);
+      if (game.userId !== userId) {
+        return { event: 'tripod:error', data: { message: 'Unauthorized' } };
       }
 
       // Toggle the border
@@ -269,6 +290,19 @@ export class TripodHandlers extends BaseHandler {
         };
       }
 
+      // Extract givens from initial cells (non-zero cells from puzzle start)
+      const givens: Array<{ row: number; col: number; value: number }> = [];
+      const initialCells = game.tripodData.initialCells;
+      if (initialCells) {
+        initialCells.forEach((row, rowIndex) => {
+          row.forEach((value, colIndex) => {
+            if (value !== 0) {
+              givens.push({ row: rowIndex, col: colIndex, value });
+            }
+          });
+        });
+      }
+
       return {
         event: 'tripod:state',
         data: {
@@ -281,6 +315,7 @@ export class TripodHandlers extends BaseHandler {
           dots: this.convertTripodDotsToArray(game.tripodData.tripodDots),
           status: game.status,
           timeElapsed: game.timeElapsed,
+          givens, // Include original puzzle givens
         },
       };
     } catch (error) {

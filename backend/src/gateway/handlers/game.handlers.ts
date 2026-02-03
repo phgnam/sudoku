@@ -113,6 +113,13 @@ export class GameHandlers extends BaseHandler {
   ): Promise<{ event: string; data: unknown }> {
     try {
       const { gameId, row, col, value, timeElapsed } = data;
+      const userId = client.data.userId;
+
+      // Authorization check: verify user owns the game
+      const game = await this.gameService.getGame(gameId);
+      if (game.userId !== userId) {
+        return { event: 'game:error', data: { message: 'Unauthorized' } };
+      }
 
       // Make move in game service (with timeElapsed for accurate completion time)
       const updatedGame = await this.gameService.makeMove(
@@ -188,6 +195,13 @@ export class GameHandlers extends BaseHandler {
   ): Promise<{ event: string; data: unknown }> {
     try {
       const { gameId } = data;
+      const userId = client.data.userId;
+
+      // Authorization check: verify user owns the game
+      const game = await this.gameService.getGame(gameId);
+      if (game.userId !== userId) {
+        return { event: 'game:error', data: { message: 'Unauthorized' } };
+      }
 
       const hint = await this.gameService.useHint(gameId);
 
@@ -215,6 +229,13 @@ export class GameHandlers extends BaseHandler {
   ): Promise<{ event: string; data: unknown }> {
     try {
       const { gameId, row, col, value, timeElapsed } = data;
+      const userId = client.data.userId;
+
+      // Authorization check: verify user owns the game
+      const game = await this.gameService.getGame(gameId);
+      if (game.userId !== userId) {
+        return { event: 'game:error', data: { message: 'Unauthorized' } };
+      }
 
       const updatedGame = await this.gameService.applyHint(
         gameId,
