@@ -98,9 +98,12 @@ export class MatchmakingHandlers extends BaseHandler {
   }): Promise<void> {
     const { player1, player2, difficulty } = matchedPair;
 
+    // Declare matchId outside try block so it's accessible in catch cleanup
+    let matchId: string | undefined;
+
     try {
       // Create the match (requires socketId as second param)
-      const matchId = await this.matchManager.createMatch(
+      matchId = await this.matchManager.createMatch(
         player1.playerId,
         player1.socketId,
         difficulty as Difficulty,
@@ -211,11 +214,12 @@ export class MatchmakingHandlers extends BaseHandler {
         this.matchmakingQueue.removePlayer(player1.playerId);
         this.matchmakingQueue.removePlayer(player2.playerId);
 
-        // If match was created, cancel it
-        const matchId = `${player1.playerId}-${Date.now()}`;
-        const match = this.matchManager.getMatch(matchId);
-        if (match) {
-          this.matchManager.cancelMatch(matchId);
+        // If match was created, cancel it using the actual matchId
+        if (matchId) {
+          const match = this.matchManager.getMatch(matchId);
+          if (match) {
+            this.matchManager.cancelMatch(matchId);
+          }
         }
       } catch (cleanupError) {
         this.logger.error('Error during matchmaking cleanup:', cleanupError);

@@ -57,6 +57,9 @@ export function Throttle(msOrOptions: number | ThrottleOptions) {
       expiredKeys.forEach(key => throttleMap.delete(key));
     }, CLEANUP_INTERVAL);
 
+    // Unref the interval to prevent keeping the event loop alive
+    cleanupInterval.unref();
+
     descriptor.value = async function (...args: any[]) {
       // Extract client ID
       const clientId = getClientId
@@ -125,8 +128,9 @@ export function Debounce(ms: number) {
         try {
           await originalMethod.apply(this, args);
         } catch (error) {
+          // Log error but don't rethrow - rethrowing in setTimeout callback
+          // creates an unhandled promise rejection which crashes Node.js
           console.error('Error in debounced method:', error);
-          throw error;
         }
       }, ms);
 

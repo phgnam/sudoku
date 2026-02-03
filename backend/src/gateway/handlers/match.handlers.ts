@@ -45,6 +45,19 @@ export class MatchHandlers extends BaseHandler {
   ): Promise<{ event: string; data: unknown }> {
     try {
       const userId = client.data.userId;
+
+      // Validate difficulty before use
+      const validDifficulties = Object.values(Difficulty);
+      if (!validDifficulties.includes(data.difficulty as Difficulty)) {
+        return {
+          event: 'match:error',
+          data: {
+            message: `Invalid difficulty. Must be one of: ${validDifficulties.join(', ')}`,
+            code: 'INVALID_DIFFICULTY',
+          },
+        };
+      }
+
       const difficulty = data.difficulty as Difficulty;
 
       // Check if player is already in a match
@@ -444,6 +457,29 @@ export class MatchHandlers extends BaseHandler {
     try {
       const userId = client.data.userId;
       const { matchId, row, col, value } = data;
+
+      // Validate input parameters
+      if (typeof row !== 'number' || typeof col !== 'number' || typeof value !== 'number') {
+        return {
+          event: 'match:error',
+          data: { message: 'Invalid move parameters: row, col, and value must be numbers' },
+        };
+      }
+
+      // Validate bounds: row/col should be 0-8 for a 9x9 grid, value should be 0-9
+      if (row < 0 || row > 8 || col < 0 || col > 8) {
+        return {
+          event: 'match:error',
+          data: { message: 'Invalid move: row and col must be between 0 and 8' },
+        };
+      }
+
+      if (value < 0 || value > 9) {
+        return {
+          event: 'match:error',
+          data: { message: 'Invalid move: value must be between 0 and 9' },
+        };
+      }
 
       const match = this.matchManager.getMatch(matchId);
       if (!match || match.status !== 'playing') {

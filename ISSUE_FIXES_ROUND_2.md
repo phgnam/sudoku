@@ -14,7 +14,7 @@
 **Puzzle Validation Security:**
 ```bash
 # Verify solution endpoint now requires POST
-curl -X POST http://localhost:4000/tripod-puzzles/{id}/validate \
+curl -X POST http://localhost:3001/tripod-puzzles/{id}/validate \
   -H "Content-Type: application/json" \
   -d '{"solution": [[1,2,3...]]}'
 

@@ -119,7 +119,6 @@ export function TripodStats() {
                   <IconComponent
                     size={14}
                     className="text-teal-600 dark:text-teal-400"
-                    style={{ color: "#14b8a6" }}
                   />
                   <span>{item.label}</span>
                 </div>

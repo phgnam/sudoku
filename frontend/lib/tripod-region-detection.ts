@@ -16,9 +16,11 @@ export interface Region {
 
 /**
  * Safety cap for BFS to prevent infinite loops
- * gridSize^2 * 2 is plenty safe (max possible cells = gridSize^2)
+ * Scale with gridSize - max possible cells = gridSize^2, so 2x that is safe
  */
-const MAX_BFS_ITERATIONS = 200;
+export function getMaxBfsIterations(gridSize: number): number {
+  return gridSize * gridSize * 2;
+}
 
 /**
  * Detect connected regions in a tripod grid using BFS
@@ -91,6 +93,7 @@ function bfs(
 
   const cells: Array<{ row: number; col: number }> = [];
   let iterations = 0;
+  const MAX_BFS_ITERATIONS = getMaxBfsIterations(gridSize);
 
   while (queue.length > 0) {
     // Safety check to prevent infinite loops

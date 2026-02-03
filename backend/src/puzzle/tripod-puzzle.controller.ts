@@ -43,6 +43,16 @@ export class TripodPuzzleController {
 
     const queryBuilder = this.tripodPuzzleRepo.createQueryBuilder('puzzle');
 
+    // Only select metadata columns to avoid loading large JSON fields
+    queryBuilder.select([
+      'puzzle.id',
+      'puzzle.name',
+      'puzzle.gridSize',
+      'puzzle.difficulty',
+      'puzzle.rating',
+      'puzzle.createdAt',
+    ]);
+
     if (difficulty) {
       queryBuilder.where('puzzle.difficulty = :difficulty', { difficulty });
     }

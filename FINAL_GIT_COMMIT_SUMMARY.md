@@ -143,7 +143,7 @@ chore: update dependencies and configuration for Tripod feature
 - ✅ E2E + unit tests
 
 ### Frontend Stack:
-- ✅ Next.js 14 App Router
+- ✅ Next.js 16 App Router
 - ✅ Zustand state management
 - ✅ React hooks
 - ✅ Storybook documentation
