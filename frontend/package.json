@@ -40,6 +40,7 @@
     "@storybook/react": "^10.2.3",
     "@storybook/test": "^8.6.15",
     "@tailwindcss/postcss": "^4",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^20.19.30",
     "@types/react": "^19",
     "@types/react-dom": "^19",
