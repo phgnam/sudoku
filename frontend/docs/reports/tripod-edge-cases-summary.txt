@@ -62,7 +62,7 @@ EDGE CASE BREAKDOWN:
 
 ─────────────────────────────────────────────────────────────────────────────
 
-SCORE: 4/6 HANDLED ✅, 2/6 PARTIAL ⚠️ (83%)
+SCORE: 4/6 HANDLED ✅, 2/6 PARTIAL ⚠️ (67%)
 
 CRITICAL FINDINGS: None
 MODERATE GAPS: 2 (mode-switch spam, mobile scroll)

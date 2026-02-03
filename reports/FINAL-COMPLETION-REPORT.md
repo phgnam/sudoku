@@ -515,5 +515,3 @@ The Tripod Optimization project successfully delivered **significant performance
 ---
 
 ## Files Created/Modified
-
-### Created Files (15)

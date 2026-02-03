@@ -13,13 +13,14 @@ console.log('Testing BFS with malformed borders...');
 
 try {
   const gridSize = 7;
+  // Create truly malformed borders with wrong dimensions to test error handling
   const malformedBorders = {
-    horizontal: Array(gridSize + 1)
+    horizontal: Array(gridSize) // Wrong: should be gridSize+1
       .fill(null)
-      .map(() => Array(gridSize).fill(false)),
-    vertical: Array(gridSize)
+      .map(() => Array(gridSize - 1).fill(false)), // Wrong: should be gridSize
+    vertical: Array(gridSize - 1) // Wrong: should be gridSize
       .fill(null)
-      .map(() => Array(gridSize + 1).fill(false)),
+      .map(() => Array(gridSize).fill(false)), // Wrong: should be gridSize+1
   };
 
   const result = detectRegions(malformedBorders, gridSize);

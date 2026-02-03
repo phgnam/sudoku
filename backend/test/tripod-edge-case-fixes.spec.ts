@@ -100,10 +100,28 @@ describe('Phase 2B: Critical Backend Fixes', () => {
 
     it('should pass validation when region count is correct', () => {
       const gridSize = 7;
-      
-      // Generate a valid tripod pattern
-      const { borders, tripodDots } = tripodPuzzleService.generateTripodDotPattern(gridSize);
-      
+
+      // Generate a valid tripod pattern with retry logic to ensure correct region count
+      let borders;
+      let tripodDots;
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      while (attempts < maxAttempts) {
+        const generated = tripodPuzzleService.generateTripodDotPattern(gridSize);
+        borders = generated.borders;
+        tripodDots = generated.tripodDots;
+
+        // Verify region count before using
+        const regions = tripodRegionService.detectRegions(borders, gridSize);
+        if (regions.length === gridSize) {
+          break; // Found a valid pattern
+        }
+        attempts++;
+      }
+
+      expect(attempts).toBeLessThan(maxAttempts); // Ensure we found a valid pattern
+
       const cells = Array(gridSize)
         .fill(null)
         .map(() => Array(gridSize).fill(0));
