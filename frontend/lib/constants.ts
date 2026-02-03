@@ -105,6 +105,19 @@ export const SOCKET_EVENTS = {
   MUTATION_OCCURRED: "mutation:occurred",
   MUTATION_STARTED: "mutation:started",
   MUTATION_STOPPED: "mutation:stopped",
+
+  // Tripod events
+  TRIPOD_JOIN: "tripod:join",
+  TRIPOD_LEAVE: "tripod:leave",
+  TRIPOD_STATE: "tripod:state",
+  TRIPOD_TOGGLE_BORDER: "tripod:toggleBorder",
+  TRIPOD_BORDER_UPDATED: "tripod:borderUpdated",
+  TRIPOD_UPDATE_BORDERS: "tripod:updateBorders",
+  TRIPOD_VALIDATE: "tripod:validate",
+  TRIPOD_VALIDATED: "tripod:validated",
+  TRIPOD_COMPLETED: "tripod:completed",
+  TRIPOD_SYNC: "tripod:sync",
+  TRIPOD_ERROR: "tripod:error",
 } as const;
 
 export const MATCH_CONFIG = {
@@ -113,27 +126,27 @@ export const MATCH_CONFIG = {
 } as const;
 
 export const MATCHMAKING_CONFIG = {
-  INITIAL_SEARCH_RADIUS: 200,    // ±200 ELO points
+  INITIAL_SEARCH_RADIUS: 200, // ±200 ELO points
   RADIUS_EXPAND_INTERVAL: 10000, // Expand every 10 seconds
-  RADIUS_EXPAND_AMOUNT: 50,      // Add 50 points each expansion
-  MAX_SEARCH_RADIUS: 500,        // Cap at ±500
-  MATCH_CHECK_INTERVAL: 2000,    // Check for matches every 2s
-  MAX_QUEUE_TIME: 300000,        // 5 minutes max wait
+  RADIUS_EXPAND_AMOUNT: 50, // Add 50 points each expansion
+  MAX_SEARCH_RADIUS: 500, // Cap at ±500
+  MATCH_CHECK_INTERVAL: 2000, // Check for matches every 2s
+  MAX_QUEUE_TIME: 300000, // 5 minutes max wait
 } as const;
 
 export const MUTATION_CONFIG = {
-  INTERVAL_MS: 30000,           // 30 seconds between mutations
-  WARNING_BEFORE_MS: 5000,      // Show warning 5 seconds before
-  ANIMATION_DURATION_MS: 800,   // Duration of mutation animation
+  INTERVAL_MS: 30000, // 30 seconds between mutations
+  WARNING_BEFORE_MS: 5000, // Show warning 5 seconds before
+  ANIMATION_DURATION_MS: 800, // Duration of mutation animation
 } as const;
 
 export const GAME_MODES = {
-  CLASSIC: 'classic',
-  MUTATING: 'mutating',
-  TRIPOD: 'tripod',
+  CLASSIC: "classic",
+  MUTATING: "mutating",
+  TRIPOD: "tripod",
 } as const;
 
-export type GameMode = typeof GAME_MODES[keyof typeof GAME_MODES];
+export type GameMode = (typeof GAME_MODES)[keyof typeof GAME_MODES];
 
 export const TRIPOD_CONFIG = {
   DEFAULT_GRID_SIZE: 7,

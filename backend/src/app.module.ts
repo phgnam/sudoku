@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CommonModule } from './common/common.module';
 import { DatabaseModule } from './database/database.module';
 import { PuzzleModule } from './puzzle/puzzle.module';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +19,7 @@ import { MatchModule } from './match/match.module';
       envFilePath: '.env',
     }),
     I18nConfigModule,
+    CommonModule, // Register common services globally
     DatabaseModule,
     PuzzleModule,
     AuthModule,

@@ -85,20 +85,37 @@ export function TripodGrid({
     <div
       style={{
         position: "relative",
-        backgroundColor: "white",
-        borderRadius: "16px",
-        boxShadow: "0 10px 25px rgba(79, 70, 229, 0.15)",
-        border: "2px solid #c7d2fe",
-        padding: "12px",
-        width: gridSize * CELL_SIZE + 28, // 24px padding + 4px border
-        height: gridSize * CELL_SIZE + 28,
+        background:
+          "linear-gradient(135deg, rgba(15, 15, 35, 0.9) 0%, rgba(76, 29, 149, 0.8) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)", // Safari support
+        borderRadius: "20px",
+        boxShadow:
+          "0 10px 30px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+        border: "1px solid rgba(167, 139, 250, 0.2)",
+        padding: "20px",
+        width: gridSize * CELL_SIZE + 44, // Increased padding
+        height: gridSize * CELL_SIZE + 44,
       }}
     >
+      {/* Inner grid border - vibrant purple */}
       <div
         style={{
           position: "absolute",
-          left: 14,
-          top: 14,
+          left: 20,
+          top: 20,
+          width: gridSize * CELL_SIZE + 4,
+          height: gridSize * CELL_SIZE + 4,
+          border: "2px solid #7C3AED",
+          borderRadius: "12px",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: 22,
+          top: 22,
           width: gridSize * CELL_SIZE,
           height: gridSize * CELL_SIZE,
         }}
@@ -111,6 +128,7 @@ export function TripodGrid({
             gridTemplateRows: `repeat(${gridSize}, ${CELL_SIZE}px)`,
             left: 0,
             top: 0,
+            contain: "layout style paint", // CSS containment for performance
           }}
         >
           {cells.map((row, r) =>

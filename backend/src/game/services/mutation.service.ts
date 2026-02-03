@@ -44,8 +44,11 @@ export class MutationService implements OnModuleDestroy {
     const timer = setInterval(() => {
       // Wrap callback in error handler to avoid unhandled promise rejections
       callback(gameId).catch((error: unknown) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`Mutation callback error for game ${gameId}: ${errorMessage}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(
+          `Mutation callback error for game ${gameId}: ${errorMessage}`,
+        );
         // Increment failure count - the calling code should handle stopping timer if too many failures
         this.recordMutationFailure(gameId);
       });
@@ -231,4 +234,3 @@ export class MutationService implements OnModuleDestroy {
     this.consecutiveFailures.clear();
   }
 }
-

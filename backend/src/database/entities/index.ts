@@ -4,3 +4,5 @@ export { Game, GameStatus, GameMode } from './game.entity';
 export type { Move } from './game.entity';
 export { GameHistory } from './game-history.entity';
 export { Match, MatchStatus, MatchResult } from './match.entity';
+export { TripodPuzzle, TripodDifficulty } from './tripod-puzzle.entity';
+export type { TripodBordersJson } from './tripod-puzzle.entity';

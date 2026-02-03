@@ -28,6 +28,8 @@ const validationKeyframes = `
 }
 `;
 
+const MAX_DISPLAYED_ERRORS = 20;
+
 interface ValidationFeedbackProps {
   errors: TripodError[];
   isComplete: boolean;

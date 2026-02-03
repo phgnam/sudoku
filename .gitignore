@@ -88,6 +88,9 @@ desktop.ini
 .vercel
 .turbo
 .cache/
+*.backup
+*.bak
+*~
 
 # ===================================
 # Screenshots & temporary files
