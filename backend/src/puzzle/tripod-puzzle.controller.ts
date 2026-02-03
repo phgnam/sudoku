@@ -168,6 +168,8 @@ export class TripodPuzzleController {
     if (submitted.length !== correct.length) return false;
 
     for (let i = 0; i < submitted.length; i++) {
+      // Validate that each row is an array
+      if (!Array.isArray(submitted[i])) return false;
       if (submitted[i].length !== correct[i].length) return false;
       for (let j = 0; j < submitted[i].length; j++) {
         if (submitted[i][j] !== correct[i][j]) return false;
