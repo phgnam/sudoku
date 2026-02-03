@@ -661,6 +661,7 @@ export class GameService {
 
     // Try to find a random puzzle of the requested difficulty
     // Use count() + skip() to efficiently select one random puzzle
+    let useRequestedDifficulty = true;
     let count = await this.tripodPuzzleRepository.count({
       where: { difficulty: difficultyStr as any, gridSize },
     });
@@ -668,6 +669,7 @@ export class GameService {
     // If no puzzles of requested difficulty, try any difficulty
     if (count === 0) {
       count = await this.tripodPuzzleRepository.count({ where: { gridSize } });
+      useRequestedDifficulty = false;
     }
 
     let initialState: number[][];
@@ -678,11 +680,10 @@ export class GameService {
 
     if (count > 0) {
       // Pick random puzzle efficiently using skip
+      // Use stored flag instead of re-querying count
       const randomIndex = Math.floor(Math.random() * count);
       const puzzles = await this.tripodPuzzleRepository.find({
-        where: count === await this.tripodPuzzleRepository.count({
-          where: { difficulty: difficultyStr as any, gridSize },
-        })
+        where: useRequestedDifficulty
           ? { difficulty: difficultyStr as any, gridSize }
           : { gridSize },
         skip: randomIndex,
@@ -738,6 +739,7 @@ export class GameService {
         horizontalBorders,
         verticalBorders,
         subMode, // Persist subMode in tripodData
+        initialCells: initialState.map((row) => [...row]), // Store original puzzle cells
       },
       status: GameStatus.ACTIVE,
     });

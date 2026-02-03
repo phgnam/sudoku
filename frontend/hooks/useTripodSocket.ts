@@ -6,7 +6,7 @@ import { socketService } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/lib/constants";
 import { useDisplayName } from "./useDisplayName";
 import type { TripodError } from "@/types/tripod";
-import { debounce, throttle } from "lodash";
+import { debounce } from "lodash";
 
 interface TripodValidatedPayload {
   gameId: string;
@@ -25,6 +25,7 @@ interface TripodStatePayload {
   dots: Array<{ row: number; col: number }>;
   status: GameStatus;
   timeElapsed: number;
+  givens?: Array<{ row: number; col: number; value: number }>; // Original puzzle cells
 }
 
 interface TripodBorderUpdatePayload {
@@ -51,6 +52,7 @@ export function useTripodSocket(gameId: string | null) {
   // Generic game methods from game store
   const updateState = useGameStore((state) => state.updateState);
   const setStatus = useGameStore((state) => state.setStatus);
+  const setInitialState = useGameStore((state) => state.setGame);
 
   // Keep track of processing updates to avoid loops
   const isProcessingUpdate = useRef(false);
@@ -120,6 +122,20 @@ export function useTripodSocket(gameId: string | null) {
         // Set cells (Sudoku part)
         if (data.currentState) {
           updateState(data.currentState);
+        }
+
+        // Set initial state from givens if available
+        // This allows frontend to know which cells are puzzle givens vs player moves
+        if (data.givens && data.givens.length > 0) {
+          const initialGrid = Array.from({ length: gridSize }, () =>
+            Array(gridSize).fill(0),
+          );
+          data.givens.forEach(({ row, col, value }) => {
+            if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+              initialGrid[row][col] = value;
+            }
+          });
+          setInitialState({ initialState: initialGrid });
         }
 
         // Set time
@@ -260,6 +276,7 @@ export function useTripodSocket(gameId: string | null) {
     setBorders,
     updateState,
     setStatus,
+    setInitialState,
     toggleBorder,
     updateElapsedTime,
     setErrors,
@@ -268,31 +285,43 @@ export function useTripodSocket(gameId: string | null) {
   ]);
 
   // Actions
-  // Throttled emit to prevent spamming socket with rapid border toggles (Fix 4.1)
-  const throttledEmit = useMemo(
-    () => throttle((gameId: string, type: string, row: number, col: number) => {
-      socketService.emit(SOCKET_EVENTS.TRIPOD_TOGGLE_BORDER, {
-        gameId,
-        type,
-        row,
-        col,
-      });
-    }, 100), // 100ms throttle = max 10 emits/sec
-    []
-  );
+  // Queue-based emit to prevent dropping border toggles while still rate limiting
+  // Previous throttle approach dropped intermediate toggles for different borders
+  const pendingEmits = useRef<Array<{ type: string; row: number; col: number }>>([]);
+  const isEmitting = useRef(false);
+
+  const processEmitQueue = useCallback(() => {
+    if (!gameId || isEmitting.current || pendingEmits.current.length === 0) return;
+
+    isEmitting.current = true;
+    const { type, row, col } = pendingEmits.current.shift()!;
+
+    socketService.emit(SOCKET_EVENTS.TRIPOD_TOGGLE_BORDER, {
+      gameId,
+      type,
+      row,
+      col,
+    });
+
+    // Process next after 50ms delay (max 20 emits/sec, faster than old throttle)
+    setTimeout(() => {
+      isEmitting.current = false;
+      processEmitQueue();
+    }, 50);
+  }, [gameId]);
 
   const emitToggleBorder = useCallback(
     (type: "h" | "v", row: number, col: number) => {
       if (!gameId || isProcessingUpdate.current) return;
 
-      throttledEmit(
-        gameId,
-        type === "h" ? "horizontal" : "vertical",
+      pendingEmits.current.push({
+        type: type === "h" ? "horizontal" : "vertical",
         row,
-        col
-      );
+        col,
+      });
+      processEmitQueue();
     },
-    [gameId, throttledEmit],
+    [gameId, processEmitQueue],
   );
 
   const validate = useCallback(() => {

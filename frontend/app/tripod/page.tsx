@@ -54,6 +54,7 @@ export default function TripodGamePage() {
   // Game state from game store
   const gameId = useGameStore((state) => state.id);
   const currentState = useGameStore((state) => state.currentState);
+  const initialState = useGameStore((state) => state.initialState);
   const [validationResult, setValidationResult] = useState<{
     errors: TripodError[];
     isComplete: boolean;
@@ -88,22 +89,28 @@ export default function TripodGamePage() {
   // Sync store currentState with local cells and update givenCells
   useEffect(() => {
     if (currentState && currentState.length > 0) {
-      // Initialize game with current state and extract givens
+      // Extract givens from initialState (original puzzle cells), not currentState
+      // This prevents locking player's own moves as givens after sync/resume
       const givens: Array<{ row: number; col: number; value: number }> = [];
-      currentState.forEach((row, rowIndex) => {
-        row.forEach((value, colIndex) => {
-          if (value !== 0) {
-            givens.push({ row: rowIndex, col: colIndex, value });
-          }
+
+      // Use initialState if available (from backend), otherwise empty givens
+      // This allows all cells to be editable for legacy games without initialState
+      if (initialState && initialState.length > 0) {
+        initialState.forEach((row, rowIndex) => {
+          row.forEach((value, colIndex) => {
+            if (value !== 0) {
+              givens.push({ row: rowIndex, col: colIndex, value });
+            }
+          });
         });
-      });
+      }
 
       initializeGame({
         cells: currentState.map((row) => [...row]),
         givens,
       });
     }
-  }, [currentState, initializeGame]);
+  }, [currentState, initialState, initializeGame]);
 
   // Handle localStorage quota exceeded
   useEffect(() => {

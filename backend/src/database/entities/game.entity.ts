@@ -45,6 +45,7 @@ export interface TripodData {
     vertical: boolean[][];
   };
   subMode?: 'full' | 'borders_only' | 'sudoku_only'; // Game sub-mode
+  initialCells?: number[][]; // Original puzzle givens (cells at game start)
 }
 
 @Entity('games')
