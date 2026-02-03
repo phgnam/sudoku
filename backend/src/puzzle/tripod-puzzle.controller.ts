@@ -1,9 +1,12 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   Query,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -120,21 +123,48 @@ export class TripodPuzzleController {
     return this.formatPuzzleResponse(puzzle);
   }
 
-  @Get(':id/validate')
-  @ApiOperation({ summary: 'Validate a tripod puzzle solution' })
+  @Post(':id/validate')
+  @ApiOperation({ summary: 'Validate a submitted tripod puzzle solution' })
   @ApiParam({ name: 'id', description: 'Puzzle UUID' })
-  async validateSolution(@Param('id') id: string) {
+  async validateSolution(
+    @Param('id') id: string,
+    @Body() body: { solution: number[][] },
+  ) {
     const puzzle = await this.tripodPuzzleRepo.findOne({ where: { id } });
 
     if (!puzzle) {
       throw new NotFoundException(`Tripod puzzle not found: ${id}`);
     }
 
-    // Return the solution for client-side validation
+    if (!body.solution || !Array.isArray(body.solution)) {
+      throw new BadRequestException('Solution must be a 2D array');
+    }
+
+    // Validate submitted solution against stored solution
+    const isValid = this.isSolutionCorrect(body.solution, puzzle.solution);
+
+    // Only return validation result, not the actual solution
     return {
       id: puzzle.id,
-      solution: puzzle.solution,
+      isValid,
+      message: isValid ? 'Solution is correct!' : 'Solution is incorrect.',
     };
+  }
+
+  private isSolutionCorrect(
+    submitted: number[][],
+    correct: number[][],
+  ): boolean {
+    if (submitted.length !== correct.length) return false;
+
+    for (let i = 0; i < submitted.length; i++) {
+      if (submitted[i].length !== correct[i].length) return false;
+      for (let j = 0; j < submitted[i].length; j++) {
+        if (submitted[i][j] !== correct[i][j]) return false;
+      }
+    }
+
+    return true;
   }
 
   private formatPuzzleResponse(puzzle: TripodPuzzle) {

@@ -119,10 +119,15 @@ export function Debounce(ms: number) {
         clearTimeout(existingTimeout);
       }
 
-      // Set new timeout
+      // Set new timeout with error handling
       const timeout = setTimeout(async () => {
         timeoutMap.delete(clientId);
-        await originalMethod.apply(this, args);
+        try {
+          await originalMethod.apply(this, args);
+        } catch (error) {
+          console.error('Error in debounced method:', error);
+          throw error;
+        }
       }, ms);
 
       timeoutMap.set(clientId, timeout);

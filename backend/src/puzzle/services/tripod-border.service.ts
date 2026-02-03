@@ -115,8 +115,9 @@ export class TripodBorderService {
     let attempts = 0;
 
     while (added < count && attempts < maxAttempts) {
-      const row = Math.floor(Math.random() * gridSize) + 1;
-      const col = Math.floor(Math.random() * gridSize) + 1;
+      // Generate indices from 0 to gridSize (inclusive) to cover all vertices
+      const row = Math.floor(Math.random() * (gridSize + 1));
+      const col = Math.floor(Math.random() * (gridSize + 1));
 
       // Skip corners - they can only have 2 borders so can never satisfy tripod rule
       const isCorner =
