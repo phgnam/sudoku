@@ -7,7 +7,8 @@
 
 @layer base {
   /* Blue theme (default) */
-  :root, [data-theme="blue"] {
+  :root,
+  [data-theme="blue"] {
     --background: #eef2ff;
     --foreground: #1e1b4b;
     --accent: #3b82f6;
@@ -56,46 +57,139 @@
   }
 
   .dark[data-theme="orange"] {
-    --background: #1c1917;
+    --background: #0c0a09;
     --foreground: #ffedd5;
   }
 
+  /* Tripod Gaming Design Tokens */
+  :root {
+    /* Gaming Color Palette */
+    --gaming-primary: #7C3AED;           /* Vibrant Purple */
+    --gaming-primary-light: #A78BFA;     /* Light Purple */
+    --gaming-primary-dark: #4C1D95;      /* Deep Purple */
+    
+    --gaming-secondary: #14B8A6;         /* Teal (existing theme) */
+    --gaming-secondary-light: #5EEAD4;
+    
+    --gaming-cta: #F43F5E;               /* Hot Pink */
+    --gaming-cta-hover: #E11D48;
+    
+    --gaming-bg-dark: #0F0F23;           /* Deep Dark Blue */
+    --gaming-bg-light: #F8FAFC;
+    
+    --gaming-text-light: #E2E8F0;        /* Light Slate */
+    --gaming-text-dark: #1E293B;
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-bg-dark: rgba(15, 15, 35, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-border-purple: rgba(167, 139, 250, 0.2);
+    --glass-blur: 20px;
+    --glass-blur-mobile: 10px;
+    
+    /* Shadows & Depth */
+    --shadow-gaming-sm: 0 2px 8px rgba(124, 58, 237, 0.1);
+    --shadow-gaming-md: 0 4px 16px rgba(124, 58, 237, 0.15);
+    --shadow-gaming-lg: 0 10px 30px rgba(124, 58, 237, 0.2);
+    --shadow-gaming-glow: 0 0 20px rgba(244, 63, 94, 0.4);
+    --shadow-gaming-glow-strong: 0 0 20px rgba(244, 63, 94, 0.6);
+    --shadow-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
+    
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+  }
+
   body {
-    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family:
+      "Nunito",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
     background-color: var(--background);
     color: var(--foreground);
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: "Fredoka", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family:
+      "Fredoka",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
   }
 }
 
 @layer components {
   /* Theme-aware gradient backgrounds */
   .bg-clean-light {
-    background: linear-gradient(135deg, var(--background) 0%, var(--accent-bg) 50%, var(--accent-light) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--background) 0%,
+      var(--accent-bg) 50%,
+      var(--accent-light) 100%
+    );
   }
 
   .bg-clean-dark {
-    background: linear-gradient(135deg, var(--background) 0%, var(--accent-bg-dark) 50%, var(--accent-dark) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--background) 0%,
+      var(--accent-bg-dark) 50%,
+      var(--accent-dark) 100%
+    );
   }
 
   /* Accent color utilities */
-  .text-accent { color: var(--accent); }
-  .bg-accent { background-color: var(--accent); }
-  .border-accent { border-color: var(--accent); }
+  .text-accent {
+    color: var(--accent);
+  }
+  .bg-accent {
+    background-color: var(--accent);
+  }
+  .border-accent {
+    border-color: var(--accent);
+  }
 }
 
 /* Animation Keyframes */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -120,11 +214,16 @@
 }
 
 @keyframes glow {
-  0%, 100% {
-    box-shadow: inset 0 0 0 3px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.5);
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 3px #f59e0b,
+      0 0 10px rgba(245, 158, 11, 0.5);
   }
   50% {
-    box-shadow: inset 0 0 0 3px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.8);
+    box-shadow:
+      inset 0 0 0 3px #f59e0b,
+      0 0 20px rgba(245, 158, 11, 0.8);
   }
 }
 
@@ -193,39 +292,77 @@
 /* Mutation Sudoku Animations - Colorful & Dramatic */
 @keyframes mutationPulse {
   0% {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(251, 146, 60, 0.1));
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.1),
+      rgba(251, 146, 60, 0.1)
+    );
     transform: scale(1);
-    box-shadow: 0 0 0 rgba(239, 68, 68, 0), inset 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow:
+      0 0 0 rgba(239, 68, 68, 0),
+      inset 0 0 0 0 rgba(239, 68, 68, 0);
     filter: brightness(1);
   }
   15% {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(251, 146, 60, 0.8));
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.8),
+      rgba(251, 146, 60, 0.8)
+    );
     transform: scale(1.15);
-    box-shadow: 0 0 40px rgba(239, 68, 68, 0.9), 0 0 80px rgba(251, 146, 60, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 0 40px rgba(239, 68, 68, 0.9),
+      0 0 80px rgba(251, 146, 60, 0.6),
+      inset 0 0 20px rgba(255, 255, 255, 0.3);
     filter: brightness(1.3);
   }
   30% {
-    background: linear-gradient(135deg, rgba(251, 146, 60, 0.9), rgba(234, 179, 8, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(251, 146, 60, 0.9),
+      rgba(234, 179, 8, 0.9)
+    );
     transform: scale(1.2) rotate(2deg);
-    box-shadow: 0 0 60px rgba(251, 146, 60, 1), 0 0 100px rgba(234, 179, 8, 0.7), inset 0 0 30px rgba(255, 255, 255, 0.5);
+    box-shadow:
+      0 0 60px rgba(251, 146, 60, 1),
+      0 0 100px rgba(234, 179, 8, 0.7),
+      inset 0 0 30px rgba(255, 255, 255, 0.5);
     filter: brightness(1.5);
   }
   50% {
-    background: linear-gradient(135deg, rgba(234, 179, 8, 0.8), rgba(239, 68, 68, 0.8));
+    background: linear-gradient(
+      135deg,
+      rgba(234, 179, 8, 0.8),
+      rgba(239, 68, 68, 0.8)
+    );
     transform: scale(1.1) rotate(-2deg);
-    box-shadow: 0 0 50px rgba(234, 179, 8, 0.8), 0 0 80px rgba(239, 68, 68, 0.5);
+    box-shadow:
+      0 0 50px rgba(234, 179, 8, 0.8),
+      0 0 80px rgba(239, 68, 68, 0.5);
     filter: brightness(1.3);
   }
   75% {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.5), rgba(251, 146, 60, 0.5));
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.5),
+      rgba(251, 146, 60, 0.5)
+    );
     transform: scale(1.05) rotate(1deg);
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.5), 0 0 50px rgba(251, 146, 60, 0.3);
+    box-shadow:
+      0 0 30px rgba(239, 68, 68, 0.5),
+      0 0 50px rgba(251, 146, 60, 0.3);
     filter: brightness(1.1);
   }
   100% {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(251, 146, 60, 0.2));
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.2),
+      rgba(251, 146, 60, 0.2)
+    );
     transform: scale(1) rotate(0deg);
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.3), 0 0 25px rgba(251, 146, 60, 0.2);
+    box-shadow:
+      0 0 15px rgba(239, 68, 68, 0.3),
+      0 0 25px rgba(251, 146, 60, 0.2);
     filter: brightness(1);
   }
 }
@@ -242,14 +379,18 @@
     opacity: 1;
     transform: scale(1.4) rotate(-8deg);
     color: #fb923c;
-    text-shadow: 0 0 20px rgba(251, 146, 60, 1), 0 0 40px rgba(234, 179, 8, 0.8);
+    text-shadow:
+      0 0 20px rgba(251, 146, 60, 1),
+      0 0 40px rgba(234, 179, 8, 0.8);
     filter: blur(0px);
   }
   40% {
     opacity: 0.8;
     transform: scale(1.6) rotate(10deg);
     color: #eab308;
-    text-shadow: 0 0 30px rgba(234, 179, 8, 1), 0 0 60px rgba(239, 68, 68, 0.6);
+    text-shadow:
+      0 0 30px rgba(234, 179, 8, 1),
+      0 0 60px rgba(239, 68, 68, 0.6);
     filter: blur(1px);
   }
   60% {
@@ -276,24 +417,51 @@
 }
 
 @keyframes mutationShake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  10% { transform: translateX(-4px) rotate(-2deg); }
-  20% { transform: translateX(4px) rotate(2deg); }
-  30% { transform: translateX(-3px) rotate(-1.5deg); }
-  40% { transform: translateX(3px) rotate(1.5deg); }
-  50% { transform: translateX(-2px) rotate(-1deg); }
-  60% { transform: translateX(2px) rotate(1deg); }
-  70% { transform: translateX(-1px) rotate(-0.5deg); }
-  80% { transform: translateX(1px) rotate(0.5deg); }
-  90% { transform: translateX(-0.5px) rotate(-0.25deg); }
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  10% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  20% {
+    transform: translateX(4px) rotate(2deg);
+  }
+  30% {
+    transform: translateX(-3px) rotate(-1.5deg);
+  }
+  40% {
+    transform: translateX(3px) rotate(1.5deg);
+  }
+  50% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  60% {
+    transform: translateX(2px) rotate(1deg);
+  }
+  70% {
+    transform: translateX(-1px) rotate(-0.5deg);
+  }
+  80% {
+    transform: translateX(1px) rotate(0.5deg);
+  }
+  90% {
+    transform: translateX(-0.5px) rotate(-0.25deg);
+  }
 }
 
 @keyframes mutationGlow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), 0 0 40px rgba(251, 146, 60, 0.2);
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(239, 68, 68, 0.4),
+      0 0 40px rgba(251, 146, 60, 0.2);
   }
   50% {
-    box-shadow: 0 0 40px rgba(239, 68, 68, 0.8), 0 0 80px rgba(251, 146, 60, 0.5), 0 0 120px rgba(234, 179, 8, 0.3);
+    box-shadow:
+      0 0 40px rgba(239, 68, 68, 0.8),
+      0 0 80px rgba(251, 146, 60, 0.5),
+      0 0 120px rgba(234, 179, 8, 0.3);
   }
 }
 
@@ -338,16 +506,108 @@
   letter-spacing: 0.05em;
 }
 
-/* Tripod Sudoku Animations */
-@keyframes borderPulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.85; }
-  100% { transform: scale(1); opacity: 1; }
+/* Tripod Sudoku Animations - Enhanced Gaming Style */
+
+/* Enhanced Number Entry with rotation */
+@keyframes numberEntry {
+  0% { 
+    transform: scale(0.5) rotate(-5deg); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: scale(1.2); 
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1; 
+  }
 }
+
+/* Border Glow Pulse - Pink neon effect */
+@keyframes borderGlow {
+  0%,
+  100% { 
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.6); 
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(244, 63, 94, 1); 
+  }
+}
+
+@keyframes borderPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes dotPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Dot Pulse - Enhanced with expanding ring */
+@keyframes dotPulse {
+  0%,
+  100% { 
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.6), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 0 16px rgba(16, 185, 129, 1), 
+                0 0 0 6px rgba(16, 185, 129, 0),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4); 
+  }
+}
+
+/* Card Hover Lift */
+@keyframes cardLift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+/* Button lift animation for hover effects */
+@keyframes buttonLift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+/* Shimmer Effect for Loading */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

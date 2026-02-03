@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useGameStore } from "@/store/game";
-import { useAuthStore } from "@/store/auth";
+import { useTripodStore } from "@/store/tripod";
 import { useUIStore } from "@/store/ui";
 import { ThemeSwitcher, ToastContainer } from "@/components/ui";
 import { NumberPad, Timer } from "@/components/shared";
@@ -19,69 +19,56 @@ import {
 } from "@/components/game/tripod";
 import { useTripodValidation } from "@/hooks/useTripodValidation";
 import { useTripodGame } from "@/hooks/useTripodGame";
+import { useTripodSocket } from "@/hooks/useTripodSocket";
+import { useTripodGameInit } from "@/hooks/useTripodGameInit";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { TRIPOD_CONFIG } from "@/lib/constants";
-import { getRandomTripodPuzzle, TripodPuzzleData } from "@/data/tripod-puzzles";
 import type {
   TripodError,
   Region,
   TripodState,
   TripodSubMode,
 } from "@/types/tripod";
-
-// Helper to extract given cells from puzzle
-function extractGivens(
-  cells: number[][],
-): Array<{ row: number; col: number; value: number }> {
-  const givens: Array<{ row: number; col: number; value: number }> = [];
-  cells.forEach((row, r) => {
-    row.forEach((value, c) => {
-      if (value !== 0) {
-        givens.push({ row: r, col: c, value });
-      }
-    });
-  });
-  return givens;
-}
+import { toast } from "@/components/ui/Toast";
 
 export default function TripodGamePage() {
   const t = useTranslations();
   const { colorMode } = useUIStore();
-  const { _hasHydrated: authHydrated } = useAuthStore();
 
   // Mobile detection for responsive layout
   const { isMobile, isTouchDevice, getOptimalCellSize } = useMobileDetect();
 
-  const tripod = useGameStore((state) => state.tripod);
-  const initTripodState = useGameStore((state) => state.initTripodState);
-  const setTripodRegions = useGameStore((state) => state.setTripodRegions);
-  const setTripodErrors = useGameStore((state) => state.setTripodErrors);
-  const setTripodSubMode = useGameStore((state) => state.setTripodSubMode);
-  const setTripodBorders = useGameStore((state) => state.setTripodBorders);
-  const undoBorder = useGameStore((state) => state.undoBorder);
-  const redoBorder = useGameStore((state) => state.redoBorder);
-  const canUndoBorder = useGameStore((state) => state.canUndoBorder);
-  const canRedoBorder = useGameStore((state) => state.canRedoBorder);
-  const startTripodTimer = useGameStore((state) => state.startTripodTimer);
-  const pauseTripodTimer = useGameStore((state) => state.pauseTripodTimer);
-  const incrementTripodStat = useGameStore(
-    (state) => state.incrementTripodStat,
-  );
+  // Game initialization hook
+  const { loading: initLoading, isInitialized, createGame } = useTripodGameInit();
 
-  const [isInitialized, setIsInitialized] = useState(false);
-  // Use lazy initialization to avoid setting state in useEffect
-  const [currentPuzzle, setCurrentPuzzle] = useState<TripodPuzzleData | null>(
-    () => getRandomTripodPuzzle(),
-  );
+  // Tripod state from tripod store
+  const tripod = useTripodStore((state) => state.tripod);
+  const tripodHydrated = useTripodStore((state) => state._hasHydrated);
+  const setRegions = useTripodStore((state) => state.setRegions);
+  const setSubMode = useTripodStore((state) => state.setSubMode);
+  const undoBorder = useTripodStore((state) => state.undoBorder);
+  const redoBorder = useTripodStore((state) => state.redoBorder);
+  const canUndo = useTripodStore((state) => state.canUndo);
+  const canRedo = useTripodStore((state) => state.canRedo);
+
+  // Game state from game store
+  const gameId = useGameStore((state) => state.id);
+  const currentState = useGameStore((state) => state.currentState);
+  const initialState = useGameStore((state) => state.initialState);
   const [validationResult, setValidationResult] = useState<{
     errors: TripodError[];
     isComplete: boolean;
   }>({ errors: [], isComplete: false });
 
-  // Calculate responsive cell size
-  const gridSize = currentPuzzle?.gridSize ?? TRIPOD_CONFIG.DEFAULT_GRID_SIZE;
+  // Determine grid size (default 7)
+  const gridSize = tripod?.gridSize || TRIPOD_CONFIG.DEFAULT_GRID_SIZE;
   const cellSize = getOptimalCellSize(gridSize, isMobile ? 24 : 32);
 
+  // Socket Hook
+  const { toggleBorder: socketToggleBorder, validate: socketValidate } =
+    useTripodSocket(gameId);
+
+  // Game Logic Hook
   const {
     cells,
     givenCells,
@@ -91,61 +78,83 @@ export default function TripodGamePage() {
     handleBorderToggle,
     handleNumberInput,
     handleModeChange,
-    initializeGame,
     setCells,
+    initializeGame,
     getBorderToggleability,
   } = useTripodGame({
-    gridSize: gridSize,
+    gridSize,
+    onBorderToggle: socketToggleBorder,
   });
+
+  // Sync store currentState with local cells and update givenCells
+  useEffect(() => {
+    if (currentState && currentState.length > 0) {
+      // Extract givens from initialState (original puzzle cells), not currentState
+      // This prevents locking player's own moves as givens after sync/resume
+      const givens: Array<{ row: number; col: number; value: number }> = [];
+
+      // Use initialState if available (from backend), otherwise empty givens
+      // This allows all cells to be editable for legacy games without initialState
+      if (initialState && initialState.length > 0) {
+        initialState.forEach((row, rowIndex) => {
+          row.forEach((value, colIndex) => {
+            if (value !== 0) {
+              givens.push({ row: rowIndex, col: colIndex, value });
+            }
+          });
+        });
+      }
+
+      initializeGame({
+        cells: currentState.map((row) => [...row]),
+        givens,
+      });
+    }
+  }, [currentState, initialState, initializeGame]);
+
+  // Handle localStorage quota exceeded
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      toast.error('Storage limit reached. Old game data cleared.', 5000);
+    };
+    window.addEventListener('storage:quota-exceeded', handleQuotaExceeded);
+    return () => window.removeEventListener('storage:quota-exceeded', handleQuotaExceeded);
+  }, []);
 
   // Handle subMode changes
   const handleSubModeChange = useCallback(
     (mode: TripodSubMode) => {
-      setTripodSubMode(mode);
-
-      // If switching to sudoku_only and puzzle has pre-defined regions, load them
-      if (mode === "sudoku_only" && currentPuzzle?.regions) {
-        setTripodBorders(
-          currentPuzzle.regions.horizontalBorders,
-          currentPuzzle.regions.verticalBorders,
-        );
-      }
+      setSubMode(mode);
     },
-    [currentPuzzle, setTripodSubMode, setTripodBorders],
+    [setSubMode],
   );
 
-  // Initialize game - use a ref to track initialization
+  // Initialize local game state when tripod data is loaded from socket
+  const prevTripodRef = useRef<string>("");
   useEffect(() => {
-    if (!authHydrated || isInitialized || !currentPuzzle) return;
+    const tripodStr = JSON.stringify(tripod);
+    if (
+      tripod &&
+      tripod.tripodDots?.length > 0 &&
+      tripodStr !== prevTripodRef.current
+    ) {
+      prevTripodRef.current = tripodStr;
 
-    // Initialize tripod state with puzzle data (default to 'full' mode)
-    initTripodState(currentPuzzle.gridSize, currentPuzzle.tripodDots, "full");
-
-    // Start the timer
-    startTripodTimer();
-
-    // Initialize cells from puzzle
-    setCells(currentPuzzle.cells.map((row) => [...row]));
-
-    // Extract givens from cells
-    const givens = extractGivens(currentPuzzle.cells);
-
-    initializeGame({
-      cells: currentPuzzle.cells,
-      givens,
-    });
-
-    // Mark as initialized on next tick to avoid sync setState warning
-    requestAnimationFrame(() => setIsInitialized(true));
-  }, [
-    authHydrated,
-    isInitialized,
-    currentPuzzle,
-    initTripodState,
-    initializeGame,
-    setCells,
-    startTripodTimer,
-  ]);
+      if (currentState && currentState.length > 0) {
+        // This might assume non-zero are givens, which is not always true for resumed games.
+        // Ideally backend sends 'initialState' or 'givens'.
+        // For now we assume this is only for new games or basic resume.
+        // Only re-initialize if empty? Or always?
+        // initializeGame resets cells. We should avoid resetting if user has made moves.
+        // But setCells in the other useEffect handles updates.
+        // We just need to set givens.
+        // Re-calculating givens from current state is wrong if user made moves.
+        // But we don't have separate 'givens' from backend yet in 'tripod:state'.
+        // The backend 'tripod:state' has 'currentState'.
+        // We'll trust the component to handle logic.
+      }
+    }
+  }, [tripod, currentState]);
 
   // Validation hook
   const { regions, validateAll, isVertexSatisfied } = useTripodValidation({
@@ -156,7 +165,7 @@ export default function TripodGamePage() {
     tripodDots: tripod?.tripodDots ?? [],
   });
 
-  // Update regions in store when they change - use ref to prevent infinite loop
+  // Update regions in store when they change
   const prevRegionsRef = React.useRef<Region[]>([]);
   useEffect(() => {
     if (
@@ -164,76 +173,29 @@ export default function TripodGamePage() {
       JSON.stringify(prevRegionsRef.current) !== JSON.stringify(regions)
     ) {
       prevRegionsRef.current = regions;
-      setTripodRegions(regions);
+      setRegions(regions);
     }
-  }, [regions, setTripodRegions]);
+  }, [regions, setRegions, tripod]);
 
   const handleValidate = useCallback(() => {
+    // Local validation
     const result = validateAll();
     setValidationResult({
       errors: result.errors,
       isComplete: result.isComplete,
     });
-    setTripodErrors(result.errors);
 
-    // Track validation stat
-    incrementTripodStat("validationCount");
+    // Remote validation
+    socketValidate();
 
-    // Pause timer on completion
-    if (result.isComplete) {
-      pauseTripodTimer();
-    }
-  }, [validateAll, setTripodErrors, incrementTripodStat, pauseTripodTimer]);
-
-  // Handler for starting a new puzzle
-  const handleNewPuzzle = useCallback(() => {
-    // Get a different random puzzle
-    const puzzle = getRandomTripodPuzzle();
-    setCurrentPuzzle(puzzle);
-
-    // Reset validation state
-    setValidationResult({ errors: [], isComplete: false });
-
-    // Preserve current subMode
-    const currentSubMode = tripod?.subMode ?? "full";
-
-    // Initialize tripod state with new puzzle
-    initTripodState(puzzle.gridSize, puzzle.tripodDots, currentSubMode);
-
-    // Start timer for new puzzle
-    startTripodTimer();
-
-    // If sudoku_only mode and puzzle has regions, load them
-    if (currentSubMode === "sudoku_only" && puzzle.regions) {
-      setTripodBorders(
-        puzzle.regions.horizontalBorders,
-        puzzle.regions.verticalBorders,
-      );
-    }
-
-    // Initialize cells from puzzle
-    setCells(puzzle.cells.map((row) => [...row]));
-
-    // Extract givens from cells
-    const givens = extractGivens(puzzle.cells);
-
-    initializeGame({
-      cells: puzzle.cells,
-      givens,
-    });
-  }, [
-    initTripodState,
-    initializeGame,
-    setCells,
-    tripod?.subMode,
-    setTripodBorders,
-    startTripodTimer,
-  ]);
+    // Local UI updates
+    // (Socket will return result too, but local is instant)
+  }, [validateAll, socketValidate]);
 
   const isDark = colorMode === "dark";
 
-  // Show loading state until tripod state is initialized
-  if (!isInitialized || !tripod) {
+  // Show loading state - wait for tripod store hydration
+  if (initLoading || !tripodHydrated || (!tripod && !isInitialized)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-clean-light dark:bg-clean-dark">
         <div className="text-2xl font-semibold text-slate-800 dark:text-white">
@@ -243,19 +205,168 @@ export default function TripodGamePage() {
     );
   }
 
+  // If we have gameId but no tripod/currentState yet (socket connecting)
+  if (!tripod) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-clean-light dark:bg-clean-dark">
+        <div className="text-2xl font-semibold text-slate-800 dark:text-white">
+          Connecting to game...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-clean-light dark:bg-clean-dark">
       <div className="max-w-5xl mx-auto px-4 py-4">
-        {/* Top Info Bar - simplified on mobile */}
-        <TopInfoBar
-          tripod={tripod}
-          regions={regions}
-          isDark={isDark}
-          puzzleName={currentPuzzle?.name}
-          puzzleDifficulty={currentPuzzle?.difficulty}
-          onNewPuzzle={handleNewPuzzle}
-          t={t}
-        />
+        {/* Top Info Bar - unified with Classic mode */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "24px",
+            padding: "12px 20px",
+            marginBottom: "20px",
+            backgroundColor: "white",
+            borderRadius: "12px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            flexWrap: "wrap",
+          }}
+          className="dark:bg-slate-800"
+        >
+          {/* Game Mode Badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                padding: "4px 12px",
+                borderRadius: "6px",
+                fontSize: "14px",
+                fontWeight: 600,
+                backgroundColor: "#14b8a615",
+                color: "#14b8a6",
+                border: "1px solid #14b8a640",
+              }}
+            >
+              🔺 {t("tripod.title")}
+            </span>
+            <span
+              style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "12px",
+                backgroundColor: isDark ? "#334155" : "#f1f5f9",
+                color: isDark ? "#94a3b8" : "#64748b",
+              }}
+            >
+              {tripod.gridSize}×{tripod.gridSize}
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#e2e8f0",
+            }}
+            className="dark:bg-slate-600"
+          />
+
+          {/* Region Progress */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{ fontSize: "12px" }}
+              className="text-slate-600 dark:text-slate-400"
+            >
+              Regions:
+            </span>
+            <span
+              style={{ fontSize: "14px", fontWeight: 600 }}
+              className="dark:text-white"
+            >
+              {regions.filter((r) => r.isValid).length}/{regions.length}
+            </span>
+            <div
+              style={{
+                width: "60px",
+                height: "6px",
+                backgroundColor: isDark ? "#334155" : "#e2e8f0",
+                borderRadius: "3px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${regions.length > 0 ? (regions.filter((r) => r.isValid).length / regions.length) * 100 : 0}%`,
+                  height: "100%",
+                  backgroundColor: "#14b8a6",
+                  transition: "width 0.3s ease",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#e2e8f0",
+            }}
+            className="dark:bg-slate-600"
+          />
+
+          {/* Timer */}
+          <Timer mode="tripod" elapsedTime={tripod.elapsedTime || 0} />
+
+          {/* Divider */}
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#e2e8f0",
+            }}
+            className="dark:bg-slate-600"
+          />
+
+          {/* New Game Button */}
+          <button
+            onClick={createGame}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              backgroundColor: "#4f46e5",
+              color: "white",
+              fontSize: "14px",
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            {t("game.newGame")}
+          </button>
+
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+        </div>
 
         {/* Sub-Mode Selector */}
         <div
@@ -268,11 +379,10 @@ export default function TripodGamePage() {
           <div
             style={{
               padding: "16px 24px",
-              backgroundColor: "white",
               borderRadius: "12px",
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
             }}
-            className="dark:bg-slate-800"
+            className="bg-white dark:bg-slate-800"
           >
             <SubModeSelector
               currentMode={tripod.subMode}
@@ -281,7 +391,7 @@ export default function TripodGamePage() {
           </div>
         </div>
 
-        {/* Main Game Area - Desktop Horizontal Layout */}
+        {/* Main Game Area */}
         <div
           style={{
             display: "flex",
@@ -328,7 +438,7 @@ export default function TripodGamePage() {
             }}
             className="dark:bg-slate-800"
           >
-            {/* Input Mode Toggle - hide in borders_only mode since no number input */}
+            {/* Input Mode Toggle */}
             {tripod.subMode !== "sudoku_only" && (
               <InputModeToggle
                 mode={inputMode}
@@ -337,17 +447,17 @@ export default function TripodGamePage() {
               />
             )}
 
-            {/* Undo/Redo Controls for borders - hide in sudoku_only mode */}
+            {/* Undo/Redo Controls */}
             {tripod.subMode !== "sudoku_only" && (
               <UndoRedoControls
                 onUndo={undoBorder}
                 onRedo={redoBorder}
-                canUndo={canUndoBorder()}
-                canRedo={canRedoBorder()}
+                canUndo={canUndo()}
+                canRedo={canRedo()}
               />
             )}
 
-            {/* Number Pad - disabled in borders_only mode */}
+            {/* Number Pad */}
             <NumberPad
               maxNumber={tripod.gridSize}
               showCounts={false}
@@ -399,7 +509,7 @@ export default function TripodGamePage() {
       <CompletionCelebration
         isVisible={validationResult.isComplete}
         timeTaken={tripod.elapsedTime}
-        onPlayAgain={handleNewPuzzle}
+        onPlayAgain={createGame}
       />
 
       {/* Toast notifications */}
@@ -408,226 +518,6 @@ export default function TripodGamePage() {
   );
 }
 
-// Top Info Bar Component
-interface TopInfoBarProps {
-  tripod: TripodState;
-  regions: Region[];
-  isDark: boolean;
-  puzzleName?: string;
-  puzzleDifficulty?: "easy" | "medium" | "hard";
-  onNewPuzzle?: () => void;
-  t: ReturnType<typeof useTranslations>;
-}
-
-const difficultyColors = {
-  easy: { bg: "#10b98115", text: "#10b981", border: "#10b98140" },
-  medium: { bg: "#f59e0b15", text: "#f59e0b", border: "#f59e0b40" },
-  hard: { bg: "#ef444415", text: "#ef4444", border: "#ef444440" },
-};
-
-function TopInfoBar({
-  tripod,
-  regions,
-  isDark,
-  puzzleName,
-  puzzleDifficulty,
-  onNewPuzzle,
-  t,
-}: TopInfoBarProps) {
-  const diffColor = puzzleDifficulty
-    ? difficultyColors[puzzleDifficulty]
-    : difficultyColors.easy;
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "24px",
-        padding: "12px 20px",
-        marginBottom: "20px",
-        backgroundColor: "white",
-        borderRadius: "12px",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-        flexWrap: "wrap",
-      }}
-      className="dark:bg-slate-800"
-    >
-      {/* Game Mode Badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span
-          style={{
-            padding: "4px 12px",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 600,
-            backgroundColor: "#14b8a615",
-            color: "#14b8a6",
-            border: "1px solid #14b8a640",
-          }}
-        >
-          🔺 {t("tripod.title")}
-        </span>
-        <span
-          style={{
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            backgroundColor: isDark ? "#334155" : "#f1f5f9",
-            color: isDark ? "#94a3b8" : "#64748b",
-          }}
-        >
-          {tripod.gridSize}×{tripod.gridSize}
-        </span>
-      </div>
-
-      {/* Divider */}
-      <div
-        style={{
-          width: "1px",
-          height: "24px",
-          backgroundColor: "#e2e8f0",
-        }}
-        className="dark:bg-slate-600"
-      />
-
-      {/* Puzzle Name & Difficulty */}
-      {puzzleName && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{ fontSize: "14px", fontWeight: 600 }}
-              className="dark:text-white"
-            >
-              {puzzleName}
-            </span>
-            {puzzleDifficulty && (
-              <span
-                style={{
-                  padding: "2px 8px",
-                  borderRadius: "4px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  backgroundColor: diffColor.bg,
-                  color: diffColor.text,
-                  border: `1px solid ${diffColor.border}`,
-                  textTransform: "capitalize",
-                }}
-              >
-                {t(`tripod.difficulty.${puzzleDifficulty}`)}
-              </span>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div
-            style={{
-              width: "1px",
-              height: "24px",
-              backgroundColor: "#e2e8f0",
-            }}
-            className="dark:bg-slate-600"
-          />
-        </>
-      )}
-
-      {/* Region Count */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span
-          style={{ fontSize: "14px", color: "#64748b" }}
-          className="dark:text-slate-400"
-        >
-          {t("tripod.regions")}:
-        </span>
-        <span
-          style={{ fontSize: "14px", fontWeight: 600 }}
-          className="dark:text-white"
-        >
-          {regions.length}/{tripod.gridSize}
-        </span>
-      </div>
-
-      {/* Divider */}
-      <div
-        style={{
-          width: "1px",
-          height: "24px",
-          backgroundColor: "#e2e8f0",
-        }}
-        className="dark:bg-slate-600"
-      />
-
-      {/* New Puzzle Button */}
-      {onNewPuzzle && (
-        <>
-          <button
-            onClick={onNewPuzzle}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              backgroundColor: "#14b8a6",
-              color: "white",
-              fontSize: "14px",
-              fontWeight: 600,
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            {t("tripod.newPuzzle")}
-          </button>
-
-          {/* Divider */}
-          <div
-            style={{
-              width: "1px",
-              height: "24px",
-              backgroundColor: "#e2e8f0",
-            }}
-            className="dark:bg-slate-600"
-          />
-        </>
-      )}
-
-      {/* Timer */}
-      <Timer
-        mode="tripod"
-        elapsedTime={tripod.elapsedTime}
-        isPaused={tripod.isTimerPaused}
-      />
-
-      {/* Divider */}
-      <div
-        style={{
-          width: "1px",
-          height: "24px",
-          backgroundColor: "#e2e8f0",
-        }}
-        className="dark:bg-slate-600"
-      />
-
-      {/* Theme Switcher */}
-      <ThemeSwitcher />
-    </div>
-  );
-}
 
 // Instructions Panel Component
 function InstructionsPanel({

@@ -165,9 +165,17 @@ export interface ServerToClientEvents {
     searchRadius: number;
   }) => void;
   'matchmaking:cancelled': (data: { reason: string }) => void;
+  'matchmaking:error': (data: { message: string }) => void;
+
+  // Auth events
+  'auth:tokenExpiring': (data: { expiresIn: number }) => void;
+  'auth:tokenExpired': (data: { message: string }) => void;
 
   // Mutation events (Mutating Sudoku mode)
-  'mutation:warning': (data: { gameId: string; secondsRemaining: number }) => void;
+  'mutation:warning': (data: {
+    gameId: string;
+    secondsRemaining: number;
+  }) => void;
   'mutation:occurred': (data: {
     gameId: string;
     row: number;
@@ -182,6 +190,37 @@ export interface ServerToClientEvents {
     nextMutationAt: number;
   }) => void;
   'mutation:stopped': (data: { gameId: string }) => void;
+
+  // Tripod Sudoku events
+  'tripod:state': (data: {
+    gameId: string;
+    currentState: number[][];
+    borders: {
+      horizontal: boolean[][];
+      vertical: boolean[][];
+    };
+    dots: Array<{ row: number; col: number }>;
+    status: string;
+    timeElapsed?: number;
+  }) => void;
+  'tripod:borderUpdated': (data: {
+    gameId: string;
+    type: 'horizontal' | 'vertical';
+    row: number;
+    col: number;
+    value: boolean;
+  }) => void;
+  'tripod:validated': (data: {
+    gameId: string;
+    isValid: boolean;
+    errors?: string[];
+    borderErrors?: Array<{ type: string; row: number; col: number }>;
+  }) => void;
+  'tripod:completed': (data: {
+    gameId: string;
+    timeElapsed: number;
+    isValid: boolean;
+  }) => void;
 }
 
 // Client to server events (what client sends to server)
@@ -226,6 +265,25 @@ export interface ClientToServerEvents {
   // Matchmaking events
   'matchmaking:join': (data: { difficulty: string }) => void;
   'matchmaking:cancel': () => void;
+
+  // Tripod Sudoku events
+  'tripod:join': (data: { gameId: string }) => void;
+  'tripod:leave': (data: { gameId: string }) => void;
+  'tripod:toggleBorder': (data: {
+    gameId: string;
+    type: 'horizontal' | 'vertical';
+    row: number;
+    col: number;
+  }) => void;
+  'tripod:updateBorders': (data: {
+    gameId: string;
+    borders: {
+      horizontal: boolean[][];
+      vertical: boolean[][];
+    };
+  }) => void;
+  'tripod:validate': (data: { gameId: string }) => void;
+  'tripod:sync': (data: { gameId: string }) => void;
 }
 
 // Inter-server events (for scaling with multiple servers)

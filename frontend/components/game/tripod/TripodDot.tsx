@@ -1,21 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 // CSS keyframes for dot animations
-const dotAnimationKeyframes = `
-@keyframes dotPop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.4); }
-  100% { transform: scale(1); }
-}
-
-@keyframes dotPulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
-`;
+// CSS keyframes for dot animations are defined in globals.css
 
 interface TripodDotProps {
   row: number;
@@ -39,40 +27,40 @@ export function TripodDot({
 
   // Detect when dot becomes satisfied
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     if (isSatisfied && !prevSatisfiedRef.current) {
-      setIsPopping(true);
+      requestAnimationFrame(() => setIsPopping(true));
       const timer = setTimeout(() => setIsPopping(false), 400);
-      return () => clearTimeout(timer);
+      cleanup = () => clearTimeout(timer);
     }
     prevSatisfiedRef.current = isSatisfied;
+    return cleanup;
   }, [isSatisfied]);
 
-  let bgClass = 'bg-gray-900';
+  let bgClass = "bg-gray-900";
   if (isError) {
-    bgClass = 'bg-red-500 ring-2 ring-red-300 animate-pulse';
+    bgClass = "bg-red-500 ring-2 ring-red-300 animate-pulse";
   } else if (isSatisfied) {
-    bgClass = 'bg-green-600 ring-2 ring-green-300';
+    bgClass = "bg-green-600 ring-2 ring-green-300";
   }
 
   return (
-    <>
-      <style>{dotAnimationKeyframes}</style>
-      <div
-        className={`absolute rounded-full z-20 pointer-events-none transition-all duration-300 ${bgClass}`}
-        style={{
-          left: col * cellSize - DOT_SIZE / 2,
-          top: row * cellSize - DOT_SIZE / 2,
-          width: DOT_SIZE,
-          height: DOT_SIZE,
-          animation: isPopping
-            ? 'dotPop 400ms ease-out'
-            : isSatisfied
-              ? 'dotPulse 2s ease-in-out infinite'
-              : undefined,
-        }}
-        title={isError ? 'Tripod violation' : isSatisfied ? 'Satisfied' : 'Tripod dot'}
-      />
-    </>
+    <div
+      className={`absolute rounded-full z-20 pointer-events-none transition-all duration-300 ${bgClass}`}
+      style={{
+        left: col * cellSize - DOT_SIZE / 2,
+        top: row * cellSize - DOT_SIZE / 2,
+        width: DOT_SIZE,
+        height: DOT_SIZE,
+        animation: isPopping
+          ? "dotPop 400ms ease-out"
+          : isSatisfied
+            ? "dotPulse 2s ease-in-out infinite"
+            : undefined,
+      }}
+      title={
+        isError ? "Tripod violation" : isSatisfied ? "Satisfied" : "Tripod dot"
+      }
+    />
   );
 }
-

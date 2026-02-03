@@ -67,6 +67,7 @@ export function NumberPad({
 
           return (
             <button
+              type="button"
               key={num}
               onClick={() => onNumberSelect(num)}
               disabled={isDisabled}
@@ -131,6 +132,7 @@ export function NumberPad({
 
           return (
             <button
+              type="button"
               key={num}
               className={`
                 w-full aspect-square min-w-[40px] min-h-[44px] sm:w-12 sm:h-12
@@ -154,6 +156,7 @@ export function NumberPad({
         })}
       </div>
       <button
+        type="button"
         className={`
           w-full py-3 sm:py-2 rounded-lg font-medium min-h-[44px]
           transition-all duration-100

@@ -14,6 +14,36 @@ import {
   CompetitiveStatsDto,
 } from './dto';
 
+// Tripod DTOs (will use GameHistory with gameMode filter in future)
+export interface TripodLeaderboardEntryDto {
+  rank: number;
+  userId: string;
+  username: string;
+  bestTime: number;
+  gamesWon: number;
+  isCurrentUser?: boolean;
+}
+
+export interface TripodLeaderboardResponseDto {
+  entries: TripodLeaderboardEntryDto[];
+  mode: string;
+  period: LeaderboardPeriod;
+  total: number;
+  userRank?: TripodLeaderboardEntryDto;
+}
+
+// Result interfaces for raw SQL queries
+interface LeaderboardRawResult {
+  userId: string;
+  bestTime: number;
+  gamesWon: number;
+}
+
+interface UserStatsResult {
+  bestTime: number | null;
+  gamesWon: number;
+}
+
 @Injectable()
 export class LeaderboardService {
   constructor(
@@ -54,14 +84,13 @@ export class LeaderboardService {
       LIMIT ?
     `;
 
-    const results = await this.gameHistoryRepo.query(rawQuery, [
-      difficulty,
-      dateFilter.toISOString(),
-      limit,
-    ]);
+    const results: LeaderboardRawResult[] = await this.gameHistoryRepo.query(
+      rawQuery,
+      [difficulty, dateFilter.toISOString(), limit],
+    );
 
     // Fetch usernames for results
-    const userIds = results.map((r: any) => r.userId);
+    const userIds = results.map((r) => r.userId);
     let userMap = new Map<string, string>();
 
     if (userIds.length > 0) {
@@ -73,16 +102,14 @@ export class LeaderboardService {
     }
 
     // Map to response DTOs with rank
-    const entries: LeaderboardEntryDto[] = results.map(
-      (r: any, idx: number) => ({
-        rank: idx + 1,
-        userId: r.userId,
-        username: userMap.get(r.userId) || 'Anonymous',
-        bestTime: r.bestTime,
-        gamesWon: Number(r.gamesWon),
-        isCurrentUser: r.userId === currentUserId,
-      }),
-    );
+    const entries: LeaderboardEntryDto[] = results.map((r, idx) => ({
+      rank: idx + 1,
+      userId: r.userId,
+      username: userMap.get(r.userId) || 'Anonymous',
+      bestTime: r.bestTime,
+      gamesWon: Number(r.gamesWon),
+      isCurrentUser: r.userId === currentUserId,
+    }));
 
     // Get current user rank if authenticated and not in top results
     let userRank: LeaderboardEntryDto | undefined;
@@ -155,11 +182,10 @@ export class LeaderboardService {
         AND gh.completedAt >= ?
     `;
 
-    const userStats = await this.gameHistoryRepo.query(userStatsQuery, [
-      userId,
-      difficulty,
-      dateFilter.toISOString(),
-    ]);
+    const userStats: UserStatsResult[] = await this.gameHistoryRepo.query(
+      userStatsQuery,
+      [userId, difficulty, dateFilter.toISOString()],
+    );
 
     if (!userStats[0] || userStats[0].bestTime === null) {
       return null;
@@ -180,7 +206,7 @@ export class LeaderboardService {
       HAVING MIN(gh.timeElapsed) < ?
     `;
 
-    const rankResult = await this.gameHistoryRepo.query(rankQuery, [
+    const rankResult: unknown[] = await this.gameHistoryRepo.query(rankQuery, [
       difficulty,
       dateFilter.toISOString(),
       bestTime,
@@ -240,8 +266,6 @@ export class LeaderboardService {
       .getMany();
 
     const entries: CompetitiveLeaderboardEntryDto[] = users.map((user, idx) => {
-      const losses =
-        user.competitiveGames - user.competitiveWins - user.competitiveDraws;
       const winRate =
         user.competitiveGames > 0
           ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
@@ -333,8 +357,6 @@ export class LeaderboardService {
       .andWhere("user.username != ''")
       .getCount();
 
-    const losses =
-      user.competitiveGames - user.competitiveWins - user.competitiveDraws;
     const winRate =
       user.competitiveGames > 0
         ? Math.round((user.competitiveWins / user.competitiveGames) * 100)
@@ -350,6 +372,32 @@ export class LeaderboardService {
       competitiveDraws: user.competitiveDraws,
       winRate,
       isCurrentUser: true,
+    };
+  }
+
+  // ============ Tripod Leaderboard Methods ============
+  // NOTE: Tripod leaderboard will use GameHistory with gameMode='tripod' filter
+  // This will be implemented when tripod game completion saves to GameHistory
+
+  /**
+   * Get tripod leaderboard - placeholder
+   * TODO: Implement using GameHistory with gameMode='tripod' filter
+   */
+  getTripodLeaderboard(
+    mode: string = 'full',
+    period: LeaderboardPeriod = LeaderboardPeriod.ALL_TIME,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _limit = 50,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _currentUserId?: string,
+  ): TripodLeaderboardResponseDto {
+    // Placeholder - return empty leaderboard until tripod games save to GameHistory
+    return {
+      entries: [],
+      mode,
+      period,
+      total: 0,
+      userRank: undefined,
     };
   }
 }

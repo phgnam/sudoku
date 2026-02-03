@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useGameStore } from "@/store/game";
+import { useTripodStore } from "@/store/tripod";
 import type { TripodInputMode } from "@/types/tripod";
 
 interface UseTripodInputOptions {
@@ -15,22 +15,22 @@ export function useTripodInput({
   onNumberInput,
   onCellMove,
 }: UseTripodInputOptions) {
-  const tripod = useGameStore((state) => state.tripod);
-  const setTripodInputMode = useGameStore((state) => state.setTripodInputMode);
+  const tripod = useTripodStore((state) => state.tripod);
+  const setInputMode = useTripodStore((state) => state.setInputMode);
 
   const inputMode = tripod?.inputMode ?? "number";
 
   const toggleMode = useCallback(() => {
     const newMode: TripodInputMode =
       inputMode === "number" ? "border" : "number";
-    setTripodInputMode(newMode);
-  }, [inputMode, setTripodInputMode]);
+    setInputMode(newMode);
+  }, [inputMode, setInputMode]);
 
   const setMode = useCallback(
     (mode: TripodInputMode) => {
-      setTripodInputMode(mode);
+      setInputMode(mode);
     },
-    [setTripodInputMode],
+    [setInputMode],
   );
 
   useEffect(() => {
@@ -40,6 +40,11 @@ export function useTripodInput({
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
+        return;
+      }
+
+      // Allow default browser shortcuts (Cmd/Ctrl+N, Cmd/Ctrl+R, etc.)
+      if (e.metaKey || e.ctrlKey || e.altKey) {
         return;
       }
 

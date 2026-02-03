@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import type { TripodSubMode } from '@/types/tripod';
+import type { TripodSubMode } from "@/types/tripod";
 
 interface SubModeSelectorProps {
   currentMode: TripodSubMode;
@@ -17,22 +17,22 @@ interface ModeOption {
 
 const MODE_OPTIONS: ModeOption[] = [
   {
-    mode: 'borders_only',
-    icon: '🔳',
-    label: 'Borders Only',
-    description: 'Draw regions without numbers',
+    mode: "borders_only",
+    icon: "🔳",
+    label: "Borders Only",
+    description: "Draw regions without numbers",
   },
   {
-    mode: 'sudoku_only',
-    icon: '🔢',
-    label: 'Sudoku Only',
-    description: 'Solve with pre-drawn regions',
+    mode: "sudoku_only",
+    icon: "🔢",
+    label: "Sudoku Only",
+    description: "Solve with pre-drawn regions",
   },
   {
-    mode: 'full',
-    icon: '🎯',
-    label: 'Full Tripod',
-    description: 'Complete experience',
+    mode: "full",
+    icon: "🎯",
+    label: "Full Tripod",
+    description: "Complete experience",
   },
 ];
 
@@ -51,6 +51,7 @@ export function SubModeSelector({
           const isActive = currentMode === option.mode;
           return (
             <button
+              type="button"
               key={option.mode}
               onClick={() => onModeSelect(option.mode)}
               disabled={disabled}
@@ -59,10 +60,11 @@ export function SubModeSelector({
                 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-full
                 text-xs sm:text-sm font-medium transition-all duration-200
                 min-h-[44px] touch-none select-none active:scale-95
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                ${isActive
-                  ? 'bg-teal-500 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                ${
+                  isActive
+                    ? "bg-teal-500 text-white shadow-md"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                 }
               `}
             >
@@ -78,4 +80,3 @@ export function SubModeSelector({
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useGameStore } from "@/store/game";
+import { useTripodStore } from "@/store/tripod";
 import { useTripodInput } from "./useTripodInput";
 import { useBorderValidation } from "./useBorderValidation";
 import { toast } from "@/components/ui/Toast";
@@ -11,9 +11,13 @@ import { isWithinBounds } from "@/lib/tripod-utils";
 
 interface UseTripodGameOptions {
   gridSize?: number;
+  onBorderToggle?: (type: "h" | "v", row: number, col: number) => void;
 }
 
-export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
+export function useTripodGame({
+  gridSize = 7,
+  onBorderToggle,
+}: UseTripodGameOptions = {}) {
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
     col: number;
@@ -32,8 +36,8 @@ export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
   // Debounce ref for border toggle
   const lastBorderToggleRef = useRef<number>(0);
 
-  const tripod = useGameStore((state) => state.tripod);
-  const toggleTripodBorder = useGameStore((state) => state.toggleTripodBorder);
+  const tripod = useTripodStore((state) => state.tripod);
+  const toggleBorder = useTripodStore((state) => state.toggleBorder);
 
   // Border validation hook
   const { canToggleBorder, getBorderToggleability } = useBorderValidation({
@@ -159,9 +163,10 @@ export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
         return;
       }
 
-      toggleTripodBorder(type, row, col);
+      toggleBorder(type, row, col);
+      onBorderToggle?.(type, row, col);
     },
-    [inputMode, tripod?.subMode, toggleTripodBorder, canToggleBorder],
+    [inputMode, tripod?.subMode, toggleBorder, canToggleBorder, onBorderToggle],
   );
 
   const handleModeChange = useCallback(
@@ -177,19 +182,33 @@ export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
       cells: number[][];
       givens: Array<{ row: number; col: number; value: number }>;
     }) => {
+      // Use actual puzzle grid size, not the hook's gridSize parameter
+      const actualGridSize = puzzleData.cells.length;
       const newCells = puzzleData.cells.map((row) => [...row]);
-      const newGivens = Array(gridSize)
+      const newGivens = Array(actualGridSize)
         .fill(null)
-        .map(() => Array(gridSize).fill(false));
+        .map(() => Array(actualGridSize).fill(false));
 
       puzzleData.givens.forEach(({ row, col }) => {
-        newGivens[row][col] = true;
+        // Validate bounds before setting
+        if (
+          row >= 0 &&
+          row < actualGridSize &&
+          col >= 0 &&
+          col < actualGridSize
+        ) {
+          newGivens[row][col] = true;
+        } else {
+          console.warn(
+            `Given cell (${row}, ${col}) is out of bounds for grid size ${actualGridSize}`,
+          );
+        }
       });
 
       setCells(newCells);
       setGivenCells(newGivens);
     },
-    [gridSize],
+    [], // Remove gridSize dependency - use puzzle data instead
   );
 
   return {

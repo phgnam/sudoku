@@ -15,6 +15,7 @@ import {
   Puzzle,
   GameHistory,
   Difficulty,
+  TripodPuzzle,
 } from '../../database/entities';
 import { SudokuValidatorService } from './sudoku-validator.service';
 import { HintService } from './hint.service';
@@ -40,6 +41,8 @@ export class GameService {
     private validator: SudokuValidatorService,
     private hintService: HintService,
     private tripodPuzzleService: TripodPuzzleService,
+    @InjectRepository(TripodPuzzle)
+    private tripodPuzzleRepository: Repository<TripodPuzzle>,
   ) {}
 
   // Create a new game
@@ -64,7 +67,7 @@ export class GameService {
 
     // Get random puzzle of specified difficulty
     const puzzles = await this.puzzleRepository.find({
-      where: { difficulty: difficulty as any },
+      where: { difficulty: difficulty as Difficulty },
     });
 
     if (puzzles.length === 0) {
@@ -543,9 +546,7 @@ export class GameService {
     const failedGames = games.filter(
       (g) => g.status === GameStatus.FAILED,
     ).length;
-    const abandonedGames = games.filter(
-      (g) => g.status === GameStatus.ABANDONED,
-    ).length;
+
     // Calculate win rate based on finished games (completed + failed), excluding active and abandoned
     const finishedGames = completedGames + failedGames;
     const winRate =
@@ -643,29 +644,89 @@ export class GameService {
   /**
    * Create a new tripod game
    */
-  async createTripodGame(userId: string, dto: CreateTripodGameDto): Promise<Game> {
+  async createTripodGame(
+    userId: string,
+    dto: CreateTripodGameDto,
+  ): Promise<Game> {
     const gridSize = dto.gridSize || 7;
+    const difficultyStr = dto.difficulty || 'easy';
+    const subMode = dto.subMode || 'full'; // Get subMode from DTO
 
-    // Initialize empty puzzle state
-    const initialState = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize).fill(0));
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(
+        `User not found with ID: ${userId}. Please ensure you are authenticated.`,
+      );
+    }
 
-    // Generate sample tripod dots for the puzzle
-    const tripodDots = this.generateSampleTripodDots(gridSize);
+    // Try to find a random puzzle of the requested difficulty
+    // Use count() + skip() to efficiently select one random puzzle
+    let useRequestedDifficulty = true;
+    let count = await this.tripodPuzzleRepository.count({
+      where: { difficulty: difficultyStr as any, gridSize },
+    });
 
-    // Initialize borders
-    const horizontalBorders = Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize).fill(false));
-    const verticalBorders = Array(gridSize)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    // If no puzzles of requested difficulty, try any difficulty
+    if (count === 0) {
+      count = await this.tripodPuzzleRepository.count({ where: { gridSize } });
+      useRequestedDifficulty = false;
+    }
+
+    let initialState: number[][];
+    let tripodDots: boolean[][];
+    let horizontalBorders: boolean[][];
+    let verticalBorders: boolean[][];
+    let selectedPuzzle: TripodPuzzle | null = null;
+
+    if (count > 0) {
+      // Pick random puzzle efficiently using skip
+      // Use stored flag instead of re-querying count
+      const randomIndex = Math.floor(Math.random() * count);
+      const puzzles = await this.tripodPuzzleRepository.find({
+        where: useRequestedDifficulty
+          ? { difficulty: difficultyStr as any, gridSize }
+          : { gridSize },
+        skip: randomIndex,
+        take: 1,
+      });
+
+      selectedPuzzle = puzzles[0] || null;
+
+      // Use puzzle data
+      initialState = selectedPuzzle.cells.map((row) => [...row]); // Deep copy
+      tripodDots = selectedPuzzle.tripodDots;
+
+      // If puzzle has pre-defined regions (sudoku_only mode friendly), use them
+      // Otherwise start with empty borders for user to fill
+      if (selectedPuzzle.regions) {
+        horizontalBorders = selectedPuzzle.regions.horizontal;
+        verticalBorders = selectedPuzzle.regions.vertical;
+      } else {
+        // Fallback to empty borders if puzzle is just dots
+        const borders = this.tripodPuzzleService.initializeBorders(gridSize);
+        horizontalBorders = borders.horizontal;
+        verticalBorders = borders.vertical;
+      }
+    } else {
+      // Fallback: Generate empty sample (as before)
+      initialState = Array.from({ length: gridSize }, () =>
+        Array(gridSize).fill(0),
+      );
+      tripodDots = this.generateSampleTripodDots(gridSize);
+      const borders = this.tripodPuzzleService.initializeBorders(gridSize);
+      horizontalBorders = borders.horizontal;
+      verticalBorders = borders.vertical;
+    }
 
     const game = this.gameRepository.create({
       userId,
       gameMode: GameMode.TRIPOD,
-      difficulty: Difficulty.NORMAL,
+      difficulty: selectedPuzzle
+        ? // Map TripodDifficulty.MEDIUM to Difficulty.NORMAL
+          selectedPuzzle.difficulty === 'medium'
+          ? Difficulty.NORMAL
+          : (selectedPuzzle.difficulty as any)
+        : Difficulty.NORMAL,
       gridSize,
       currentState: initialState,
       moveHistory: [],
@@ -677,6 +738,8 @@ export class GameService {
         tripodDots,
         horizontalBorders,
         verticalBorders,
+        subMode, // Persist subMode in tripodData
+        initialCells: initialState.map((row) => [...row]), // Store original puzzle cells
       },
       status: GameStatus.ACTIVE,
     });
@@ -689,9 +752,9 @@ export class GameService {
    */
   private generateSampleTripodDots(gridSize: number): boolean[][] {
     // Generate empty tripod dots grid - will be populated by sample puzzles
-    return Array(gridSize + 1)
-      .fill(null)
-      .map(() => Array(gridSize + 1).fill(false));
+    return Array.from({ length: gridSize + 1 }, () =>
+      Array(gridSize + 1).fill(false),
+    );
   }
 
   /**
@@ -712,9 +775,25 @@ export class GameService {
       throw new BadRequestException('Game is not active');
     }
 
+    // Validate tripodData structure
+    try {
+      this.validateTripodDataStructure(
+        {
+          horizontalBorders: borders.horizontal,
+          verticalBorders: borders.vertical,
+          tripodDots: game.tripodData?.tripodDots,
+        },
+        game.gridSize,
+      );
+    } catch (error) {
+      throw error;
+    }
+
     game.tripodData = {
       ...game.tripodData,
-      tripodDots: game.tripodData?.tripodDots || this.generateSampleTripodDots(game.gridSize),
+      tripodDots:
+        game.tripodData?.tripodDots ||
+        this.generateSampleTripodDots(game.gridSize),
       horizontalBorders: borders.horizontal,
       verticalBorders: borders.vertical,
     };
@@ -759,6 +838,61 @@ export class GameService {
   }
 
   /**
+   * Validate tripodData structure to prevent corrupted JSON
+   */
+  private validateTripodDataStructure(tripodData: any, gridSize: number): void {
+    // Check structure
+    if (!tripodData || typeof tripodData !== 'object') {
+      throw new BadRequestException('Invalid tripodData: must be an object');
+    }
+
+    // Validate horizontalBorders
+    if (!Array.isArray(tripodData.horizontalBorders)) {
+      throw new BadRequestException(
+        'Invalid tripodData: horizontalBorders must be an array',
+      );
+    }
+    if (tripodData.horizontalBorders.length !== gridSize + 1) {
+      throw new BadRequestException(
+        `Invalid horizontalBorders length: expected ${gridSize + 1}, got ${tripodData.horizontalBorders.length}`,
+      );
+    }
+    tripodData.horizontalBorders.forEach((row, idx) => {
+      if (!Array.isArray(row) || row.length !== gridSize) {
+        throw new BadRequestException(
+          `Invalid horizontalBorders row ${idx}: expected array of length ${gridSize}`,
+        );
+      }
+    });
+
+    // Validate verticalBorders
+    if (!Array.isArray(tripodData.verticalBorders)) {
+      throw new BadRequestException(
+        'Invalid tripodData: verticalBorders must be an array',
+      );
+    }
+    if (tripodData.verticalBorders.length !== gridSize) {
+      throw new BadRequestException(
+        `Invalid verticalBorders length: expected ${gridSize}, got ${tripodData.verticalBorders.length}`,
+      );
+    }
+    tripodData.verticalBorders.forEach((row, idx) => {
+      if (!Array.isArray(row) || row.length !== gridSize + 1) {
+        throw new BadRequestException(
+          `Invalid verticalBorders row ${idx}: expected array of length ${gridSize + 1}`,
+        );
+      }
+    });
+
+    // Validate tripodDots
+    if (!Array.isArray(tripodData.tripodDots)) {
+      throw new BadRequestException(
+        'Invalid tripodData: tripodDots must be an array',
+      );
+    }
+  }
+
+  /**
    * Toggle a single border in tripod game
    */
   async toggleTripodBorder(
@@ -767,43 +901,58 @@ export class GameService {
     row: number,
     col: number,
   ): Promise<Game> {
-    const game = await this.gameRepository.findOne({ where: { id: gameId } });
-    if (!game) {
-      throw new NotFoundException('Game not found');
-    }
-    if (game.gameMode !== GameMode.TRIPOD) {
-      throw new BadRequestException('Not a tripod game');
-    }
-    if (game.status !== GameStatus.ACTIVE) {
-      throw new BadRequestException('Game is not active');
-    }
+    return this.gameRepository.manager.transaction(async (manager) => {
+      const game = await manager.findOne(Game, {
+        where: { id: gameId },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (!game.tripodData) {
-      throw new BadRequestException('Game has no tripod data');
-    }
+      if (!game) throw new NotFoundException('Game not found');
+      if (game.gameMode !== GameMode.TRIPOD)
+        throw new BadRequestException('Not a tripod game');
+      if (game.status !== GameStatus.ACTIVE)
+        throw new BadRequestException('Game is not active');
+      if (!game.tripodData)
+        throw new BadRequestException('Game has no tripod data');
 
-    if (type === 'horizontal') {
-      if (!game.tripodData.horizontalBorders[row]) {
-        throw new BadRequestException('Invalid border position');
-      }
-      // Check column bounds
-      if (col < 0 || col >= game.tripodData.horizontalBorders[row].length) {
-        throw new BadRequestException('Invalid border column position');
-      }
-      game.tripodData.horizontalBorders[row][col] =
-        !game.tripodData.horizontalBorders[row][col];
-    } else {
-      if (!game.tripodData.verticalBorders[row]) {
-        throw new BadRequestException('Invalid border position');
-      }
-      // Check column bounds
-      if (col < 0 || col >= game.tripodData.verticalBorders[row].length) {
-        throw new BadRequestException('Invalid border column position');
-      }
-      game.tripodData.verticalBorders[row][col] =
-        !game.tripodData.verticalBorders[row][col];
-    }
+      const currentVersion = game.version;
 
-    return this.gameRepository.save(game);
+      // Validate bounds with null safety
+      if (type === 'horizontal') {
+        if (!game.tripodData?.horizontalBorders?.[row]) {
+          throw new BadRequestException('Invalid border position');
+        }
+        if (col < 0 || col >= game.tripodData.horizontalBorders[row].length) {
+          throw new BadRequestException('Invalid border column position');
+        }
+        game.tripodData.horizontalBorders[row][col] =
+          !game.tripodData.horizontalBorders[row][col];
+      } else {
+        if (!game.tripodData?.verticalBorders?.[row]) {
+          throw new BadRequestException('Invalid border position');
+        }
+        if (col < 0 || col >= game.tripodData.verticalBorders[row].length) {
+          throw new BadRequestException('Invalid border column position');
+        }
+        game.tripodData.verticalBorders[row][col] =
+          !game.tripodData.verticalBorders[row][col];
+      }
+
+      // Optimistic lock update
+      const result = await manager.update(
+        Game,
+        { id: gameId, version: currentVersion },
+        { tripodData: game.tripodData, version: currentVersion + 1 },
+      );
+
+      if (result.affected === 0) {
+        throw new ConflictException(
+          'Border modified by another operation, please retry',
+        );
+      }
+
+      game.version = currentVersion + 1;
+      return game;
+    });
   }
 }

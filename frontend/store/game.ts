@@ -1,16 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type {
-  TripodState,
-  Region,
-  TripodError,
-  TripodInputMode,
-  TripodSubMode,
-  BorderHistoryEntry,
-  TripodGameStats,
-} from "@/types/tripod";
-import { TRIPOD_CONSTANTS, isValidGridSize } from "@/lib/tripod-constants";
-import { createEmptyBorders, safeIncrementStat } from "@/lib/tripod-utils";
 
 export enum GameStatus {
   ACTIVE = "active",
@@ -51,8 +40,6 @@ export interface GameState {
   nextMutationAt: number | null;
   lastMutatedCell: { row: number; col: number; previousValue?: number } | null;
   mutationAnimating: boolean;
-  // Tripod mode state
-  tripod: TripodState | null;
 }
 
 interface GameStore extends GameState {
@@ -84,32 +71,6 @@ interface GameStore extends GameState {
   setLastMutatedCell: (
     cell: { row: number; col: number; previousValue?: number } | null,
   ) => void;
-  // Tripod mode methods
-  initTripodState: (
-    gridSize: number,
-    tripodDots: boolean[][],
-    subMode?: TripodSubMode,
-  ) => void;
-  setTripodInputMode: (mode: TripodInputMode) => void;
-  setTripodSubMode: (mode: TripodSubMode) => void;
-  toggleTripodBorder: (type: "h" | "v", row: number, col: number) => void;
-  setTripodRegions: (regions: Region[]) => void;
-  setTripodErrors: (errors: TripodError[]) => void;
-  setTripodBorders: (horizontal: boolean[][], vertical: boolean[][]) => void;
-  clearTripodState: () => void;
-  // Border undo/redo
-  undoBorder: () => void;
-  redoBorder: () => void;
-  canUndoBorder: () => boolean;
-  canRedoBorder: () => boolean;
-  clearBorderHistory: () => void;
-  // Tripod timer methods
-  startTripodTimer: () => void;
-  pauseTripodTimer: () => void;
-  resumeTripodTimer: () => void;
-  updateTripodElapsedTime: (seconds: number) => void;
-  // Tripod stats methods
-  incrementTripodStat: (stat: keyof TripodGameStats) => void;
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
@@ -150,8 +111,6 @@ const initialState: GameState = {
   nextMutationAt: null,
   lastMutatedCell: null,
   mutationAnimating: false,
-  // Tripod mode initial state
-  tripod: null,
 };
 
 // For hydration tracking
@@ -191,9 +150,9 @@ export const useGameStore = create<GameStore>()(
 
       setStatus: (status) => set({ status }),
 
-      resetGame: () => set({ ...initialState, tripod: null }),
+      resetGame: () => set({ ...initialState }),
 
-      clearGame: () => set({ ...initialState, tripod: null }),
+      clearGame: () => set({ ...initialState }),
 
       setLoading: (isLoading) => set({ isLoading }),
 
@@ -302,354 +261,6 @@ export const useGameStore = create<GameStore>()(
         set((state) => ({ mutationCount: state.mutationCount + 1 })),
       setLastMutatedCell: (lastMutatedCell) => set({ lastMutatedCell }),
 
-      // Tripod mode methods
-      initTripodState: (
-        gridSize: number,
-        tripodDots: boolean[][],
-        subMode: TripodSubMode = "full",
-      ) => {
-        // Validate grid size
-        if (!isValidGridSize(gridSize)) {
-          console.error(`Invalid grid size: ${gridSize}. Must be between 7-9.`);
-          return;
-        }
-
-        // Validate tripodDots dimensions
-        if (!tripodDots || tripodDots.length !== gridSize + 1) {
-          console.error(
-            `Invalid tripodDots dimensions. Expected ${gridSize + 1}x${gridSize + 1}`,
-          );
-          return;
-        }
-
-        const borders = createEmptyBorders(gridSize);
-
-        set({
-          tripod: {
-            gridSize,
-            tripodDots,
-            horizontalBorders: borders.horizontal,
-            verticalBorders: borders.vertical,
-            regions: [],
-            inputMode: "number",
-            errors: [],
-            subMode,
-            borderHistory: [],
-            borderFuture: [],
-            // Timer fields
-            startTime: null,
-            elapsedTime: 0,
-            isTimerPaused: false,
-            pausedAt: null,
-            totalPausedDuration: 0,
-            // Statistics
-            stats: {
-              bordersPlaced: 0,
-              bordersRemoved: 0,
-              numbersEntered: 0,
-              undoCount: 0,
-              validationCount: 0,
-            },
-          },
-        });
-      },
-
-      setTripodInputMode: (mode) =>
-        set((state) => ({
-          tripod: state.tripod ? { ...state.tripod, inputMode: mode } : null,
-        })),
-
-      setTripodSubMode: (mode) =>
-        set((state) => ({
-          tripod: state.tripod ? { ...state.tripod, subMode: mode } : null,
-        })),
-
-      toggleTripodBorder: (type, row, col) =>
-        set((state) => {
-          if (!state.tripod) return state;
-
-          // Get current border value before toggle
-          const currentValue =
-            type === "h"
-              ? (state.tripod.horizontalBorders[row]?.[col] ?? false)
-              : (state.tripod.verticalBorders[row]?.[col] ?? false);
-
-          // Create history entry with value BEFORE the change
-          const historyEntry: BorderHistoryEntry = {
-            type,
-            row,
-            col,
-            value: currentValue,
-          };
-
-          const newTripod = { ...state.tripod };
-
-          if (type === "h") {
-            const newHorizontal = state.tripod.horizontalBorders.map((r, i) =>
-              i === row ? r.map((v, j) => (j === col ? !v : v)) : [...r],
-            );
-            newTripod.horizontalBorders = newHorizontal;
-          } else {
-            const newVertical = state.tripod.verticalBorders.map((r, i) =>
-              i === row ? r.map((v, j) => (j === col ? !v : v)) : [...r],
-            );
-            newTripod.verticalBorders = newVertical;
-          }
-
-          // Save to history with size limit (FIFO)
-          let newHistory = [...state.tripod.borderHistory, historyEntry];
-          if (newHistory.length > TRIPOD_CONSTANTS.MAX_HISTORY_SIZE) {
-            // Remove oldest entries
-            newHistory = newHistory.slice(
-              newHistory.length - TRIPOD_CONSTANTS.MAX_HISTORY_SIZE,
-            );
-          }
-          newTripod.borderHistory = newHistory;
-          newTripod.borderFuture = [];
-
-          // Track stats with overflow protection
-          const statKey = currentValue ? "bordersRemoved" : "bordersPlaced";
-          newTripod.stats = {
-            ...state.tripod.stats,
-            [statKey]: safeIncrementStat(state.tripod.stats[statKey]),
-          };
-
-          return { tripod: newTripod };
-        }),
-
-      setTripodRegions: (regions) =>
-        set((state) => ({
-          tripod: state.tripod ? { ...state.tripod, regions } : null,
-        })),
-
-      setTripodErrors: (errors) =>
-        set((state) => ({
-          tripod: state.tripod ? { ...state.tripod, errors } : null,
-        })),
-
-      setTripodBorders: (horizontal, vertical) =>
-        set((state) => ({
-          tripod: state.tripod
-            ? {
-                ...state.tripod,
-                horizontalBorders: horizontal,
-                verticalBorders: vertical,
-              }
-            : null,
-        })),
-
-      clearTripodState: () => set({ tripod: null }),
-
-      // Border undo/redo methods
-      undoBorder: () =>
-        set((state) => {
-          if (!state.tripod) return state;
-
-          // Check if history is empty
-          if (state.tripod.borderHistory.length === 0) {
-            console.warn("No border actions to undo");
-            return state;
-          }
-
-          const history = [...state.tripod.borderHistory];
-          const entry = history.pop()!;
-
-          // Current value (after the action we're undoing) - this goes to future
-          const currentValue =
-            entry.type === "h"
-              ? (state.tripod.horizontalBorders[entry.row]?.[entry.col] ??
-                false)
-              : (state.tripod.verticalBorders[entry.row]?.[entry.col] ?? false);
-
-          const futureEntry: BorderHistoryEntry = {
-            ...entry,
-            value: currentValue,
-          };
-
-          const newTripod = { ...state.tripod };
-
-          // Restore the previous value
-          if (entry.type === "h") {
-            const newHorizontal = state.tripod.horizontalBorders.map((r, i) =>
-              i === entry.row
-                ? r.map((v, j) => (j === entry.col ? entry.value : v))
-                : [...r],
-            );
-            newTripod.horizontalBorders = newHorizontal;
-          } else {
-            const newVertical = state.tripod.verticalBorders.map((r, i) =>
-              i === entry.row
-                ? r.map((v, j) => (j === entry.col ? entry.value : v))
-                : [...r],
-            );
-            newTripod.verticalBorders = newVertical;
-          }
-
-          newTripod.borderHistory = history;
-          newTripod.borderFuture = [...state.tripod.borderFuture, futureEntry];
-
-          // Increment undo count with overflow protection
-          newTripod.stats = {
-            ...state.tripod.stats,
-            undoCount: safeIncrementStat(state.tripod.stats.undoCount),
-          };
-
-          return { tripod: newTripod };
-        }),
-
-      redoBorder: () =>
-        set((state) => {
-          if (!state.tripod || state.tripod.borderFuture.length === 0)
-            return state;
-
-          const future = [...state.tripod.borderFuture];
-          const entry = future.pop()!;
-
-          // Current value (before redo) - this goes to history
-          const currentValue =
-            entry.type === "h"
-              ? (state.tripod.horizontalBorders[entry.row]?.[entry.col] ??
-                false)
-              : (state.tripod.verticalBorders[entry.row]?.[entry.col] ?? false);
-
-          const historyEntry: BorderHistoryEntry = {
-            ...entry,
-            value: currentValue,
-          };
-
-          const newTripod = { ...state.tripod };
-
-          // Apply the redo value
-          if (entry.type === "h") {
-            const newHorizontal = state.tripod.horizontalBorders.map((r, i) =>
-              i === entry.row
-                ? r.map((v, j) => (j === entry.col ? entry.value : v))
-                : [...r],
-            );
-            newTripod.horizontalBorders = newHorizontal;
-          } else {
-            const newVertical = state.tripod.verticalBorders.map((r, i) =>
-              i === entry.row
-                ? r.map((v, j) => (j === entry.col ? entry.value : v))
-                : [...r],
-            );
-            newTripod.verticalBorders = newVertical;
-          }
-
-          newTripod.borderHistory = [
-            ...state.tripod.borderHistory,
-            historyEntry,
-          ];
-          newTripod.borderFuture = future;
-
-          return { tripod: newTripod };
-        }),
-
-      canUndoBorder: (): boolean => {
-        const state = useGameStore.getState();
-        return (state.tripod?.borderHistory.length ?? 0) > 0;
-      },
-
-      canRedoBorder: (): boolean => {
-        const state = useGameStore.getState();
-        return (state.tripod?.borderFuture.length ?? 0) > 0;
-      },
-
-      clearBorderHistory: () =>
-        set((state) => ({
-          tripod: state.tripod
-            ? { ...state.tripod, borderHistory: [], borderFuture: [] }
-            : null,
-        })),
-
-      // Tripod timer methods
-      startTripodTimer: () =>
-        set((state) => {
-          if (!state.tripod) return state;
-
-          return {
-            tripod: {
-              ...state.tripod,
-              startTime: Date.now(),
-              elapsedTime: 0,
-              isTimerPaused: false,
-              pausedAt: null,
-              totalPausedDuration: 0,
-            },
-          };
-        }),
-
-      pauseTripodTimer: () =>
-        set((state) => {
-          if (!state.tripod || state.tripod.isTimerPaused) return state; // Prevent double-pause
-
-          return {
-            tripod: {
-              ...state.tripod,
-              isTimerPaused: true,
-              pausedAt: Date.now(), // Record when paused
-            },
-          };
-        }),
-
-      resumeTripodTimer: () =>
-        set((state) => {
-          if (!state.tripod) return state;
-
-          // Validate we're actually paused
-          if (!state.tripod.isTimerPaused || !state.tripod.pausedAt) {
-            console.warn("Cannot resume timer: not currently paused");
-            return state;
-          }
-
-          // Calculate duration of this pause and add to total
-          const pauseDuration = Date.now() - state.tripod.pausedAt;
-
-          // Validate pause duration is reasonable (not negative)
-          if (pauseDuration < 0) {
-            console.error("Invalid pause duration detected");
-            return state;
-          }
-
-          return {
-            tripod: {
-              ...state.tripod,
-              isTimerPaused: false,
-              pausedAt: null,
-              totalPausedDuration:
-                state.tripod.totalPausedDuration + pauseDuration,
-            },
-          };
-        }),
-
-      updateTripodElapsedTime: (seconds: number) =>
-        set((state) => ({
-          tripod: state.tripod
-            ? {
-                ...state.tripod,
-                elapsedTime: seconds,
-              }
-            : null,
-        })),
-
-      // Tripod stats methods
-      incrementTripodStat: (stat: keyof TripodGameStats) =>
-        set((state) => {
-          if (!state.tripod) return state;
-          const currentValue = state.tripod.stats[stat];
-          // Only increment if it's a number (not completedAt which is optional)
-          if (typeof currentValue !== "number") return state;
-          return {
-            tripod: {
-              ...state.tripod,
-              stats: {
-                ...state.tripod.stats,
-                [stat]: safeIncrementStat(currentValue),
-              },
-            },
-          };
-        }),
-
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) =>
         set({ _hasHydrated: hasHydrated }),
@@ -665,40 +276,14 @@ export const useGameStore = create<GameStore>()(
         }
         state?.setHasHydrated(true);
       },
+      // Simple merge without tripod-specific logic
       merge: (persistedState, currentState) => {
         try {
           if (persistedState && typeof persistedState === "object") {
-            const merged = {
+            return {
               ...currentState,
               ...(persistedState as Partial<GameState>),
             };
-
-            // Trim history if too large on rehydration
-            if (
-              merged.tripod?.borderHistory &&
-              merged.tripod.borderHistory.length >
-                TRIPOD_CONSTANTS.MAX_HISTORY_SIZE
-            ) {
-              const oldLength =
-                (persistedState as Partial<GameState>).tripod?.borderHistory
-                  ?.length || 0;
-              merged.tripod.borderHistory = merged.tripod.borderHistory.slice(
-                -TRIPOD_CONSTANTS.MAX_HISTORY_SIZE,
-              );
-              console.log(
-                `Trimmed border history from ${oldLength} to ${TRIPOD_CONSTANTS.MAX_HISTORY_SIZE}`,
-              );
-            }
-            if (
-              merged.tripod?.borderFuture &&
-              merged.tripod.borderFuture.length >
-                TRIPOD_CONSTANTS.MAX_HISTORY_SIZE
-            ) {
-              merged.tripod.borderFuture = [];
-              console.log("Cleared oversized redo history on rehydration");
-            }
-
-            return merged;
           }
         } catch (error) {
           console.error("Corrupted game state, resetting:", error);

@@ -4,15 +4,15 @@
  */
 
 export interface BorderHistoryEntry {
-  type: 'h' | 'v';
+  type: "h" | "v";
   row: number;
   col: number;
   value: boolean; // value BEFORE the change
 }
 
 export interface TripodBorders {
-  horizontal: boolean[][]; // gridSize × (gridSize+1)
-  vertical: boolean[][];   // (gridSize+1) × gridSize
+  horizontal: boolean[][]; // (gridSize+1) × gridSize
+  vertical: boolean[][]; // gridSize × (gridSize+1)
 }
 
 export interface Region {
@@ -24,8 +24,15 @@ export interface Region {
 }
 
 export interface TripodError {
-  type: 'region_size' | 'not_connected' | 'four_way' | 'tripod_mismatch' | 'sudoku_duplicate';
-  location: { row: number; col: number } | { vertexRow: number; vertexCol: number };
+  type:
+    | "region_size"
+    | "not_connected"
+    | "four_way"
+    | "tripod_mismatch"
+    | "sudoku_duplicate";
+  location:
+    | { row: number; col: number }
+    | { vertexRow: number; vertexCol: number };
   message: string;
 }
 
@@ -33,12 +40,16 @@ export interface VertexValidation {
   isValid: boolean;
   borderCount: number;
   hasDot: boolean;
-  error: 'four_way_intersection' | 'tripod_mismatch' | 'missing_tripod_dot' | null;
+  error:
+    | "four_way_intersection"
+    | "tripod_mismatch"
+    | "missing_tripod_dot"
+    | null;
 }
 
-export type TripodInputMode = 'number' | 'border';
+export type TripodInputMode = "number" | "border";
 
-export type TripodSubMode = 'borders_only' | 'sudoku_only' | 'full';
+export type TripodSubMode = "borders_only" | "sudoku_only" | "full";
 
 export interface TripodGameStats {
   bordersPlaced: number;
@@ -46,11 +57,11 @@ export interface TripodGameStats {
   numbersEntered: number;
   undoCount: number;
   validationCount: number;
-  completedAt?: number;  // timestamp when completed
+  completedAt?: number; // timestamp when completed
 }
 
 export interface TripodState {
-  gridSize: number;  // 7 or 9
+  gridSize: number; // 7 or 9
   tripodDots: boolean[][];
   horizontalBorders: boolean[][];
   verticalBorders: boolean[][];
@@ -61,10 +72,10 @@ export interface TripodState {
   borderHistory: BorderHistoryEntry[];
   borderFuture: BorderHistoryEntry[]; // for redo
   // Timer fields
-  startTime: number | null;  // timestamp when game started
-  elapsedTime: number;       // seconds elapsed (excluding paused time)
+  startTime: number | null; // timestamp when game started
+  elapsedTime: number; // seconds elapsed (excluding paused time)
   isTimerPaused: boolean;
-  pausedAt: number | null;   // timestamp when timer was paused
+  pausedAt: number | null; // timestamp when timer was paused
   totalPausedDuration: number; // total milliseconds spent paused
   // Statistics
   stats: TripodGameStats;
@@ -79,16 +90,15 @@ export interface TripodPuzzle {
   solution?: number[][];
 }
 
-// Region colors for visualization
+// Region colors for visualization - soft, harmonious pastels
 export const REGION_COLORS = [
-  '#fef3c7', // amber-100
-  '#dbeafe', // blue-100
-  '#d1fae5', // emerald-100
-  '#fce7f3', // pink-100
-  '#e0e7ff', // indigo-100
-  '#fef9c3', // yellow-100
-  '#ccfbf1', // teal-100
-  '#f3e8ff', // purple-100
-  '#ffe4e6', // rose-100
+  "rgba(239, 246, 255, 0.6)", // soft blue
+  "rgba(254, 243, 199, 0.6)", // soft yellow
+  "rgba(254, 226, 226, 0.6)", // soft red/rose
+  "rgba(220, 252, 231, 0.6)", // soft green
+  "rgba(243, 232, 255, 0.6)", // soft purple
+  "rgba(254, 215, 170, 0.6)", // soft orange
+  "rgba(207, 250, 254, 0.6)", // soft cyan
+  "rgba(252, 231, 243, 0.6)", // soft pink
+  "rgba(254, 252, 232, 0.6)", // soft lime
 ] as const;
-

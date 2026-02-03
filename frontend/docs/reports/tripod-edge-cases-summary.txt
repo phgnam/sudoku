@@ -1,0 +1,77 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║         TRIPOD MODE INPUT & INTERACTION EDGE CASES - QUICK REF           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+EDGE CASE BREAKDOWN:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 21. Keyboard spam → rapid arrow keys crash navigation                  │
+│ ✅ HANDLED                                                              │
+│ • Math.max/min clamping (useTripodGame.ts:99-112)                       │
+│ • Double bounds validation (line 115)                                   │
+│ • React state batching prevents queue overflow                          │
+│ • No async operations = no race conditions                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 22. Touch/mouse simultaneous → double-toggle borders                   │
+│ ✅ HANDLED                                                              │
+│ • 100ms debounce (useTripodGame.ts:146-155)                             │
+│ • Ref-based timestamp check (lastBorderToggleRef)                       │
+│ • Touch preventDefault blocks mouse events (BorderEdge.tsx:141)         │
+│ • isTouching state flag isolates touch path                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 23. Input mode switch mid-action → toggle border while typing number   │
+│ ⚠️ PARTIAL                                                              │
+│ • Mode checks in handlers (useTripodGame.ts:138, useTripodInput:96)     │
+│ • Space key toggles instantly (no cooldown)                             │
+│ • NumberPad disabled when inputMode=border (page.tsx:297-301)           │
+│ GAP: Rapid Space spam could interrupt input flow                        │
+│ FIX: Add 200ms cooldown to toggleMode function                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 24. Invalid number input → typing 0, negative, > 9                     │
+│ ✅ HANDLED                                                              │
+│ • Keyboard: parseInt + range check (useTripodInput.ts:113)              │
+│ • Handler: bounds validation (useTripodGame.ts:66)                      │
+│ • 0 key → clear cell (line 120)                                         │
+│ • Negative/decimal → ignored by parseInt                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 25. Mobile keyboard overlap → grid obscured                            │
+│ ⚠️ PARTIAL                                                              │
+│ • Responsive cell sizing (useMobileDetect.ts:79-92)                     │
+│ • 36-56px cell size range, viewport-based calculation                   │
+│ • Touch hit areas enlarged (BorderEdge.tsx:25: 28px vs 16px)            │
+│ GAP: No scrollIntoView on cell selection                                │
+│ FIX: Use visualViewport API + auto-scroll selected cell                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 26. Arrow navigation at edges → wraparound or no-op?                   │
+│ ✅ HANDLED (No-op)                                                      │
+│ • Clamping prevents wraparound (useTripodGame.ts:100-111)               │
+│ • Up at row 0 → stays at 0 (Math.max)                                   │
+│ • Down at max → stays at max (Math.min)                                 │
+│ • Consistent Sudoku UX pattern                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+─────────────────────────────────────────────────────────────────────────────
+
+SCORE: 4/6 HANDLED ✅, 2/6 PARTIAL ⚠️ (67%)
+
+CRITICAL FINDINGS: None
+MODERATE GAPS: 2 (mode-switch spam, mobile scroll)
+MINOR ISSUES: 3 (undo mutex, ARIA labels, number debounce)
+
+TOP 3 FIXES:
+1. Viewport-aware scroll (mobile UX) → 2h
+2. Mode-switch cooldown (UX polish) → 30m
+3. ARIA labels (accessibility) → 1h
+
+FULL REPORT: [Report file does not exist - edge cases tracked inline above]
+
