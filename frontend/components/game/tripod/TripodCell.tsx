@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 
 // CSS keyframes for number entry animation
 const numberEntryKeyframes = `
@@ -25,7 +25,11 @@ interface TripodCellProps {
   hideNumber?: boolean;
 }
 
-export function TripodCell({
+/**
+ * TripodCell component - Memoized for performance
+ * Only re-renders when props actually change
+ */
+const TripodCellComponent = ({
   value,
   isGiven,
   isSelected,
@@ -35,7 +39,7 @@ export function TripodCell({
   onClick,
   inputMode,
   hideNumber = false,
-}: TripodCellProps) {
+}: TripodCellProps) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isTouching, setIsTouching] = useState(false);
   const prevValueRef = useRef(value);
@@ -148,4 +152,29 @@ export function TripodCell({
       </div>
     </>
   );
-}
+};
+
+/**
+ * Memoized TripodCell with custom comparison
+ * Prevents unnecessary re-renders when props haven't changed
+ */
+export const TripodCell = memo<TripodCellProps>(
+  TripodCellComponent,
+  (prev, next) => {
+    // Custom comparison for performance
+    // Only re-render if these specific props change
+    return (
+      prev.value === next.value &&
+      prev.isSelected === next.isSelected &&
+      prev.isHighlighted === next.isHighlighted &&
+      prev.hasError === next.hasError &&
+      prev.isGiven === next.isGiven &&
+      prev.regionColor === next.regionColor &&
+      prev.inputMode === next.inputMode &&
+      prev.hideNumber === next.hideNumber
+      // onClick is excluded - function reference changes don't matter
+    );
+  }
+);
+
+TripodCell.displayName = 'TripodCell';

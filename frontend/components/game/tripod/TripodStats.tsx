@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { useGameStore } from "@/store/game";
+import { useTripodStore } from "@/store/tripod";
 
 /**
  * TripodStats - Collapsible panel showing game statistics
  */
 export function TripodStats() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const tripod = useGameStore((state) => state.tripod);
+  const tripod = useTripodStore((state) => state.tripod);
 
   const stats = tripod?.stats;
   const elapsedTime = tripod?.elapsedTime ?? 0;

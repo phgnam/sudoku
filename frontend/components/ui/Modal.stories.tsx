@@ -17,6 +17,7 @@ const meta = {
     },
     showCloseButton: { control: "boolean" },
     isOpen: { control: "boolean" },
+    children: { control: false }, // Exclude children from controls
   },
   args: {
     onClose: fn(),
@@ -54,7 +55,7 @@ export const Default: Story = {
   args: {
     size: "md",
     showCloseButton: true,
-  },
+  } as any,
 };
 
 export const Small: Story = {
@@ -62,7 +63,7 @@ export const Small: Story = {
   args: {
     size: "sm",
     showCloseButton: true,
-  },
+  } as any,
 };
 
 export const Large: Story = {
@@ -70,5 +71,5 @@ export const Large: Story = {
   args: {
     size: "lg",
     showCloseButton: true,
-  },
+  } as any,
 };

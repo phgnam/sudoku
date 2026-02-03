@@ -12,12 +12,13 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     inputMode: { control: "radio", options: ["number", "border"] },
+    subMode: { control: "radio", options: ["borders_only", "sudoku_only", "full"] },
     cellSize: { control: { type: "number", min: 30, max: 80 } },
   },
   args: {
     onCellSelect: fn(),
     onBorderToggle: fn(),
-    getBorderToggleability: () => "normal", // Dummy implementation
+    getBorderToggleability: () => "can_toggle_on", // Dummy implementation
   },
 } satisfies Meta<typeof TripodGrid>;
 
@@ -62,14 +63,16 @@ mockVerticalBorders[2][1] = true;
 
 const mockRegions: Region[] = [
   {
-    id: "r1",
+    id: 1,
     cells: [
       { row: 0, col: 0 },
       { row: 0, col: 1 },
       { row: 1, col: 0 },
       { row: 1, col: 1 },
     ],
+    size: 4,
     color: "#dbeafe", // Blue 100
+    isValid: true,
   },
 ];
 
@@ -118,3 +121,31 @@ export const BorderMode: Story = {
     inputMode: "border",
   },
 };
+
+/** SubMode: borders_only - hide numbers, focus on region drawing */
+export const SubModeBordersOnly: Story = {
+  args: {
+    ...Default.args,
+    subMode: "borders_only",
+    inputMode: "border",
+  },
+};
+
+/** SubMode: sudoku_only - pre-drawn regions, numbers only */
+export const SubModeSudokuOnly: Story = {
+  args: {
+    ...WithRegions.args,
+    subMode: "sudoku_only",
+    inputMode: "number",
+  },
+};
+
+/** SubMode: full - complete Tripod experience (default) */
+export const SubModeFull: Story = {
+  args: {
+    ...WithRegions.args,
+    subMode: "full",
+    inputMode: "number",
+  },
+};
+

@@ -111,6 +111,7 @@ export function TripodGrid({
             gridTemplateRows: `repeat(${gridSize}, ${CELL_SIZE}px)`,
             left: 0,
             top: 0,
+            contain: "layout style paint", // CSS containment for performance
           }}
         >
           {cells.map((row, r) =>

@@ -68,3 +68,62 @@ export const InRegion: Story = {
     regionColor: "#e0f2fe", // Sky 100
   },
 };
+
+/** Border mode - cell shows border preview */
+export const BorderModePreview: Story = {
+  args: {
+    value: 0,
+    inputMode: "border",
+    isSelected: true,
+  },
+};
+
+/** Selected in border mode */
+export const SelectedInBorderMode: Story = {
+  args: {
+    value: 5,
+    inputMode: "border",
+    isSelected: true,
+  },
+};
+
+/** Highlighted cell (same value as selected) */
+export const Highlighted: Story = {
+  args: {
+    value: 7,
+    isHighlighted: true,
+  },
+};
+
+/** Selected with value and region color */
+export const SelectedInRegion: Story = {
+  args: {
+    value: 5,
+    isSelected: true,
+    regionColor: "#d1fae5", // Emerald 100
+  },
+};
+
+/** Error in given cell (invalid state) */
+export const ErrorInGiven: Story = {
+  args: {
+    value: 9,
+    isGiven: true,
+    hasError: true,
+  },
+};
+
+/** Large value in small cell */
+export const SmallCell: Story = {
+  args: {
+    value: 9,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Cell with minimum size for touch devices",
+      },
+    },
+  },
+};
+

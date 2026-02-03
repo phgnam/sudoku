@@ -8,3 +8,4 @@ export { SubModeSelector } from "./SubModeSelector";
 export { UndoRedoControls } from "./UndoRedoControls";
 export { TripodStats } from "./TripodStats";
 export { CompletionCelebration } from "./CompletionCelebration";
+export { TripodGameLayout } from "./TripodGameLayout";
