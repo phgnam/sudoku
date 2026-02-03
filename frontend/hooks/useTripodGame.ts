@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useGameStore } from "@/store/game";
+import { useTripodStore } from "@/store/tripod";
 import { useTripodInput } from "./useTripodInput";
 import { useBorderValidation } from "./useBorderValidation";
 import { toast } from "@/components/ui/Toast";
@@ -11,9 +11,13 @@ import { isWithinBounds } from "@/lib/tripod-utils";
 
 interface UseTripodGameOptions {
   gridSize?: number;
+  onBorderToggle?: (type: "h" | "v", row: number, col: number) => void;
 }
 
-export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
+export function useTripodGame({
+  gridSize = 7,
+  onBorderToggle,
+}: UseTripodGameOptions = {}) {
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
     col: number;
@@ -32,8 +36,8 @@ export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
   // Debounce ref for border toggle
   const lastBorderToggleRef = useRef<number>(0);
 
-  const tripod = useGameStore((state) => state.tripod);
-  const toggleTripodBorder = useGameStore((state) => state.toggleTripodBorder);
+  const tripod = useTripodStore((state) => state.tripod);
+  const toggleBorder = useTripodStore((state) => state.toggleBorder);
 
   // Border validation hook
   const { canToggleBorder, getBorderToggleability } = useBorderValidation({
@@ -159,9 +163,16 @@ export function useTripodGame({ gridSize = 7 }: UseTripodGameOptions = {}) {
         return;
       }
 
-      toggleTripodBorder(type, row, col);
+      toggleBorder(type, row, col);
+      onBorderToggle?.(type, row, col);
     },
-    [inputMode, tripod?.subMode, toggleTripodBorder, canToggleBorder],
+    [
+      inputMode,
+      tripod?.subMode,
+      toggleBorder,
+      canToggleBorder,
+      onBorderToggle,
+    ],
   );
 
   const handleModeChange = useCallback(

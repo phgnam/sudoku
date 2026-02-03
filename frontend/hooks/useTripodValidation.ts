@@ -3,107 +3,30 @@
 import { useCallback, useMemo } from "react";
 import type { Region, TripodError, VertexValidation } from "@/types/tripod";
 import { REGION_COLORS } from "@/types/tripod";
-import { TRIPOD_CONSTANTS } from "@/lib/tripod-constants";
 import { isVertexWithinBounds } from "@/lib/tripod-utils";
+import {
+  findDuplicates,
+  isGridComplete,
+  getRowValues,
+  getColValues,
+} from "@/lib/validation-utils";
+import {
+  detectRegions as detectRegionsBase,
+  type TripodBorders,
+} from "@/lib/tripod-region-detection";
 
-interface TripodBorders {
-  horizontal: boolean[][];
-  vertical: boolean[][];
-}
-
+/**
+ * Wrapper for detectRegions that adds frontend-specific region metadata
+ */
 function detectRegions(borders: TripodBorders, gridSize: number): Region[] {
-  const visited: boolean[][] = Array(gridSize)
-    .fill(null)
-    .map(() => Array(gridSize).fill(false));
-  const regions: Region[] = [];
-  let regionId = 0;
+  const baseRegions = detectRegionsBase(borders, gridSize);
 
-  const bfs = (
-    startR: number,
-    startC: number,
-  ): Array<{ row: number; col: number }> => {
-    const queue: Array<{ row: number; col: number }> = [];
-    const cells: Array<{ row: number; col: number }> = [];
-
-    // Mark start cell as visited and add to queue
-    visited[startR][startC] = true;
-    queue.push({ row: startR, col: startC });
-
-    let iterations = 0;
-
-    while (queue.length > 0) {
-      // Prevent infinite loops
-      if (++iterations > TRIPOD_CONSTANTS.MAX_BFS_ITERATIONS) {
-        console.error(
-          "BFS exceeded maximum iterations, possible infinite loop",
-        );
-        break;
-      }
-
-      const { row, col } = queue.shift()!;
-      cells.push({ row, col });
-
-      // Check all four neighbors
-      const neighbors = [
-        {
-          r: row - 1,
-          c: col,
-          hasBorder: row > 0 && borders.horizontal[row]?.[col],
-        },
-        {
-          r: row + 1,
-          c: col,
-          hasBorder: row < gridSize - 1 && borders.horizontal[row + 1]?.[col],
-        },
-        {
-          r: row,
-          c: col - 1,
-          hasBorder: col > 0 && borders.vertical[row]?.[col],
-        },
-        {
-          r: row,
-          c: col + 1,
-          hasBorder: col < gridSize - 1 && borders.vertical[row]?.[col + 1],
-        },
-      ];
-
-      for (const { r, c, hasBorder } of neighbors) {
-        // Check bounds
-        if (r < 0 || r >= gridSize || c < 0 || c >= gridSize) continue;
-
-        // Skip if already visited
-        if (visited[r]?.[c]) continue;
-
-        // Skip if there's a border blocking this neighbor
-        if (hasBorder) continue;
-
-        // Mark as visited and add to queue
-        visited[r][c] = true;
-        queue.push({ row: r, col: c });
-      }
-    }
-    return cells;
-  };
-
-  for (let r = 0; r < gridSize; r++) {
-    for (let c = 0; c < gridSize; c++) {
-      if (!visited[r][c]) {
-        const cells = bfs(r, c);
-        if (cells.length > 0) {
-          // Skip empty regions
-          regions.push({
-            id: regionId,
-            cells,
-            size: cells.length,
-            color: REGION_COLORS[regionId % REGION_COLORS.length],
-            isValid: cells.length === gridSize,
-          });
-          regionId++;
-        }
-      }
-    }
-  }
-  return regions;
+  // Add frontend-specific metadata (color, isValid)
+  return baseRegions.map((region) => ({
+    ...region,
+    color: REGION_COLORS[region.id % REGION_COLORS.length],
+    isValid: region.size === gridSize,
+  }));
 }
 
 function countBordersAtVertex(
@@ -229,13 +152,8 @@ export function useTripodValidation({
         .map(({ row, col }) => cells[row]?.[col] ?? 0)
         .filter((v) => v !== 0);
 
-      // Track duplicates efficiently
-      const duplicates = new Set<number>();
-      const seen = new Set<number>();
-      values.forEach((v) => {
-        if (seen.has(v)) duplicates.add(v);
-        seen.add(v);
-      });
+      // Use shared utility for duplicate detection
+      const duplicates = findDuplicates(values);
 
       // Report all duplicates in one error
       if (duplicates.size > 0) {
@@ -247,14 +165,8 @@ export function useTripodValidation({
       }
     });
     for (let r = 0; r < gridSize; r++) {
-      const rowValues = (cells[r] ?? []).filter((v) => v !== 0);
-
-      const duplicates = new Set<number>();
-      const seen = new Set<number>();
-      rowValues.forEach((v) => {
-        if (seen.has(v)) duplicates.add(v);
-        seen.add(v);
-      });
+      const rowValues = getRowValues(cells, r);
+      const duplicates = findDuplicates(rowValues);
 
       if (duplicates.size > 0) {
         errors.push({
@@ -265,16 +177,8 @@ export function useTripodValidation({
       }
     }
     for (let c = 0; c < gridSize; c++) {
-      const colValues = cells
-        .map((row) => row?.[c] ?? 0)
-        .filter((v) => v !== 0);
-
-      const duplicates = new Set<number>();
-      const seen = new Set<number>();
-      colValues.forEach((v) => {
-        if (seen.has(v)) duplicates.add(v);
-        seen.add(v);
-      });
+      const colValues = getColValues(cells, c);
+      const duplicates = findDuplicates(colValues);
 
       if (duplicates.size > 0) {
         errors.push({
@@ -286,40 +190,36 @@ export function useTripodValidation({
     }
     let isComplete = errors.length === 0;
     if (isComplete) {
-      outer: for (let r = 0; r < gridSize; r++) {
-        for (let c = 0; c < gridSize; c++) {
-          if (!cells[r]?.[c] || cells[r][c] === 0) {
-            isComplete = false;
-            break outer;
-          }
-        }
-      }
+      isComplete = isGridComplete(cells);
     }
     return { isValid: errors.length === 0, errors, regions, isComplete };
   }, [gridSize, cells, borders, tripodDots, regions]);
 
+  // Memoize validation result to avoid recalculation
+  const validationResult = useMemo(() => validateAll(), [validateAll]);
+
   const getCellErrors = useCallback(
     (row: number, col: number): TripodError[] => {
-      return validateAll().errors.filter(
+      return validationResult.errors.filter(
         (e) =>
           "row" in e.location &&
           e.location.row === row &&
           e.location.col === col,
       );
     },
-    [validateAll],
+    [validationResult],
   );
 
   const getVertexErrors = useCallback(
     (vertexRow: number, vertexCol: number): TripodError[] => {
-      return validateAll().errors.filter(
+      return validationResult.errors.filter(
         (e) =>
           "vertexRow" in e.location &&
           e.location.vertexRow === vertexRow &&
           e.location.vertexCol === vertexCol,
       );
     },
-    [validateAll],
+    [validationResult],
   );
 
   const isVertexSatisfied = useCallback(
